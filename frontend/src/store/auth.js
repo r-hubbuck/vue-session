@@ -23,7 +23,7 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async setCsrfToken() {
-      await fetch('http://localhost:8000/api/set-csrf-token', {
+      await fetch('http://localhost:9000/api/set-csrf-token', {
         method: 'GET',
         credentials: 'include',
       })
@@ -32,7 +32,7 @@ export const useAuthStore = defineStore('auth', {
     async verifyMember(formData, router = null) {
         console.log(this.formData)
         try {
-            const response = await fetch('http://localhost:8000/api/verify-member', {
+            const response = await fetch('http://localhost:9000/api/verify-member', {
                 method: 'POST',
                 body: JSON.stringify(formData),
                 headers: {
@@ -59,7 +59,7 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async login(email, password, router = null) {
-      const response = await fetch('http://localhost:8000/api/login', {
+      const response = await fetch('http://localhost:9000/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,7 +92,7 @@ export const useAuthStore = defineStore('auth', {
     async verify(code, router = null) {
       console.log("run verify")
       try {
-        const response = await fetch('http://localhost:8000/api/code-check', {
+        const response = await fetch('http://localhost:9000/api/code-check', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -130,7 +130,7 @@ export const useAuthStore = defineStore('auth', {
 
     async logout(router = null) {
       try {
-        const response = await fetch('http://localhost:8000/api/logout', {
+        const response = await fetch('http://localhost:9000/api/logout', {
           method: 'POST',
           headers: {
             'X-CSRFToken': getCSRFToken(),
@@ -156,7 +156,7 @@ export const useAuthStore = defineStore('auth', {
 
     async fetchUser() {
       try {
-        const response = await fetch('http://localhost:8000/api/user', {
+        const response = await fetch('http://localhost:9000/api/user', {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
@@ -181,7 +181,7 @@ export const useAuthStore = defineStore('auth', {
 
     async getChapters() {
         try {
-            const response = await fetch('http://localhost:8000/api/chapter-list', {
+            const response = await fetch('http://localhost:9000/api/chapter-list', {
               credentials: 'include',
               headers: {
                 'Content-Type': 'application/json',
