@@ -8,7 +8,7 @@
             </div> 
             <div class="form-group row">
                 <label class="form-label" for="chapter">Chapter:</label>
-                <select class="form-control" v-model="formData.selectedChapter" id="chapter">
+                <select class="form-control chapter-select" v-model="formData.chapter" id="chapter" required>
                     <option v-for="chapter in chapters" :key="chapter.id" :value="chapter.id">
                         {{ chapter.title }}
                     </option>
@@ -16,7 +16,7 @@
             </div>
             <div class="form-group row">
                 <label class="form-label" for="year">Graduation Year:</label>
-                <select class="form-control" id="year" v-model="formData.selectedYear" @change="handleYearChange">
+                <select class="form-control" id="year" v-model="formData.year" @change="handleYearChange" required>
                     <option v-for="year in years" :key="year" :value="year">
                         {{ year }}
                     </option>
@@ -27,7 +27,6 @@
             </div>
             <button class="btn btn-primary mt-5" type="submit">Submit</button> 
         </form> 
-        <!-- <p v-if= "error" class="error">{{error}}</p>  -->
     </div> 
 </template>
 
@@ -52,9 +51,9 @@ export default {
             chapters: [],
             years: this.generateYearRange(1900, new Date().getFullYear()),
             formData: {
-                selectedChapter: "",
+                chapter: "",
                 email: "",
-                selectedYear: new Date().getFullYear(),
+                year: new Date().getFullYear(),
             }
         }
     },
@@ -67,7 +66,7 @@ export default {
             return yearRange;
         },
         handleYearChange(event) {
-            this.selectedYear = parseInt(event.target.value);
+            this.formData.year = parseInt(event.target.value);
         },
         async submitVerifyForm() {
             console.log(this.formData)
@@ -76,9 +75,9 @@ export default {
         },
         resetForm() {
           this.formData = {
-            selectedChapter: "",
+            chapter: "",
             email: "",
-            selectedYear: new Date().getFullYear(),
+            year: new Date().getFullYear(),
           };
         }
     },

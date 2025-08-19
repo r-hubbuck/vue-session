@@ -58,6 +58,10 @@ button:focus-visible {
   padding: 2em;
 }
 
+.chapter-select {
+    min-width: 450px;
+}
+
 #app {
   max-width: 1280px;
   margin: 0 auto;
