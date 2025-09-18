@@ -1,6 +1,10 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
-from .views import VerifyMemberAPIView, ChapterListAPIView
+from .views import AddressViewSet, VerifyMemberAPIView, ChapterListAPIView
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register(r'api/addresses', AddressViewSet, basename='address')
 
 urlpatterns = [
     path('api/set-csrf-token', views.set_csrf_token, name='set_csrf_token'),
@@ -12,4 +16,4 @@ urlpatterns = [
     path('api/chapter-list', ChapterListAPIView.as_view(), name='chapter_list'),
     path('api/verify-member', VerifyMemberAPIView.as_view(), name='verify_member'),
     path('api/activate/<str:uidb64>/<str:token>/', views.activate, name='activate'),
-]
+] + router.urls  # Add router URLs to existing patterns

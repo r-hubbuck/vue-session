@@ -12,18 +12,21 @@ from django.contrib.auth import authenticate, login, logout, get_user_model
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, generics, viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
+from rest_framework.exceptions import NotFound, PermissionDenied
+from django.shortcuts import get_object_or_404
 
 from .tokens import account_activation_token
 from .utils import send_sms
-from .models import CustomUser
+from .models import CustomUser, Member, Address
 from .serializers import (
     CodeValidationSerializer,
     LoginSerializer,
     CreateUserSerializer,
     VerifyMemberSerializer,
+    AddressSerializer
 )
 
 @ensure_csrf_cookie
@@ -114,14 +117,14 @@ def login_view(request):
         password = serializer.validated_data['password']
         
         print(email, password)
-        user = authenticate(request, username=email, password=password)
+        user = authenticate(request, email=email, password=password)
 
         if user:
             request.session['pk'] = user.pk
             print(user.pk)
             return redirect('code_check')  
         else:
-            if not CustomUser.objects.filter(username=email).exists():
+            if not CustomUser.objects.filter(email=email).exists():
                 return Response(
                     {'success': False, 'message': 'There is no account registered for the provided email.'}, 
                     status=status.HTTP_401_UNAUTHORIZED
@@ -157,8 +160,8 @@ def user_view(request):
     """
     if request.user.is_authenticated:
         return Response({
-            'username': request.user.username,
             'email': request.user.email
+            # 'email': request.user.email
         }, status=status.HTTP_200_OK)
     
     return Response(
@@ -172,10 +175,34 @@ def register(request):
     serializer = CreateUserSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
+        # Create Member instance from session variables
+        member_first_name = request.session.get('member_first_name', '')
+        member_middle_name = request.session.get('member_middle_name', '')
+        member_last_name = request.session.get('member_last_name', '')
+        member_chapter = request.session.get('member_chapter', '')
+        member = None
+        if member_first_name and member_last_name and member_chapter:
+            member = Member.objects.create(
+                first_name=member_first_name,
+                middle_name=member_middle_name,
+                last_name=member_last_name,
+                chapter=member_chapter,
+                phone=user.phone,
+                email=user.email
+            )
+            user.member = member
+            user.save()
+        # Create address instance from session variables
+        member_add1 = request.session.get('member_add1', '')
+        member_add2 = request.session.get('member_add2', '')
+        member_city = request.session.get('member_city', '')
+        member_state = request.session.get('member_state', '')
+        member_zip = request.session.get('member_zip', '')
+        member_add_type = request.session.get('member_add_type', '')
         current_site = get_current_site(request)
         mail_subject = 'Activate Your Account'
         message = render_to_string('registration/account_activation_email.html', {
-            'user': user,
+            'member': member,
             'domain': current_site.domain,
             'uid': urlsafe_base64_encode(force_bytes(user.pk)),
             'token': account_activation_token.make_token(user)
@@ -265,6 +292,12 @@ class VerifyMemberAPIView(APIView):
                                 ,Address.add_memid
                                 ,Address.add_email
                                 ,Address.add_email_alt
+                                ,Address.add_line1
+                                ,Address.add_line2
+                                ,Address.add_city
+                                ,Address.add_state
+                                ,Address.add_zip
+                                ,Address.add_type
                                 FROM Memblist
                                 INNER JOIN Chapters
                                 ON Memblist.mem_chpcd = Chapters.chp_code
@@ -276,12 +309,21 @@ class VerifyMemberAPIView(APIView):
             users = cursor.fetchall()
 
             if len(users) > 0:
+                member_info = {
+                    'member_first_name': users[0]['mem_fname'],
+                    'member_middle_name': users[0]['mem_mname'],
+                    'member_last_name': users[0]['mem_lname'],
+                    'member_chapter': users[0]['Chp_Name_Short']                                
+                }
+                request.session.update(member_info)
+                print(request.session.items())
                 return Response({'message': 'OK'}, status=status.HTTP_200_OK)
             else:
                 return Response({'message': 'No member record could be found. Please try again or contact tbp hq.'}, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# API view to handle account activation via email link
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def activate(request, uidb64, token):
@@ -306,4 +348,38 @@ def activate(request, uidb64, token):
             {'message': 'Invalid activation link or user not found. Please try again or contact tbp hq.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
-        
+
+# API viewset to handle address CRUD operations
+class AddressViewSet(viewsets.ModelViewSet):
+    """
+    A secure ViewSet that provides CRUD operations:
+    - GET /api/addresses/ (list user's addresses only)
+    - POST /api/addresses/ (create for user's member)
+    - GET /api/addresses/{id}/ (retrieve if owned by user)
+    - PUT /api/addresses/{id}/ (update if owned by user)
+    - DELETE /api/addresses/{id}/ (delete if owned by user)
+    """
+    serializer_class = AddressSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'put', 'delete']  # Exclude 'patch'
+    
+    def get_queryset(self):
+        # Only return addresses for the authenticated user's member
+        user = self.request.user
+        if hasattr(user, 'member'):
+            return Address.objects.filter(member=user.member).select_related('member')
+        return Address.objects.none()
+    
+    def perform_create(self, serializer):
+        # Automatically set the member to the authenticated user's member
+        if hasattr(self.request.user, 'member'):
+            serializer.save(member=self.request.user.member)
+        else:
+            raise PermissionDenied("User must have an associated member to create addresses")
+    
+    def perform_update(self, serializer):
+        # Ensure the member field cannot be changed during update
+        if hasattr(self.request.user, 'member'):
+            serializer.save(member=self.request.user.member)
+        else:
+            raise PermissionDenied("User must have an associated member")

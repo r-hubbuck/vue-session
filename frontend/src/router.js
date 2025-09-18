@@ -5,6 +5,7 @@ import Register from './pages/Register.vue'
 import Verify from './pages/Verify.vue'
 import RegisterConfirmation from './pages/RegisterConfirmation.vue'
 import CodeCheck from './pages/CodeCheck.vue'
+import AddressList from './pages/AddressList.vue'
 import { useAuthStore } from './store/auth'
 
 const routes = [
@@ -37,6 +38,11 @@ const routes = [
     path: '/code-check',
     name: 'code-check',
     component: CodeCheck,
+  },
+  {
+    path: '/addresses',
+    name: 'addresses',
+    component: AddressList,
   },
 ]
 
