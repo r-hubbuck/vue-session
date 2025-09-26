@@ -14,7 +14,7 @@
           id="email"
           type="text"
           required
-          @blur="validateEmail"
+          :disabled="loading"
         />
         <div v-if="emailError" class="text-danger mt-4 fw-bold">{{ emailError }}</div>
       </div>
@@ -28,7 +28,7 @@
           id="password"
           type="password"
           required
-          @blur="validatePassword"
+          :disabled="loading"
         />
         <div v-if="passwordError" class="text-danger mt-4 fw-bold">{{ passwordError }}</div>
       </div>
@@ -37,12 +37,20 @@
         {{ authStore.serverMessage }}
       </div>
 
-      <button class="btn btn-primary mt-5" type="submit">Login</button>
+      <button 
+        class="btn btn-primary mt-5" 
+        type="submit" 
+        :disabled="loading"
+      >
+        {{ loading ? 'Please wait...' : 'Login' }}
+      </button>
     </form>
 
     <p class="mt-3">
-      Don't have an account yet? Please
-      <RouterLink class="" to="/verify">register</RouterLink> now.
+      <RouterLink class="" to="/password-forgot">Forgot your password?</RouterLink>
+    </p>
+    <p class="mt-3">
+      Don't have an account yet? Please <RouterLink class="" to="/verify">register</RouterLink> now.
     </p>
   </div>
 </template>
@@ -64,6 +72,7 @@ export default {
       activateParam: null,
       emailError: "",
       passwordError: "",
+      loading: false,
     };
   },
   computed: {
@@ -88,6 +97,11 @@ export default {
       }
     },
     async login() {
+      // Prevent multiple submissions
+      if (this.loading) {
+        return;
+      }
+
       // Run validations before submitting
       this.validateEmail();
       this.validatePassword();
@@ -96,12 +110,22 @@ export default {
         return; // stop if there are validation errors
       }
 
-      await this.authStore.login(this.email, this.password, this.$router);
-      this.resetForm();
+      this.loading = true;
+
+      try {
+        await this.authStore.login(this.email, this.password, this.$router);
+        this.resetForm();
+      } catch (error) {
+        console.error('Login error:', error);
+      } finally {
+        this.loading = false;
+      }
     },
     resetForm() {
       this.email = "";
       this.password = "";
+      this.emailError = "";
+      this.passwordError = "";
     },
   },
   async mounted() {

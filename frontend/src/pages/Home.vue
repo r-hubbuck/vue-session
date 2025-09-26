@@ -35,8 +35,8 @@ export default {
             <p>Hi there {{ authStore.user?.email }}!</p> 
             <p>You are logged in.</p> 
             <div class="button-group">
-                <button @click="$router.push('/addresses')" class="btn-addresses">View My Addresses</button>
-                <button @click="logout" class="btn-logout">Logout</button>
+                <button @click="$router.push('/account')" class="btn btn-secondary">View My Account</button>
+                <button @click="logout" class="btn btn-danger">Logout</button>
             </div>
         </div> 
         <p v-else >You are not logged in. <RouterLink class="" to="/login">Login</RouterLink></p>

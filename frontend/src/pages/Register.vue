@@ -260,7 +260,7 @@ export default {
           this.success = "Registration successful! Please log in.";
           this.error = "";
           setTimeout(() => {
-            this.$router.push("/register-confirmation");
+            this.$router.push("/email-confirmation");
           }, 500);
         } else {
           this.error = data.error || "Registration failed";

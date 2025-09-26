@@ -1,5 +1,23 @@
-Hi, {{member.first_name}},
-
-Here is the activation link:
-
-http://{{domain}}{%url 'activate' uidb64=uid token=token%}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Account Activation</title>
+</head>
+<body>
+    <h2>Password Reset Request</h2>
+    
+    {% if member %}
+        <p>Hi {{ member.first_name }},</p>
+    {% else %}
+        <p>Hello,</p>
+    {% endif %}
+    
+    <p>Please click the link below to activate your account:</p>
+    
+    <p><a href="http://{{domain}}{%url 'activate' uidb64=uid token=token%}">Activate Account</a></p>
+    
+    <p>This link will expire for security reasons.</p>
+    
+    <p>Best regards,<br>TBP Portal Team</p>
+</body>
+</html>

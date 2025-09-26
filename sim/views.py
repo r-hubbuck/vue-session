@@ -5,7 +5,7 @@ from django.shortcuts import redirect
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.encoding import force_bytes, force_str
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth import authenticate, login, logout, get_user_model
@@ -18,15 +18,18 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import NotFound, PermissionDenied
 from django.shortcuts import get_object_or_404
 
-from .tokens import account_activation_token
-from .utils import send_sms
-from .models import CustomUser, Member, Address
+from .tokens import account_activation_token, password_reset_token
+from .models import CustomUser, Member, Address, PhoneNumbers
 from .serializers import (
     CodeValidationSerializer,
     LoginSerializer,
     CreateUserSerializer,
+    UserAccountSerializer,
     VerifyMemberSerializer,
-    AddressSerializer
+    AddressSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetConfirmSerializer,
+    PhoneNumberSerializer
 )
 
 @ensure_csrf_cookie
@@ -68,7 +71,22 @@ def code_check(request):
 
         if request.method == 'GET':
             # send_sms(code_user, user.phone)
-            print(code_user)
+            # print(code_user)
+            mail_subject = 'TBP Portal Verification Code'
+            message = render_to_string('registration/two_factor_code_email.html', {
+                'user_code': code,
+            })
+            to_email = user.email
+            
+            email_msg = EmailMultiAlternatives(
+                subject=mail_subject,
+                body='', 
+                to=[to_email]
+            )
+
+            email_msg.attach_alternative(message, "text/html")
+            email_msg.send()
+
             return Response(
                 {'success': True, 'message': 'Code check view ready'}, 
                 status=status.HTTP_200_OK
@@ -187,7 +205,7 @@ def register(request):
                 middle_name=member_middle_name,
                 last_name=member_last_name,
                 chapter=member_chapter,
-                phone=user.phone,
+                # phone=user.phone,
                 email=user.email
             )
             user.member = member
@@ -208,10 +226,10 @@ def register(request):
             'token': account_activation_token.make_token(user)
         })
         to_email = user.email
-        email = EmailMessage(
+        email_msg = EmailMessage(
             mail_subject, message, to=[to_email]
         )
-        email.send()
+        email_msg.send()
         return Response({'success': 'User registered successfully'}, status=status.HTTP_201_CREATED)
     else:
         return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -339,15 +357,119 @@ def activate(request, uidb64, token):
         user = None
 
     if user is not None and account_activation_token.check_token(user, token):
+        account_activation_token.mark_token_used(user, token)
         user.is_active = True
         user.save()
-
         return redirect('http://localhost:5173/login?activate=true')
     else:
-        return Response(
-            {'message': 'Invalid activation link or user not found. Please try again or contact tbp hq.'}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        # Token is invalid or already used - redirect to error page
+        return redirect('http://localhost:5173/email-link-error')
+        # return Response(
+        #     {'message': 'Invalid activation link or user not found. Please try again or contact tbp hq.'}, 
+        #     status=status.HTTP_400_BAD_REQUEST
+        # )
+
+# API view to handle password reset request by sending an email to the user 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def password_reset_request(request):
+    serializer = PasswordResetRequestSerializer(data=request.data)
+    if serializer.is_valid():
+        email = serializer.validated_data['email']
+        
+        try:
+            user = CustomUser.objects.get(email=email, is_active=True)
+            
+            # Generate reset link
+            current_site = get_current_site(request)
+            mail_subject = 'Password Reset Request'
+            message = render_to_string('registration/password_reset_confirm_email.html', {
+                'user': user,
+                'member': user.member if hasattr(user, 'member') else None,
+                'domain': current_site.domain,
+                'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                'token': password_reset_token.make_token(user)
+            })
+            
+            email_msg = EmailMultiAlternatives(
+                subject=mail_subject,
+                body='',  
+                to=[email]
+            )
+        
+            email_msg.attach_alternative(message, "text/html")
+            email_msg.send()
+            
+            return Response({
+                'message': 'Password reset email has been sent. Please check your inbox.'
+            }, status=status.HTTP_200_OK)
+            
+        except CustomUser.DoesNotExist:
+            # Return same message to prevent email enumeration
+            return Response({
+                'message': 'Password reset email has been sent. Please check your inbox.'
+            }, status=status.HTTP_200_OK)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# API view to handle password reset confirmation and setting a new password
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def password_reset_confirm(request, uidb64, token):
+    """
+    Confirm password reset token and handle password update.
+    GET: Validate token and redirect to frontend
+    POST: Update password if token is valid
+    """
+    User = get_user_model()
+    
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+    
+    # Check token validity for both GET and POST
+    if user is None or not password_reset_token.check_token(user, token):
+        if request.method == 'GET':
+            return redirect('http://localhost:5173/email-link-error')
+        else:
+            return Response({
+                'error': 'Invalid or expired reset link'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    if request.method == 'GET':
+        # Token is valid, redirect to password reset form on frontend
+        # DON'T mark as used yet - wait for POST
+        return redirect(f'http://localhost:5173/password-reset-confirm/{uidb64}/{token}')
+    
+    elif request.method == 'POST':
+        # Validate token again and mark as used
+        if not password_reset_token.check_token(user, token):
+            return Response({
+                'error': 'Invalid or expired reset link'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Mark token as used BEFORE processing password change
+        password_reset_token.mark_token_used(user, token)
+            
+        # Handle password update
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        if serializer.is_valid():
+            new_password = serializer.validated_data['new_password1']
+            user.set_password(new_password)
+            
+            # Force token invalidation by updating last_login
+            from django.utils import timezone
+            user.last_login = timezone.now()
+            user.save()
+            
+            return Response({
+                'message': 'Password has been reset successfully'
+            }, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 
 # API viewset to handle address CRUD operations
 class AddressViewSet(viewsets.ModelViewSet):
@@ -361,25 +483,106 @@ class AddressViewSet(viewsets.ModelViewSet):
     """
     serializer_class = AddressSerializer
     permission_classes = [IsAuthenticated]
-    http_method_names = ['get', 'post', 'put', 'delete']  # Exclude 'patch'
+    http_method_names = ['get', 'post', 'put', 'delete']  
     
     def get_queryset(self):
-        # Only return addresses for the authenticated user's member
+        # Only return addresses for the authenticated user's member_id
         user = self.request.user
         if hasattr(user, 'member'):
             return Address.objects.filter(member=user.member).select_related('member')
         return Address.objects.none()
     
     def perform_create(self, serializer):
-        # Automatically set the member to the authenticated user's member
+        # Automatically set the member to the authenticated user's member_id
         if hasattr(self.request.user, 'member'):
             serializer.save(member=self.request.user.member)
         else:
-            raise PermissionDenied("User must have an associated member to create addresses")
+            raise PermissionDenied("User must have an associated member record to create addresses")
     
     def perform_update(self, serializer):
         # Ensure the member field cannot be changed during update
         if hasattr(self.request.user, 'member'):
             serializer.save(member=self.request.user.member)
         else:
-            raise PermissionDenied("User must have an associated member")
+            raise PermissionDenied("User must have an associated member record to update addresses")
+        
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def user_account_view(request):
+    """
+    Get or update user account details (alt_email)
+    """
+    user = request.user
+    
+    if request.method == 'GET':
+        serializer = UserAccountSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    elif request.method == 'PUT':
+        serializer = UserAccountSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Phone Numbers ViewSet
+class PhoneNumberViewSet(viewsets.ModelViewSet):
+    """
+    A secure ViewSet that provides CRUD operations for phone numbers:
+    - GET /api/phone-numbers/ (list user's phone numbers only)
+    - POST /api/phone-numbers/ (create for user's member)
+    - GET /api/phone-numbers/{id}/ (retrieve if owned by user)
+    - PUT /api/phone-numbers/{id}/ (update if owned by user)
+    - DELETE /api/phone-numbers/{id}/ (delete if owned by user)
+    """
+    serializer_class = PhoneNumberSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'put', 'delete']
+    
+    def get_queryset(self):
+        # Only return phone numbers for the authenticated user's member
+        user = self.request.user
+        if hasattr(user, 'member'):
+            return PhoneNumbers.objects.filter(member=user.member).select_related('member')
+        return PhoneNumbers.objects.none()
+    
+    def perform_create(self, serializer):
+        # Automatically set the member to the authenticated user's member
+        if hasattr(self.request.user, 'member'):
+            # If this is the first phone number, make it primary by default
+            member = self.request.user.member
+            existing_phones = PhoneNumbers.objects.filter(member=member)
+            if not existing_phones.exists():
+                serializer.save(member=member, is_primary=True)
+            else:
+                serializer.save(member=member)
+        else:
+            raise PermissionDenied("User must have an associated member record to create phone numbers")
+    
+    def perform_update(self, serializer):
+        # Ensure the member field cannot be changed during update
+        if hasattr(self.request.user, 'member'):
+            member = self.request.user.member
+            
+            # If this phone is being set as primary, unset all other primary phones
+            if serializer.validated_data.get('is_primary', False):
+                PhoneNumbers.objects.filter(member=member, is_primary=True).exclude(
+                    id=self.get_object().id
+                ).update(is_primary=False)
+            
+            serializer.save(member=member)
+        else:
+            raise PermissionDenied("User must have an associated member record to update phone numbers")
+    
+    def destroy(self, request, *args, **kwargs):
+        # Prevent deletion if it's the only phone number
+        phone_number = self.get_object()
+        member = phone_number.member
+        
+        remaining_phones = PhoneNumbers.objects.filter(member=member).exclude(id=phone_number.id)
+        
+        # If deleting the primary phone and there are other phones, make one of them primary
+        if phone_number.is_primary and remaining_phones.exists():
+            remaining_phones.first().update(is_primary=True)
+        
+        return super().destroy(request, *args, **kwargs)

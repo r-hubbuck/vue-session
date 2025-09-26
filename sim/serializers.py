@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Code, CustomUser, Address
+from .models import Code, CustomUser, Address, PhoneNumbers
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 import re
@@ -94,22 +94,11 @@ class VerifyMemberSerializer(serializers.Serializer):
         return value
 
 class AddressSerializer(serializers.ModelSerializer):
-    # Member field is completely excluded - won't appear in requests OR responses
-    
-    # Add choices for add_type field
-    ADD_TYPE_CHOICES = [
-        ('Home', 'Home'),
-        ('Work', 'Work'),
-        ('School', 'School'),
-    ]
-    add_type = serializers.ChoiceField(choices=ADD_TYPE_CHOICES)
-    
     class Meta:
         model = Address
         fields = ['id', 'add_line1', 'add_line2', 'add_city', 'add_state', 'add_zip', 'add_type']
         
     def validate_add_zip(self, value):
-        """Validate zip code format"""
         if not value.replace('-', '').isdigit():
             raise serializers.ValidationError("Zip code must contain only numbers and hyphens.")
         return value
@@ -141,7 +130,131 @@ class AddressSerializer(serializers.ModelSerializer):
             
             if existing.exists():
                 raise serializers.ValidationError({
-                    'add_type': f'You already have a {add_type} address. Each member can only have one address of each type.'
+                    'add_type': f'You already have a {add_type.lower()} address. You can only have one address of each type.'
                 })
         
         return data
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+
+    def validate_email(self, value):
+        try:
+            validate_email(value)
+        except ValidationError:
+            raise serializers.ValidationError("Please enter a valid email address.")
+        
+        # Check if user exists and is active
+        if not CustomUser.objects.filter(email=value, is_active=True).exists():
+            raise serializers.ValidationError("No active account found with this email address.")
+        
+        return value
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    new_password1 = serializers.CharField(write_only=True, min_length=8)
+    new_password2 = serializers.CharField(write_only=True, min_length=8)
+
+    def validate_new_password1(self, value):
+        if len(value) < 8:
+            raise serializers.ValidationError('Password must be at least 8 characters long.')
+        if not re.search(r'[A-Z]', value):
+            raise serializers.ValidationError('Password must contain at least one uppercase letter.')
+        if not re.search(r'[a-z]', value):
+            raise serializers.ValidationError('Password must contain at least one lowercase letter.')
+        if not re.search(r'[0-9]', value):
+            raise serializers.ValidationError('Password must contain at least one number.')
+        if not re.search(r'[!@#$%^&*_=+\-.]', value):
+            raise serializers.ValidationError('Password must contain at least one special character (!@#$%^&*_=+-.)')
+        if re.search(r'[^A-Za-z0-9!@#$%^&*_=+\-.]', value):
+            raise serializers.ValidationError('Password contains invalid characters.')
+        return value
+
+    def validate_new_password2(self, value):
+        if len(value) < 8:
+            raise serializers.ValidationError('Password must be at least 8 characters long.')
+        if not re.search(r'[A-Z]', value):
+            raise serializers.ValidationError('Password must contain at least one uppercase letter.')
+        if not re.search(r'[a-z]', value):
+            raise serializers.ValidationError('Password must contain at least one lowercase letter.')
+        if not re.search(r'[0-9]', value):
+            raise serializers.ValidationError('Password must contain at least one number.')
+        if not re.search(r'[!@#$%^&*_=+\-.]', value):
+            raise serializers.ValidationError('Password must contain at least one special character (!@#$%^&*_=+-.)')
+        if re.search(r'[^A-Za-z0-9!@#$%^&*_=+\-.]', value):
+            raise serializers.ValidationError('Password contains invalid characters.')
+        return value
+
+    def validate(self, data):
+        if data['new_password1'] != data['new_password2']:
+            raise serializers.ValidationError({'new_password2': 'Passwords do not match.'})
+        return data
+
+
+class PhoneNumberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PhoneNumbers
+        fields = ['id', 'phone_number', 'phone_type', 'is_primary']
+    
+    def validate(self, data):
+        """
+        Validate that the member doesn't already have a phone of this type
+        and that only one phone can be primary
+        """
+        # Get the member from the view context
+        member = None
+        if self.context and 'request' in self.context:
+            request = self.context['request']
+            if hasattr(request.user, 'member'):
+                member = request.user.member
+        
+        if member and 'phone_type' in data:
+            phone_type = data['phone_type']
+            
+            # Check if this is an update (instance exists) or create (no instance)
+            if self.instance:
+                # For updates: check if another phone of this type exists (excluding current one)
+                existing = PhoneNumbers.objects.filter(
+                    member=member, 
+                    phone_type=phone_type
+                ).exclude(id=self.instance.id)
+            else:
+                # For creates: check if any phone of this type exists
+                existing = PhoneNumbers.objects.filter(member=member, phone_type=phone_type)
+            
+            if existing.exists():
+                raise serializers.ValidationError({
+                    'phone_type': f'You already have a {phone_type.lower()} phone number. You can only have one phone number of each type.'
+                })
+        
+        # Validate primary phone constraint
+        if member and data.get('is_primary', False):
+            # Check if another phone is already primary
+            if self.instance:
+                # For updates: check if another phone is primary (excluding current one)
+                existing_primary = PhoneNumbers.objects.filter(
+                    member=member,
+                    is_primary=True
+                ).exclude(id=self.instance.id)
+            else:
+                # For creates: check if any phone is already primary
+                existing_primary = PhoneNumbers.objects.filter(member=member, is_primary=True)
+            
+            if existing_primary.exists():
+                raise serializers.ValidationError({
+                    'is_primary': 'You can only have one primary phone number. Please uncheck the primary option on your other phone number first.'
+                })
+        
+        return data
+
+class UserAccountSerializer(serializers.ModelSerializer):
+    phone_numbers = PhoneNumberSerializer(many=True, read_only=True, source='member.phone_numbers')
+    
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'email', 'alt_email', 'phone_numbers']
+        read_only_fields = ['id', 'email']  # Email should not be editable
+    
+    def validate_alt_email(self, value):
+        if value and CustomUser.objects.filter(email=value).exists():
+            raise serializers.ValidationError('This email is already in use as a primary email.')
+        return value

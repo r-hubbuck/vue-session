@@ -3,10 +3,13 @@ import Home from './pages/Home.vue'
 import Login from './pages/Login.vue'
 import Register from './pages/Register.vue'
 import Verify from './pages/Verify.vue'
-import RegisterConfirmation from './pages/RegisterConfirmation.vue'
+import EmailConfirmation from './pages/EmailConfirmation.vue'
 import CodeCheck from './pages/CodeCheck.vue'
-import AddressList from './pages/AddressList.vue'
+import PasswordForgot from './pages/PasswordForgot.vue'
+import PasswordResetConfirm from './pages/PasswordResetConfirm.vue'
+import EmailLinkError from './pages/EmailLinkError.vue'
 import { useAuthStore } from './store/auth'
+import UserAccount from './pages/UserAccount.vue'
 
 const routes = [
   {
@@ -30,9 +33,9 @@ const routes = [
     component: Verify,
   },
   {
-    path: '/register-confirmation',
-    name: 'register-confirmation',
-    component: RegisterConfirmation,
+    path: '/email-confirmation',
+    name: 'email-confirmation',
+    component: EmailConfirmation,
   },
   {
     path: '/code-check',
@@ -40,10 +43,25 @@ const routes = [
     component: CodeCheck,
   },
   {
-    path: '/addresses',
-    name: 'addresses',
-    component: AddressList,
+    path: '/password-forgot',
+    name: 'password-forgot',
+    component: PasswordForgot,
   },
+  {
+    path: '/email-link-error',
+    name: 'email-link-error',
+    component: EmailLinkError,
+  },
+  {
+    path: '/password-reset-confirm/:uidb64/:token',
+    name: 'password-reset-confirm',
+    component: PasswordResetConfirm,
+  },
+  {
+    path: '/account',
+    name: 'account',
+    component: UserAccount,
+  }
 ]
 
 const router = createRouter({

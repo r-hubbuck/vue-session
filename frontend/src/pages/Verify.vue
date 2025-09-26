@@ -25,6 +25,7 @@
             <div v-if="authStore.serverMessage" class="text-danger mt-4 fw-bold">
                 {{ authStore.serverMessage }}
             </div>
+            <button class="btn btn-danger mt-5 me-4" type="button" @click="$router.push('/login')">Back</button>
             <button class="btn btn-primary mt-5" type="submit">Submit</button> 
         </form> 
     </div> 

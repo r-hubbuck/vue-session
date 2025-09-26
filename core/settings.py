@@ -30,7 +30,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['portal.localhost', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['dev-portal.tbp.org', 'portal.localhost', 'localhost', '127.0.0.1']
 
 
 INSTALLED_APPS = [

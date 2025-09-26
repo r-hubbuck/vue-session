@@ -110,24 +110,79 @@ export const useAuthStore = defineStore('auth', {
             this.success = 'Code is correct.'
             console.log(data.success)
             if (data.success == true) {
-            // setTimeout(() => {
-            //     this.$router.push('/')
-            // }, 500)
-            if (router) {
-              await router.push({
-                name: 'home',
-              })
+              if (router) {
+                await router.push({
+                  name: 'home',
+                })
+              }
             }
-            }
-        
         } else {
             this.error = data.error || 'Incorrect code'
         }
-    } catch (err) {
-        console.log(err)
-        this.error = 'An error occurred during verification: ' + err
-    }
+      } catch (err) {
+          console.log(err)
+          this.error = 'An error occurred during verification: ' + err
+      }
     },
+
+    async requestPasswordReset(email) {
+    try {
+      const response = await fetch('http://localhost:9000/api/password-reset-request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCSRFToken(),
+        },
+        body: JSON.stringify({ email }),
+        credentials: 'include',
+      })
+
+      const data = await response.json()
+      
+      if (response.ok) {
+        this.serverMessage = data.message || 'Password reset email sent successfully'
+        return { success: true, message: data.message }
+      } else {
+        this.serverMessage = data.error || data.message || 'Failed to send reset email'
+        return { success: false, error: data.error || data.message }
+      }
+    } catch (error) {
+      console.error('Password reset request failed', error)
+      this.serverMessage = 'An error occurred while sending the reset email'
+      return { success: false, error: 'Network error occurred' }
+    }
+  },
+
+  async confirmPasswordReset(uidb64, token, newPassword1, newPassword2) {
+    try {
+      const response = await fetch(`http://localhost:9000/api/password-reset-confirm/${uidb64}/${token}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCSRFToken(),
+        },
+        body: JSON.stringify({
+          new_password1: newPassword1,
+          new_password2: newPassword2,
+        }),
+        credentials: 'include',
+      })
+
+      const data = await response.json()
+      
+      if (response.ok) {
+        this.serverMessage = data.message || 'Password reset successfully'
+        return { success: true, message: data.message }
+      } else {
+        this.serverMessage = data.error || data.message || 'Failed to reset password'
+        return { success: false, error: data.error || data.message || data }
+      }
+    } catch (error) {
+      console.error('Password reset confirmation failed', error)
+      this.serverMessage = 'An error occurred while resetting password'
+      return { success: false, error: 'Network error occurred' }
+    }
+  },
 
     async logout(router = null) {
       try {
@@ -206,7 +261,6 @@ export const useAuthStore = defineStore('auth', {
       /*
             We save state to local storage to keep the
             state when the user reloads the page.
-
             This is a simple way to persist state. For a more robust solution,
             use pinia-persistent-state.
              */

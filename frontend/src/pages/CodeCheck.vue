@@ -1,6 +1,7 @@
 <template>
     <div class="container" >
         <h1>Code Verification</h1> 
+        <p class="mt-4 mb-3">Please check your email for a 5-digit verification code.</p>
         <form @submit.prevent="verify" >
             <div class="form-group">
                 <label class="form-label" for="code">Code:</label> 

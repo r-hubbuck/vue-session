@@ -1,10 +1,12 @@
 from django.urls import path, include
 from . import views
-from .views import AddressViewSet, VerifyMemberAPIView, ChapterListAPIView
+from .views import AddressViewSet, VerifyMemberAPIView, ChapterListAPIView, PhoneNumberViewSet
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register(r'api/addresses', AddressViewSet, basename='address')
+router.register(r'api/phone-numbers', PhoneNumberViewSet, basename='phone-numbers')
+# router.register(r'api/phone-numbers', PhoneNumberViewSet, basename='phone-numbers')
 
 urlpatterns = [
     path('api/set-csrf-token', views.set_csrf_token, name='set_csrf_token'),
@@ -16,4 +18,7 @@ urlpatterns = [
     path('api/chapter-list', ChapterListAPIView.as_view(), name='chapter_list'),
     path('api/verify-member', VerifyMemberAPIView.as_view(), name='verify_member'),
     path('api/activate/<str:uidb64>/<str:token>/', views.activate, name='activate'),
+    path('api/password-reset-request', views.password_reset_request, name='password_reset_request'),
+    path('api/password-reset-confirm/<str:uidb64>/<str:token>/', views.password_reset_confirm, name='password_reset_confirm'),
+    path('api/user-account', views.user_account_view, name='user_account'),
 ] + router.urls  # Add router URLs to existing patterns
