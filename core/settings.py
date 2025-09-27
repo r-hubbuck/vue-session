@@ -152,11 +152,12 @@ REST_FRAMEWORK = {
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "http://portal.localhost:5173"
+    "https://dev-portal.tbp.org"
+    
 ]  # Frontend URLs
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:5173',
-    'http://portal.localhost:5173'
+    "http://localhost:5173",
+    "https://dev-portal.tbp.org"
 ]  # Frontend URLs
 
 # SECURE_SSL_REDIRECT = True # Redirect any HTTP request to HTTPS
