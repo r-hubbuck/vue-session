@@ -52,6 +52,7 @@
 
 <script>
 import { getCSRFToken } from "../store/auth";
+const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000'
 
 export default {
   name: 'PasswordForgot',
@@ -84,7 +85,7 @@ export default {
       this.success = "";
 
       try {
-        const response = await fetch("http://localhost:9000/api/password-reset-request", {
+        const response = await fetch(`${apiUrl}/api/password-reset-request`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

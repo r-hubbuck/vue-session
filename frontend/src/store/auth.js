@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000'
 
 const getStoredState = () => {
     const storedState = localStorage.getItem('authState')
@@ -23,7 +24,7 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async setCsrfToken() {
-      await fetch('http://localhost:9000/api/set-csrf-token', {
+      await fetch(`${apiUrl}/api/set-csrf-token`, {
         method: 'GET',
         credentials: 'include',
       })
@@ -32,7 +33,7 @@ export const useAuthStore = defineStore('auth', {
     async verifyMember(formData, router = null) {
         console.log(this.formData)
         try {
-            const response = await fetch('http://localhost:9000/api/verify-member', {
+            const response = await fetch(`${apiUrl}/api/verify-member`, {
                 method: 'POST',
                 body: JSON.stringify(formData),
                 headers: {
@@ -60,7 +61,7 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async login(email, password, router = null) {
-      const response = await fetch('http://localhost:9000/api/login', {
+      const response = await fetch(`${apiUrl}/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +94,7 @@ export const useAuthStore = defineStore('auth', {
     async verify(code, router = null) {
       console.log("run verify")
       try {
-        const response = await fetch('http://localhost:9000/api/code-check', {
+        const response = await fetch(`${apiUrl}/api/code-check`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -127,7 +128,7 @@ export const useAuthStore = defineStore('auth', {
 
     async requestPasswordReset(email) {
     try {
-      const response = await fetch('http://localhost:9000/api/password-reset-request', {
+      const response = await fetch(`${apiUrl}/api/password-reset-request`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -155,7 +156,7 @@ export const useAuthStore = defineStore('auth', {
 
   async confirmPasswordReset(uidb64, token, newPassword1, newPassword2) {
     try {
-      const response = await fetch(`http://localhost:9000/api/password-reset-confirm/${uidb64}/${token}/`, {
+      const response = await fetch(`${apiUrl}/api/password-reset-confirm/${uidb64}/${token}/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -186,7 +187,7 @@ export const useAuthStore = defineStore('auth', {
 
     async logout(router = null) {
       try {
-        const response = await fetch('http://localhost:9000/api/logout', {
+        const response = await fetch(`${apiUrl}/api/logout`, {
           method: 'POST',
           headers: {
             'X-CSRFToken': getCSRFToken(),
@@ -212,7 +213,7 @@ export const useAuthStore = defineStore('auth', {
 
     async fetchUser() {
       try {
-        const response = await fetch('http://localhost:9000/api/user', {
+        const response = await fetch(`${apiUrl}/api/user`, {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
@@ -237,7 +238,7 @@ export const useAuthStore = defineStore('auth', {
 
     async getChapters() {
         try {
-            const response = await fetch('http://localhost:9000/api/chapter-list', {
+            const response = await fetch(`${apiUrl}/api/chapter-list`, {
               credentials: 'include',
               headers: {
                 'Content-Type': 'application/json',

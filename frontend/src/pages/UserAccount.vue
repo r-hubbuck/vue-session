@@ -306,6 +306,7 @@
 <script>
 import { useAuthStore } from '../store/auth.js'
 import { getCSRFToken } from '../store/auth.js'
+const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000'
 
 export default {
   name: 'UserAccount',
@@ -381,7 +382,7 @@ export default {
           return
         }
         
-        const response = await fetch('http://localhost:9000/api/user-account', {
+        const response = await fetch(`${apiUrl}/api/user-account`, {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -437,7 +438,7 @@ export default {
       this.accountErrors = {}
       
       try {
-        const response = await fetch('http://localhost:9000/api/user-account', {
+        const response = await fetch(`${apiUrl}/api/user-account`, {
           method: 'PUT',
           credentials: 'include',
           headers: {
@@ -529,7 +530,7 @@ export default {
         const unsetPromises = this.phoneNumbers
           .filter(phone => phone.id) // Only existing phones
           .map(phone => 
-            fetch(`http://localhost:9000/api/phone-numbers/${phone.id}/`, {
+            fetch(`${apiUrl}/api/phone-numbers/${phone.id}/`, {
               method: 'PUT',
               credentials: 'include',
               headers: {
@@ -550,7 +551,7 @@ export default {
         const updatePromises = this.phoneNumbers.map(async (phone) => {
           if (phone.id) {
             // Update existing phone
-            return fetch(`http://localhost:9000/api/phone-numbers/${phone.id}/`, {
+            return fetch(`${apiUrl}/api/phone-numbers/${phone.id}/`, {
               method: 'PUT',
               credentials: 'include',
               headers: {
@@ -565,7 +566,7 @@ export default {
             })
           } else {
             // Create new phone
-            return fetch('http://localhost:9000/api/phone-numbers/', {
+            return fetch(`${apiUrl}/api/phone-numbers/`, {
               method: 'POST',
               credentials: 'include',
               headers: {
@@ -605,7 +606,7 @@ export default {
     
     async fetchAddresses() {
       try {
-        const response = await fetch('http://localhost:9000/api/addresses/', {
+        const response = await fetch(`${apiUrl}/api/addresses/`, {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -675,7 +676,7 @@ export default {
         const promises = this.addresses.map(async (address) => {
           if (address.id) {
             // Update existing address
-            return fetch(`http://localhost:9000/api/addresses/${address.id}/`, {
+            return fetch(`${apiUrl}/api/addresses/${address.id}/`, {
               method: 'PUT',
               credentials: 'include',
               headers: {
@@ -693,7 +694,7 @@ export default {
             })
           } else {
             // Create new address
-            return fetch('http://localhost:9000/api/addresses/', {
+            return fetch(`${apiUrl}/api/addresses/`, {
               method: 'POST',
               credentials: 'include',
               headers: {

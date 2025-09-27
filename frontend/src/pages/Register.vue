@@ -116,6 +116,7 @@
 
 <script>
 import { getCSRFToken } from "../store/auth";
+const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000'
 
 export default {   
   data() {
@@ -240,7 +241,7 @@ export default {
       }
 
       try {
-        const response = await fetch("http://localhost:9000/api/register", {
+        const response = await fetch(`${apiUrl}/api/register`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
