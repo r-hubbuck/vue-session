@@ -115,20 +115,27 @@ def login_view(request):
             code_user = f"{user.code}"
             print(code, code_user)
             
-            # Send the email with verification code
-            mail_subject = 'TBP Portal Verification Code'
-            message = render_to_string('registration/two_factor_code_email.html', {
-                'user_code': code,
-            })
-            to_email = user.email
-            
-            email_msg = EmailMultiAlternatives(
-                subject=mail_subject,
-                body='', 
-                to=[to_email]
-            )
-            email_msg.attach_alternative(message, "text/html")
-            email_msg.send()
+            # Try to send email
+            try:
+                current_site = get_current_site(request)  # ADD THIS LINE
+                mail_subject = 'TBP Portal Verification Code'
+                message = render_to_string('registration/two_factor_code_email.html', {
+                    'user_code': code,
+                    'domain': current_site.domain,  # ADD THIS LINE
+                })
+                to_email = user.email
+                
+                email_msg = EmailMultiAlternatives(
+                    subject=mail_subject,
+                    body='', 
+                    to=[to_email]
+                )
+                email_msg.attach_alternative(message, "text/html")
+                email_msg.send()
+                print("Email sent successfully")
+            except Exception as e:
+                print(f"Failed to send email: {e}")
+                # Continue anyway - code is printed in console for dev testing
             
             return Response(
                 {'success': True, 'message': 'Verification code sent to your email'}, 
