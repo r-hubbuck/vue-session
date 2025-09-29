@@ -29,8 +29,8 @@ export default {
 </script>
 
 <template>
-    <div>
-        <h1>Welcome to the home page</h1>  
+    <div class="container">
+        <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50">
         <div v-if="authStore.isAuthenticated">
             <p>Hi there {{ authStore.user?.email }}!</p> 
             <p>You are logged in.</p> 

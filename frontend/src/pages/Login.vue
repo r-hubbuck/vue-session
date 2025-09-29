@@ -1,6 +1,7 @@
 <template>
-  <div class="container">
-    <h1>Login</h1>
+  <div class="container-sm mt-5">
+    <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-75">
+    <h2 class="mt-4 mb-3">Login</h2>
     <div>
       <p v-if="hasActivateParam" class="text-success">Your account has been activated!</p>
     </div>
@@ -45,7 +46,6 @@
         {{ loading ? 'Please wait...' : 'Login' }}
       </button>
     </form>
-
     <p class="mt-3">
       <RouterLink class="" to="/password-forgot">Forgot your password?</RouterLink>
     </p>
@@ -135,3 +135,10 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.container-sm {
+  max-width: 540px !important;
+  width: 100%;
+}
+</style>

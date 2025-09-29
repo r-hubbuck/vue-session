@@ -77,7 +77,6 @@ export const useAuthStore = defineStore('auth', {
       console.log(data)
       this.serverMessage = data.message
       if (data.success) {
-        this.isAuthenticated = true
         this.saveState()
         if (router) {
           await router.push({
@@ -108,6 +107,7 @@ export const useAuthStore = defineStore('auth', {
         const data = await response.json()
         console.log(data)
         if (response.ok) {
+            this.isAuthenticated = true
             this.success = 'Code is correct.'
             console.log(data.success)
             if (data.success == true) {

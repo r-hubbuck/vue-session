@@ -24,8 +24,6 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
 }
@@ -62,11 +60,26 @@ button:focus-visible {
     min-width: 450px;
 }
 
+/* Default app styling - will be overridden when navbar is present */
 #app {
-  max-width: 1280px;
+  /* max-width: 1280px; */
   margin: 0 auto;
-  padding: 2rem;
+  /* padding: 2rem; */
   text-align: center;
+  display: flex;
+  place-items: center;
+  min-height: 100vh;
+}
+
+/* When navbar is present, remove the centering constraints */
+.app-wrapper #app {
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+  display: block !important;
+  place-items: unset !important;
+  min-height: auto !important;
 }
 
 @media (prefers-color-scheme: light) {
