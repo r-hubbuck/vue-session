@@ -44,13 +44,11 @@ def set_csrf_token(request):
         status=status.HTTP_200_OK
     )
 
-@api_view(['GET', 'POST'])
+@api_view(['POST'])
 @permission_classes([AllowAny])
 def code_check(request):
     """
-    Handle SMS code verification for user login.
-    GET: Send SMS code to user (if needed)
-    POST: Verify the SMS code and login user
+    Verify the SMS code and login user
     """
     
     pk = request.session.get('pk')
@@ -65,56 +63,27 @@ def code_check(request):
     try:
         user = CustomUser.objects.get(pk=pk)
         code = user.code
-        code_user = f"{user.code}"
-        print(code, code_user)
-        # send_sms(code_user, user.phone)
-
-        if request.method == 'GET':
-            # send_sms(code_user, user.phone)
-            # print(code_user)
-            mail_subject = 'TBP Portal Verification Code'
-            message = render_to_string('registration/two_factor_code_email.html', {
-                'user_code': code,
-            })
-            to_email = user.email
-            
-            email_msg = EmailMultiAlternatives(
-                subject=mail_subject,
-                body='', 
-                to=[to_email]
-            )
-
-            email_msg.attach_alternative(message, "text/html")
-            email_msg.send()
-
-            return Response(
-                {'success': True, 'message': 'Code check view ready'}, 
-                status=status.HTTP_200_OK
-            )
         
-        elif request.method == 'POST':
-            print('checking code...')
-            serializer = CodeValidationSerializer(data=request.data)
-            if serializer.is_valid():
-                num = serializer.validated_data['code']
-                if str(code) == num:
-                    code.save()
-                    login(request, user)
-                    return Response(
-                        {'success': True, 'message': 'logged in'}, 
-                        status=status.HTTP_200_OK
-                    )
-                else:
-                    # 
-                    return Response(
-                        {'success': False, 'message': 'Invalid code'}, 
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+        serializer = CodeValidationSerializer(data=request.data)
+        if serializer.is_valid():
+            num = serializer.validated_data['code']
+            if str(code) == num:
+                code.save()
+                login(request, user)
+                return Response(
+                    {'success': True, 'message': 'logged in'}, 
+                    status=status.HTTP_200_OK
+                )
             else:
                 return Response(
-                    {'success': False, 'errors': serializer.errors}, 
+                    {'success': False, 'message': 'Invalid code'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
+        else:
+            return Response(
+                {'success': False, 'errors': serializer.errors}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
     except CustomUser.DoesNotExist:
         return Response(
             {'success': False, 'message': 'User not found'}, 
