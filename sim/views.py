@@ -126,7 +126,7 @@ def code_check(request):
 def login_view(request):
     """
     Authenticate user with email and password.
-    Sets session PK and redirects to code_check for SMS verification.
+    Sets session PK for SMS verification.
     """
  
     serializer = LoginSerializer(data=request.data)
@@ -140,7 +140,11 @@ def login_view(request):
         if user:
             request.session['pk'] = user.pk
             print(user.pk)
-            return redirect('code_check')  
+            # Return JSON instead of redirect
+            return Response(
+                {'success': True, 'message': 'Authentication successful'}, 
+                status=status.HTTP_200_OK
+            )
         else:
             if not CustomUser.objects.filter(email=email).exists():
                 return Response(
