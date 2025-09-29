@@ -1,11 +1,11 @@
 <template>
-  <div class="container-sm mt-5">
-    <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-75">
+  <div class="container mt-2">
+    <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50">
     <h2 class="mt-4 mb-3">Login</h2>
     <div>
       <p v-if="hasActivateParam" class="text-success">Your account has been activated!</p>
     </div>
-    <form @submit.prevent="login">
+    <form @submit.prevent="login" class="container-md">
       <!-- Email -->
       <div class="form-group">
         <label class="form-label" for="email">Email:</label>
@@ -135,10 +135,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.container-sm {
-  max-width: 540px !important;
-  width: 100%;
-}
-</style>

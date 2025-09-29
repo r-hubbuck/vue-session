@@ -1,5 +1,5 @@
 <template>
-  <div class="container">
+  <div class="container mt-5">
     <div class="row justify-content-center">
       <div class="">
         <h1 class="text-center mb-3">Reset Your Password</h1>
@@ -9,7 +9,7 @@
           {{ success }}
         </div>
         
-        <form v-else @submit.prevent="requestPasswordReset">
+        <form v-else @submit.prevent="requestPasswordReset" class="container-md">
           <div class="mb-3">
             <label for="email" class="form-label">Email:</label>
             <input

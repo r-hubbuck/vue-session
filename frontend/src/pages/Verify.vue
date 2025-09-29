@@ -1,7 +1,7 @@
 <template>
-    <div class="container" >
-        <h1>Verify</h1> 
-        <form  @submit.prevent="submitVerifyForm" >
+    <div class="container mt-5">
+        <h1>Verify Tau Beta Pi Membership</h1> 
+        <form  @submit.prevent="submitVerifyForm" class="container-md">
             <div class="form-group row">
                 <label class="form-label" for="email" type="email">Email:</label> 
                 <input class="form-control" v-model="formData.email" id="email" type ="text" required >

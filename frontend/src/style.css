@@ -94,3 +94,23 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+/* Bootstrap Container Max-Widths */
+form.container-sm {
+  max-width: 540px !important;
+}
+
+form.container-md {
+  max-width: 720px !important;
+}
+
+form.container-lg {
+  max-width: 960px !important;
+}
+
+form.container-xl {
+  max-width: 1140px !important;
+}
+
+form.container-xxl {
+  max-width: 1320px !important;
+}

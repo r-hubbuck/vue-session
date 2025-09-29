@@ -1,5 +1,5 @@
 <template>
-    <div class="container-sm mt-5" >
+    <div class="container-sm w-100 mt-5">
         <h1>Code Verification</h1> 
         <p class="mt-4 mb-3">Please check your email for a 5-digit verification code.</p>
         <form @submit.prevent="verify" >

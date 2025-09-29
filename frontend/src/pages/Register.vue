@@ -1,7 +1,7 @@
 <template>
-  <div class="container">
+  <div class="container mt-5">
     <h2>Register</h2>
-    <form @submit.prevent="register">
+    <form @submit.prevent="register" class="container-md">
       <!-- Email -->
       <div class="form-group">
         <label class="form-label" for="email">Email:</label>
