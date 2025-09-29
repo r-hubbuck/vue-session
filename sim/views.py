@@ -126,7 +126,7 @@ def code_check(request):
 def login_view(request):
     """
     Authenticate user with email and password.
-    Sets session PK for SMS verification.
+    Sets session PK and triggers code sending.
     """
  
     serializer = LoginSerializer(data=request.data)
@@ -140,9 +140,29 @@ def login_view(request):
         if user:
             request.session['pk'] = user.pk
             print(user.pk)
-            # Return JSON instead of redirect
+            
+            # Trigger the code sending logic from code_check
+            code = user.code
+            code_user = f"{user.code}"
+            print(code, code_user)
+            
+            # Send the email with verification code
+            mail_subject = 'TBP Portal Verification Code'
+            message = render_to_string('registration/two_factor_code_email.html', {
+                'user_code': code,
+            })
+            to_email = user.email
+            
+            email_msg = EmailMultiAlternatives(
+                subject=mail_subject,
+                body='', 
+                to=[to_email]
+            )
+            email_msg.attach_alternative(message, "text/html")
+            email_msg.send()
+            
             return Response(
-                {'success': True, 'message': 'Authentication successful'}, 
+                {'success': True, 'message': 'Verification code sent to your email'}, 
                 status=status.HTTP_200_OK
             )
         else:
