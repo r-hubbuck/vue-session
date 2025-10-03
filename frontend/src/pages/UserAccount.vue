@@ -3,17 +3,17 @@
     <div class="row justify-content-center">
       <div class="col-lg-12">
         <h1 class="text-center mb-4">My Account</h1>
-        
+
         <div v-if="loading" class="text-center">
           <div class="spinner-border" role="status">
             <span class="visually-hidden">Loading...</span>
           </div>
         </div>
-        
+
         <div v-else-if="error" class="alert alert-danger">
           {{ error }}
         </div>
-        
+
         <div v-else>
           <!-- Account Information Card -->
           <div class="card mb-4">
@@ -26,49 +26,37 @@
                   <div class="col-md-6">
                     <div class="mb-3">
                       <label for="email" class="form-label">Primary Email</label>
-                      <input
-                        type="email"
-                        class="form-control"
-                        id="email"
-                        :value="accountData.email"
-                        disabled
-                      />
+                      <input type="email" class="form-control" id="email" :value="accountData.email" disabled />
                       <div class="form-text">Primary email cannot be changed</div>
                     </div>
                   </div>
                   <div class="col-md-6">
                     <div class="mb-3">
                       <label for="alt_email" class="form-label">Alternative Email</label>
-                      <input
-                        type="email"
-                        class="form-control"
-                        id="alt_email"
-                        v-model="accountData.alt_email"
-                        :disabled="accountSaving"
-                        placeholder="Enter alternative email (optional)"
-                      />
+                      <input type="email" class="form-control" id="alt_email" v-model="accountData.alt_email"
+                        :disabled="accountSaving" placeholder="Enter alternative email (optional)" />
                       <div v-if="accountErrors.alt_email" class="text-danger mt-2">
                         {{ accountErrors.alt_email[0] }}
                       </div>
                     </div>
                   </div>
                 </div>
-                
+
                 <div v-if="accountError" class="alert alert-danger">
                   {{ accountError }}
                 </div>
-                
+
                 <div v-if="accountSuccess" class="alert alert-success">
                   {{ accountSuccess }}
                 </div>
-                
+
                 <button type="submit" class="btn btn-primary" :disabled="accountSaving">
                   {{ accountSaving ? 'Saving...' : 'Save Account Info' }}
                 </button>
               </form>
             </div>
           </div>
-          
+
           <!-- Phone Numbers Card -->
           <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -81,7 +69,7 @@
               <div v-if="phoneNumbers.length === 0 && !showAddPhoneRow" class="text-muted text-center py-3">
                 No phone numbers added yet. Click "Add Phone Number" to get started.
               </div>
-              
+
               <form @submit.prevent="saveAllPhones" v-else>
                 <div class="table-responsive">
                   <table class="table table-hover">
@@ -97,11 +85,7 @@
                     <tbody>
                       <tr v-for="(phone, index) in phoneNumbers" :key="phone.id || `new-${index}`">
                         <td>
-                          <select 
-                            v-model="phone.phone_type" 
-                            class="form-select form-select-sm"
-                            required
-                          >
+                          <select v-model="phone.phone_type" class="form-select form-select-sm" required>
                             <option value="">Select type...</option>
                             <option value="Mobile">Mobile</option>
                             <option value="Home">Home</option>
@@ -109,53 +93,31 @@
                           </select>
                         </td>
                         <td style="min-width: 200px;">
-                          <select 
-                            v-model="phone.country_code" 
-                            class="form-select form-select-sm"
-                            required
-                            @change="formatPhoneNumber(phone, index)"
-                          >
-                            <option 
-                              v-for="country in countryCodes" 
-                              :key="country.code" 
-                              :value="country.code"
-                            >
+                          <select v-model="phone.country_code" class="form-select form-select-sm" required
+                            @change="formatPhoneNumber(phone, index)">
+                            <option v-for="country in countryCodes" :key="country.code" :value="country.code">
                               {{ country.flag }} {{ country.code }} - {{ country.name }}
                             </option>
                           </select>
                         </td>
                         <td style="min-width: 200px;">
-                          <input 
-                            v-model="phone.phone_number" 
-                            @input="formatPhoneNumber(phone, index)"
-                            type="tel" 
+                          <input v-model="phone.phone_number" @input="formatPhoneNumber(phone, index)" type="tel"
                             class="form-control form-control-sm"
                             :placeholder="phone.country_code === '+1' ? '(555) 123-4567' : 'Enter phone number'"
-                            required
-                          />
+                            required />
                         </td>
                         <td>
                           <div class="form-check">
-                            <input 
-                              :value="index"
-                              v-model="primaryPhoneIndex"
-                              class="form-check-input" 
-                              type="radio" 
-                              :id="`primary-${index}`"
-                              name="primaryPhone"
-                            />
+                            <input :value="index" v-model="primaryPhoneIndex" class="form-check-input" type="radio"
+                              :id="`primary-${index}`" name="primaryPhone" />
                             <label class="form-check-label" :for="`primary-${index}`">
                               <span v-if="primaryPhoneIndex === index" class="badge bg-primary">Primary</span>
                             </label>
                           </div>
                         </td>
                         <td>
-                          <button 
-                            type="button"
-                            class="btn btn-outline-danger btn-sm" 
-                            @click="removePhone(index)"
-                            :disabled="phoneSaving || phoneNumbers.length === 1"
-                          >
+                          <button type="button" class="btn btn-outline-danger btn-sm" @click="removePhone(index)"
+                            :disabled="phoneSaving || phoneNumbers.length === 1">
                             Remove
                           </button>
                         </td>
@@ -163,32 +125,27 @@
                     </tbody>
                   </table>
                 </div>
-                
+
                 <div v-if="phoneError" class="alert alert-danger mt-3">
                   {{ phoneError }}
                 </div>
-                
+
+                <div v-if="phoneSuccess" class="alert alert-success mt-3">
+                  {{ phoneSuccess }}
+                </div>
+
                 <div class="d-flex justify-content-between mt-3">
-                  <button 
-                    type="button" 
-                    class="btn btn-secondary" 
-                    @click="resetPhoneChanges"
-                    :disabled="phoneSaving"
-                  >
+                  <button type="button" class="btn btn-secondary" @click="resetPhoneChanges" :disabled="phoneSaving">
                     Reset Changes
                   </button>
-                  <button 
-                    type="submit" 
-                    class="btn btn-primary"
-                    :disabled="phoneSaving || !isPhoneFormValid"
-                  >
+                  <button type="submit" class="btn btn-primary" :disabled="phoneSaving || !isPhoneFormValid">
                     {{ phoneSaving ? 'Saving...' : 'Save Phone Numbers' }}
                   </button>
                 </div>
               </form>
             </div>
           </div>
-          
+
           <!-- Addresses Card -->
           <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -201,7 +158,7 @@
               <div v-if="addresses.length === 0 && !showAddAddressRow" class="text-muted text-center py-3">
                 No addresses added yet. Click "Add Address" to get started.
               </div>
-              
+
               <form @submit.prevent="saveAllAddresses" v-else>
                 <div class="table-responsive">
                   <table class="table table-hover">
@@ -219,11 +176,7 @@
                     <tbody>
                       <tr v-for="(address, index) in addresses" :key="address.id || `new-addr-${index}`">
                         <td>
-                          <select 
-                            v-model="address.add_type" 
-                            class="form-select form-select-sm"
-                            required
-                          >
+                          <select v-model="address.add_type" class="form-select form-select-sm" required>
                             <option value="">Select type...</option>
                             <option value="Home">Home</option>
                             <option value="Work">Work</option>
@@ -231,85 +184,43 @@
                           </select>
                         </td>
                         <td style="min-width: 180px;">
-                          <select 
-                            v-model="address.add_country" 
-                            class="form-select form-select-sm"
-                            required
-                          >
-                            <option 
-                              v-for="country in countries" 
-                              :key="country" 
-                              :value="country"
-                            >
+                          <select v-model="address.add_country" class="form-select form-select-sm" required>
+                            <option v-for="country in countries" :key="country" :value="country">
                               {{ country }}
                             </option>
                           </select>
                         </td>
                         <td style="min-width: 250px;">
-                          <input 
-                            v-model="address.add_line1" 
-                            type="text" 
-                            class="form-control form-control-sm"
-                            placeholder="123 Main Street"
-                            required
-                          />
-                          <input 
-                            v-model="address.add_line2" 
-                            type="text" 
-                            class="form-control form-control-sm mt-1"
-                            placeholder="Apt, Suite, etc. (optional)"
-                          />
+                          <input v-model="address.add_line1" type="text" class="form-control form-control-sm"
+                            placeholder="123 Main Street" required />
+                          <input v-model="address.add_line2" type="text" class="form-control form-control-sm mt-1"
+                            placeholder="Apt, Suite, etc. (optional)" />
                         </td>
                         <td>
-                          <input 
-                            v-model="address.add_city" 
-                            type="text" 
-                            class="form-control form-control-sm"
-                            placeholder="City"
-                            required
-                          />
+                          <input v-model="address.add_city" type="text" class="form-control form-control-sm"
+                            placeholder="City" required />
                         </td>
                         <td>
-                          <select 
-                            v-if="['United States', 'Canada', 'Australia'].includes(address.add_country)"
-                            v-model="address.add_state" 
-                            class="form-select form-select-sm"
-                            required
-                          >
+                          <select v-if="['United States', 'Canada', 'Australia'].includes(address.add_country)"
+                            v-model="address.add_state" class="form-select form-select-sm" required>
                             <option value="">Select...</option>
                             <optgroup :label="address.add_country">
-                              <option 
-                                v-for="state in getStatesForCountry(address.add_country)" 
-                                :key="state.id" 
-                                :value="state.abbrev"
-                              >
+                              <option v-for="state in getStatesForCountry(address.add_country)" :key="state.id"
+                                :value="state.abbrev">
                                 {{ state.name }} ({{ state.abbrev }})
                               </option>
                             </optgroup>
                           </select>
-                          <input 
-                            v-else
-                            v-model="address.add_state" 
-                            type="text" 
-                            class="form-control form-control-sm"
-                            placeholder="Province (optional)"
-                          />
+                          <input v-else v-model="address.add_state" type="text" class="form-control form-control-sm"
+                            placeholder="Province (optional)" />
                         </td>
                         <td>
-                          <input 
-                            v-model="address.add_zip" 
-                            type="text" 
-                            class="form-control form-control-sm"
-                            :placeholder="address.add_country === 'United States' ? '12345 (optional)' : 'Postal Code (optional)'"
-                          />
+                          <input v-model="address.add_zip" type="text" class="form-control form-control-sm"
+                            :placeholder="address.add_country === 'United States' ? '12345 (optional)' : 'Postal Code (optional)'" />
                         </td>
                         <td>
-                          <button 
-                            type="button"
-                            class="btn btn-outline-danger btn-sm" 
-                            @click="removeAddress(index)"
-                            :disabled="addressSaving"
-                          >
+                          <button type="button" class="btn btn-outline-danger btn-sm" @click="removeAddress(index)"
+                            :disabled="addressSaving">
                             Remove
                           </button>
                         </td>
@@ -317,25 +228,21 @@
                     </tbody>
                   </table>
                 </div>
-                
+
                 <div v-if="addressError" class="alert alert-danger mt-3">
                   {{ addressError }}
                 </div>
-                
+
+                <div v-if="addressSuccess" class="alert alert-success mt-3">
+                  {{ addressSuccess }}
+                </div>
+
                 <div class="d-flex justify-content-between mt-3">
-                  <button 
-                    type="button" 
-                    class="btn btn-secondary" 
-                    @click="resetAddressChanges"
-                    :disabled="addressSaving"
-                  >
+                  <button type="button" class="btn btn-secondary" @click="resetAddressChanges"
+                    :disabled="addressSaving">
                     Reset Changes
                   </button>
-                  <button 
-                    type="submit" 
-                    class="btn btn-primary"
-                    :disabled="addressSaving || !isAddressFormValid"
-                  >
+                  <button type="submit" class="btn btn-primary" :disabled="addressSaving || !isAddressFormValid">
                     {{ addressSaving ? 'Saving...' : 'Save Addresses' }}
                   </button>
                 </div>
@@ -343,7 +250,7 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Back to Home -->
         <div class="text-center mt-4">
           <button @click="$router.push('/')" class="btn btn-secondary">Back to Home</button>
@@ -377,10 +284,10 @@ export default {
       phoneNumbers: [],
       originalPhoneNumbers: [],
       primaryPhoneIndex: 0,
-      
+
       addresses: [],
       originalAddresses: [],
-      
+
       // Countries list for addresses
       countries: [
         'United States',
@@ -402,27 +309,29 @@ export default {
         'United Arab Emirates',
         'Saudi Arabia'
       ],
-      
+
       // Account form state
       accountSaving: false,
       accountError: null,
       accountSuccess: null,
       accountErrors: {},
-      
+
       // Phone form state
       showAddPhoneRow: false,
       phoneSaving: false,
       phoneError: null,
-      
+      phoneSuccess: null,
+
       // Address form state
       showAddAddressRow: false,
       addressSaving: false,
       addressError: null,
-      
+      addressSuccess: null,
+
       // States and provinces data
       statesProvinces: {},
       statesProvincesLoaded: false,
-      
+
       // Country codes list
       countryCodes: [
         { code: '+1', name: 'United States/Canada', flag: '🇺🇸' },
@@ -447,38 +356,38 @@ export default {
   },
   computed: {
     isPhoneFormValid() {
-      return this.phoneNumbers.length > 0 && 
-             this.phoneNumbers.every(phone => 
-               phone.phone_type && 
-               phone.country_code && 
-               phone.phone_number && 
-               this.getCleanPhoneNumber(phone.phone_number).length > 0
-             ) &&
-             this.primaryPhoneIndex !== null
+      return this.phoneNumbers.length > 0 &&
+        this.phoneNumbers.every(phone =>
+          phone.phone_type &&
+          phone.country_code &&
+          phone.phone_number &&
+          this.getCleanPhoneNumber(phone.phone_number).length > 0
+        ) &&
+        this.primaryPhoneIndex !== null
     },
     isAddressFormValid() {
       if (this.addresses.length === 0) {
         return true;
       }
-      
+
       return this.addresses.every(address => {
         // Basic required fields (zip is optional)
-        const hasBasicFields = address.add_type && address.add_line1 && 
-                              address.add_city && address.add_country;
-        
+        const hasBasicFields = address.add_type && address.add_line1 &&
+          address.add_city && address.add_country;
+
         if (!hasBasicFields) {
           console.log('Missing basic fields:', address);
           return false;
         }
-        
+
         // State is required only for United States, Canada, and Australia
         const requiresState = ['United States', 'Canada', 'Australia'].includes(address.add_country);
-        
+
         if (requiresState && !address.add_state) {
           console.log('State required but missing:', address);
           return false;
         }
-        
+
         return true;
       });
     },
@@ -512,7 +421,7 @@ export default {
             'Content-Type': 'application/json'
           }
         })
-        
+
         if (response.ok) {
           this.statesProvinces = await response.json()
           this.statesProvincesLoaded = true
@@ -521,21 +430,21 @@ export default {
         console.error('Error fetching states/provinces:', error)
       }
     },
-    
+
     async fetchAccountData() {
       this.loading = true
       this.error = null
-      
+
       try {
         if (!this.authStore.isAuthenticated) {
           await this.authStore.fetchUser()
         }
-        
+
         if (!this.authStore.isAuthenticated) {
           this.$router.push('/login')
           return
         }
-        
+
         const response = await fetch(`${apiUrl}/api/user-account`, {
           method: 'GET',
           credentials: 'include',
@@ -544,7 +453,7 @@ export default {
             'X-CSRFToken': getCSRFToken()
           }
         })
-        
+
         if (!response.ok) {
           if (response.status === 401) {
             this.$router.push('/login')
@@ -552,13 +461,13 @@ export default {
           }
           throw new Error(`HTTP error! status: ${response.status}`)
         }
-        
+
         const data = await response.json()
         this.accountData = {
           email: data.email,
           alt_email: data.alt_email || ''
         }
-        
+
         // Set up phone numbers for editing with formatted display
         this.phoneNumbers = (data.phone_numbers || []).map(phone => ({
           id: phone.id,
@@ -567,14 +476,14 @@ export default {
           phone_number: phone.formatted_number || phone.phone_number,
           is_primary: phone.is_primary
         }))
-        
+
         this.originalPhoneNumbers = JSON.parse(JSON.stringify(this.phoneNumbers))
-        
+
         const primaryIndex = this.phoneNumbers.findIndex(phone => phone.is_primary)
         this.primaryPhoneIndex = primaryIndex >= 0 ? primaryIndex : 0
-        
+
         await this.fetchAddresses()
-        
+
       } catch (error) {
         console.error('Error fetching account data:', error)
         this.error = 'Failed to load account data. Please try again later.'
@@ -582,13 +491,13 @@ export default {
         this.loading = false
       }
     },
-    
+
     async saveAccountInfo() {
       this.accountSaving = true
       this.accountError = null
       this.accountSuccess = null
       this.accountErrors = {}
-      
+
       try {
         const response = await fetch(`${apiUrl}/api/user-account`, {
           method: 'PUT',
@@ -601,7 +510,7 @@ export default {
             alt_email: this.accountData.alt_email
           })
         })
-        
+
         if (response.ok) {
           this.accountSuccess = 'Account information updated successfully!'
           setTimeout(() => {
@@ -622,14 +531,14 @@ export default {
         this.accountSaving = false
       }
     },
-    
+
     formatPhoneNumber(phone, index) {
       const countryCode = phone.country_code || '+1';
       let value = phone.phone_number;
-      
+
       // Remove all non-digit characters
       const cleaned = value.replace(/\D/g, '');
-      
+
       // Format based on country code
       if (countryCode === '+1') {
         // US/Canada format: (XXX) XXX-XXXX
@@ -647,15 +556,15 @@ export default {
         phone.phone_number = cleaned;
       }
     },
-    
+
     getCleanPhoneNumber(formattedNumber) {
       // Remove all non-digit characters for API submission
       return formattedNumber.replace(/\D/g, '');
     },
-    
+
     addNewPhone() {
       if (this.showAddPhoneRow) return
-      
+
       this.phoneNumbers.push({
         id: null,
         phone_type: '',
@@ -663,32 +572,72 @@ export default {
         phone_number: '',
         is_primary: false
       })
-      
+
       this.showAddPhoneRow = true
       this.phoneError = null
     },
-    
+
     removePhone(index) {
       if (this.phoneNumbers.length <= 1) {
         this.phoneError = 'You must have at least one phone number.'
         return
       }
-      
+
       const removedPhone = this.phoneNumbers[index]
-      
-      if (!removedPhone.id) {
+
+      // If the phone has an ID, it exists in the database and needs to be deleted
+      if (removedPhone.id) {
+        if (confirm('Are you sure you want to delete this phone number?')) {
+          this.deletePhone(removedPhone.id, index)
+        }
+      } else {
+        // If no ID, it's a new phone that hasn't been saved yet
+        this.phoneNumbers.splice(index, 1)
         this.showAddPhoneRow = false
-      }
-      
-      this.phoneNumbers.splice(index, 1)
-      
-      if (this.primaryPhoneIndex === index) {
-        this.primaryPhoneIndex = 0
-      } else if (this.primaryPhoneIndex > index) {
-        this.primaryPhoneIndex--
+
+        // Adjust primary phone index
+        if (this.primaryPhoneIndex === index) {
+          this.primaryPhoneIndex = 0
+        } else if (this.primaryPhoneIndex > index) {
+          this.primaryPhoneIndex--
+        }
       }
     },
-    
+
+    async deletePhone(phoneId, index) {
+      this.phoneSaving = true
+      this.phoneError = null
+
+      try {
+        const response = await fetch(`${apiUrl}/api/phone-numbers/${phoneId}/`, {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+          }
+        })
+
+        if (response.ok) {
+          // Refetch all phone data to get updated primary status
+          await this.fetchAccountData()
+
+          this.phoneSuccess = 'Phone number deleted successfully!'
+          setTimeout(() => {
+            this.phoneSuccess = null
+          }, 3000)
+        } else {
+          const errorData = await response.json()
+          this.phoneError = errorData.detail || 'Failed to delete phone number'
+        }
+      } catch (error) {
+        console.error('Error deleting phone:', error)
+        this.phoneError = 'Failed to delete phone number. Please try again.'
+      } finally {
+        this.phoneSaving = false
+      }
+    },
+
     resetPhoneChanges() {
       this.phoneNumbers = JSON.parse(JSON.stringify(this.originalPhoneNumbers))
       const primaryIndex = this.phoneNumbers.findIndex(phone => phone.is_primary)
@@ -696,21 +645,22 @@ export default {
       this.showAddPhoneRow = false
       this.phoneError = null
     },
-    
+
     async saveAllPhones() {
       this.phoneSaving = true
       this.phoneError = null
-      
+      this.phoneSuccess = null
+
       try {
         // Set primary status based on radio button selection
         this.phoneNumbers.forEach((phone, index) => {
           phone.is_primary = index === this.primaryPhoneIndex
         })
-        
+
         // First, unset all phones as primary to avoid conflicts
         const unsetPromises = this.phoneNumbers
           .filter(phone => phone.id)
-          .map(phone => 
+          .map(phone =>
             fetch(`${apiUrl}/api/phone-numbers/${phone.id}/`, {
               method: 'PUT',
               credentials: 'include',
@@ -726,9 +676,9 @@ export default {
               })
             })
           )
-        
+
         await Promise.all(unsetPromises)
-        
+
         // Then update/create all phones with correct primary status
         const updatePromises = this.phoneNumbers.map(async (phone) => {
           const payload = {
@@ -737,7 +687,7 @@ export default {
             phone_number: this.getCleanPhoneNumber(phone.phone_number),
             is_primary: phone.is_primary
           }
-          
+
           if (phone.id) {
             return fetch(`${apiUrl}/api/phone-numbers/${phone.id}/`, {
               method: 'PUT',
@@ -760,13 +710,17 @@ export default {
             })
           }
         })
-        
+
         const responses = await Promise.all(updatePromises)
         const allSuccess = responses.every(response => response.ok)
-        
+
         if (allSuccess) {
           await this.fetchAccountData()
           this.showAddPhoneRow = false
+          this.phoneSuccess = 'Phone numbers updated successfully!'
+          setTimeout(() => {
+            this.phoneSuccess = null
+          }, 3000)
         } else {
           const errorResponse = responses.find(response => !response.ok)
           const errorData = await errorResponse.json()
@@ -779,7 +733,7 @@ export default {
         this.phoneSaving = false
       }
     },
-    
+
     async fetchAddresses() {
       try {
         const response = await fetch(`${apiUrl}/api/addresses/`, {
@@ -790,7 +744,7 @@ export default {
             'X-CSRFToken': getCSRFToken()
           }
         })
-        
+
         if (response.ok) {
           const data = await response.json()
           this.addresses = data.map(address => ({
@@ -803,17 +757,17 @@ export default {
             add_zip: address.add_zip,
             add_country: address.add_country || 'United States'
           }))
-          
+
           this.originalAddresses = JSON.parse(JSON.stringify(this.addresses))
         }
       } catch (error) {
         console.error('Error fetching addresses:', error)
       }
     },
-    
+
     addNewAddress() {
       if (this.showAddAddressRow) return
-      
+
       this.addresses.push({
         id: null,
         add_type: '',
@@ -824,38 +778,76 @@ export default {
         add_zip: '',
         add_country: 'United States'
       })
-      
+
       this.showAddAddressRow = true
       this.addressError = null
     },
-    
+
     removeAddress(index) {
       const removedAddress = this.addresses[index]
-      
-      if (!removedAddress.id) {
+
+      // If the address has an ID, it exists in the database and needs to be deleted
+      if (removedAddress.id) {
+        if (confirm('Are you sure you want to delete this address?')) {
+          this.deleteAddress(removedAddress.id, index)
+        }
+      } else {
+        // If no ID, it's a new address that hasn't been saved yet
+        this.addresses.splice(index, 1)
         this.showAddAddressRow = false
       }
-      
-      this.addresses.splice(index, 1)
     },
-    
+
+    async deleteAddress(addressId, index) {
+      this.addressSaving = true
+      this.addressError = null
+
+      try {
+        const response = await fetch(`${apiUrl}/api/addresses/${addressId}/`, {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+          }
+        })
+
+        if (response.ok) {
+          this.addresses.splice(index, 1)
+          this.addressSuccess = 'Address deleted successfully!'
+          setTimeout(() => {
+            this.addressSuccess = null
+          }, 3000)
+        } else {
+          const errorData = await response.json()
+          this.addressError = errorData.detail || 'Failed to delete address'
+        }
+      } catch (error) {
+        console.error('Error deleting address:', error)
+        this.addressError = 'Failed to delete address. Please try again.'
+      } finally {
+        this.addressSaving = false
+      }
+    },
+
     resetAddressChanges() {
       this.addresses = JSON.parse(JSON.stringify(this.originalAddresses))
       this.showAddAddressRow = false
       this.addressError = null
     },
-    
+
     async saveAllAddresses() {
       this.addressSaving = true
       this.addressError = null
-      
+      this.addressSuccess = null
+
       try {
         const promises = this.addresses.map(async (address) => {
           // Determine if state should be sent based on country
-          const stateValue = ['United States', 'Canada', 'Australia'].includes(address.add_country) 
-            ? address.add_state 
+          const stateValue = ['United States', 'Canada', 'Australia'].includes(address.add_country)
+            ? address.add_state
             : null;
-          
+
           const payload = {
             add_type: address.add_type,
             add_line1: address.add_line1,
@@ -865,7 +857,7 @@ export default {
             add_zip: address.add_zip || '',
             add_country: address.add_country
           };
-          
+
           if (address.id) {
             return fetch(`${apiUrl}/api/addresses/${address.id}/`, {
               method: 'PUT',
@@ -888,17 +880,21 @@ export default {
             })
           }
         })
-        
+
         const responses = await Promise.all(promises)
         const allSuccess = responses.every(response => response.ok)
-        
+
         if (allSuccess) {
           await this.fetchAddresses()
           this.showAddAddressRow = false
+          this.addressSuccess = 'Addresses updated successfully!'
+          setTimeout(() => {
+            this.addressSuccess = null
+          }, 3000)
         } else {
           const errorResponse = responses.find(response => !response.ok)
           const errorData = await errorResponse.json()
-          
+
           if (errorData.add_type) {
             this.addressError = errorData.add_type[0]
           } else if (errorData.add_state) {

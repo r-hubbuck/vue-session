@@ -576,17 +576,24 @@ class PhoneNumberViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("User must have an associated member record to update phone numbers")
     
     def destroy(self, request, *args, **kwargs):
-        # Prevent deletion if it's the only phone number
+        # Get the phone number to be deleted
         phone_number = self.get_object()
         member = phone_number.member
+        is_primary = phone_number.is_primary
         
+        # Get remaining phones (excluding the one being deleted)
         remaining_phones = PhoneNumbers.objects.filter(member=member).exclude(id=phone_number.id)
         
-        # If deleting the primary phone and there are other phones, make one of them primary
-        if phone_number.is_primary and remaining_phones.exists():
-            remaining_phones.first().update(is_primary=True)
+        # Delete the phone first to avoid constraint violations
+        response = super().destroy(request, *args, **kwargs)
         
-        return super().destroy(request, *args, **kwargs)
+        # If we deleted the primary phone and there are other phones, make the first one primary
+        if is_primary and remaining_phones.exists():
+            first_phone = remaining_phones.first()
+            first_phone.is_primary = True
+            first_phone.save()
+        
+        return response
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
