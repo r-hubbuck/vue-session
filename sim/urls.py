@@ -21,4 +21,5 @@ urlpatterns = [
     path('api/password-reset-request', views.password_reset_request, name='password_reset_request'),
     path('api/password-reset-confirm/<str:uidb64>/<str:token>/', views.password_reset_confirm, name='password_reset_confirm'),
     path('api/user-account', views.user_account_view, name='user_account'),
+    path('api/states-provinces', views.state_province_list, name='state_province_list'),
 ] + router.urls  # Add router URLs to existing patterns

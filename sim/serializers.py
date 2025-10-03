@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Code, CustomUser, Address, PhoneNumbers
+from .models import Code, CustomUser, Address, PhoneNumbers, StateProvince
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 import re
@@ -96,28 +96,36 @@ class VerifyMemberSerializer(serializers.Serializer):
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
-        fields = ['id', 'add_line1', 'add_line2', 'add_city', 'add_state', 'add_zip', 'add_type']
+        fields = ['id', 'add_line1', 'add_line2', 'add_city', 'add_state', 'add_zip', 'add_country', 'add_type']
         
-    def validate_add_zip(self, value):
-        if not value.replace('-', '').isdigit():
-            raise serializers.ValidationError("Zip code must contain only numbers and hyphens.")
-        return value
-    
     def validate(self, data):
         """
-        Validate that the member doesn't already have an address of this type
+        Validate based on country:
+        - US addresses require state
+        - Non-US addresses don't require state
+        - Zip/Postal code is optional for all addresses
+        - Check for duplicate address types
         """
-        # Get the member from the view context (set during create/update)
+        # Get the member from the view context
         member = None
         if self.context and 'request' in self.context:
             request = self.context['request']
             if hasattr(request.user, 'member'):
                 member = request.user.member
         
+        # Validate state requirement based on country
+        country = data.get('add_country', 'United States')
+        state = data.get('add_state')
+        
+        if country == 'United States' and not state:
+            raise serializers.ValidationError({
+                'add_state': 'State is required for United States addresses.'
+            })
+        
+        # Validate unique address type per member
         if member and 'add_type' in data:
             add_type = data['add_type']
             
-            # Check if this is an update (instance exists) or create (no instance)
             if self.instance:
                 # For updates: check if another address of this type exists (excluding current one)
                 existing = Address.objects.filter(
@@ -191,16 +199,31 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
 
 class PhoneNumberSerializer(serializers.ModelSerializer):
+    formatted_number = serializers.SerializerMethodField()
+    
     class Meta:
         model = PhoneNumbers
-        fields = ['id', 'phone_number', 'phone_type', 'is_primary']
+        fields = ['id', 'country_code', 'phone_number', 'formatted_number', 'phone_type', 'is_primary']
+    
+    def get_formatted_number(self, obj):
+        """Return formatted phone number for display"""
+        return obj.get_formatted_number()
+    
+    def validate_phone_number(self, value):
+        """Strip all formatting and validate digits only"""
+        # Remove all non-digit characters
+        clean_number = re.sub(r'\D', '', value)
+        
+        if not clean_number:
+            raise serializers.ValidationError("Phone number must contain digits.")
+        
+        return clean_number
     
     def validate(self, data):
         """
         Validate that the member doesn't already have a phone of this type
         and that only one phone can be primary
         """
-        # Get the member from the view context
         member = None
         if self.context and 'request' in self.context:
             request = self.context['request']
@@ -210,15 +233,12 @@ class PhoneNumberSerializer(serializers.ModelSerializer):
         if member and 'phone_type' in data:
             phone_type = data['phone_type']
             
-            # Check if this is an update (instance exists) or create (no instance)
             if self.instance:
-                # For updates: check if another phone of this type exists (excluding current one)
                 existing = PhoneNumbers.objects.filter(
                     member=member, 
                     phone_type=phone_type
                 ).exclude(id=self.instance.id)
             else:
-                # For creates: check if any phone of this type exists
                 existing = PhoneNumbers.objects.filter(member=member, phone_type=phone_type)
             
             if existing.exists():
@@ -226,17 +246,13 @@ class PhoneNumberSerializer(serializers.ModelSerializer):
                     'phone_type': f'You already have a {phone_type.lower()} phone number. You can only have one phone number of each type.'
                 })
         
-        # Validate primary phone constraint
         if member and data.get('is_primary', False):
-            # Check if another phone is already primary
             if self.instance:
-                # For updates: check if another phone is primary (excluding current one)
                 existing_primary = PhoneNumbers.objects.filter(
                     member=member,
                     is_primary=True
                 ).exclude(id=self.instance.id)
             else:
-                # For creates: check if any phone is already primary
                 existing_primary = PhoneNumbers.objects.filter(member=member, is_primary=True)
             
             if existing_primary.exists():
@@ -258,3 +274,20 @@ class UserAccountSerializer(serializers.ModelSerializer):
         if value and CustomUser.objects.filter(email=value).exists():
             raise serializers.ValidationError('This email is already in use as a primary email.')
         return value
+
+class StateProvinceSerializer(serializers.ModelSerializer):
+    country_name = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = StateProvince
+        fields = ['st_id', 'st_name', 'st_abbrev', 'st_region', 'country_name', 'st_ctrid']
+        
+    def to_representation(self, instance):
+        """Custom representation for grouped display"""
+        return {
+            'id': instance.st_id,
+            'name': instance.st_name,
+            'abbrev': instance.st_abbrev,
+            'country': instance.country_name,
+            'country_id': instance.st_ctrid
+        }

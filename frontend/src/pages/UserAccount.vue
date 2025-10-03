@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <div class="row justify-content-center">
-      <div class="col-lg-10">
+      <div class="col-lg-12">
         <h1 class="text-center mb-4">My Account</h1>
         
         <div v-if="loading" class="text-center">
@@ -70,10 +70,10 @@
           </div>
           
           <!-- Phone Numbers Card -->
-          <div class="card">
+          <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
               <h5 class="mb-0">Phone Numbers</h5>
-              <button class="btn btn-success btn-sm" @click="addNewPhone" :disabled="showAddRow">
+              <button class="btn btn-success btn-sm" @click="addNewPhone" :disabled="showAddPhoneRow">
                 Add Phone Number
               </button>
             </div>
@@ -88,6 +88,7 @@
                     <thead>
                       <tr>
                         <th>Type</th>
+                        <th>Country</th>
                         <th>Phone Number</th>
                         <th>Primary</th>
                         <th>Actions</th>
@@ -107,12 +108,29 @@
                             <option value="Work">Work</option>
                           </select>
                         </td>
-                        <td>
+                        <td style="min-width: 200px;">
+                          <select 
+                            v-model="phone.country_code" 
+                            class="form-select form-select-sm"
+                            required
+                            @change="formatPhoneNumber(phone, index)"
+                          >
+                            <option 
+                              v-for="country in countryCodes" 
+                              :key="country.code" 
+                              :value="country.code"
+                            >
+                              {{ country.flag }} {{ country.code }} - {{ country.name }}
+                            </option>
+                          </select>
+                        </td>
+                        <td style="min-width: 200px;">
                           <input 
                             v-model="phone.phone_number" 
+                            @input="formatPhoneNumber(phone, index)"
                             type="tel" 
                             class="form-control form-control-sm"
-                            placeholder="+1234567890"
+                            :placeholder="phone.country_code === '+1' ? '(555) 123-4567' : 'Enter phone number'"
                             required
                           />
                         </td>
@@ -190,10 +208,11 @@
                     <thead>
                       <tr>
                         <th>Type</th>
+                        <th>Country</th>
                         <th>Street Address</th>
                         <th>City</th>
-                        <th>State</th>
-                        <th>ZIP</th>
+                        <th>State/Province</th>
+                        <th>Zip/Postal Code</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -211,7 +230,22 @@
                             <option value="School">School</option>
                           </select>
                         </td>
-                        <td>
+                        <td style="min-width: 180px;">
+                          <select 
+                            v-model="address.add_country" 
+                            class="form-select form-select-sm"
+                            required
+                          >
+                            <option 
+                              v-for="country in countries" 
+                              :key="country" 
+                              :value="country"
+                            >
+                              {{ country }}
+                            </option>
+                          </select>
+                        </td>
+                        <td style="min-width: 250px;">
                           <input 
                             v-model="address.add_line1" 
                             type="text" 
@@ -236,12 +270,29 @@
                           />
                         </td>
                         <td>
+                          <select 
+                            v-if="['United States', 'Canada', 'Australia'].includes(address.add_country)"
+                            v-model="address.add_state" 
+                            class="form-select form-select-sm"
+                            required
+                          >
+                            <option value="">Select...</option>
+                            <optgroup :label="address.add_country">
+                              <option 
+                                v-for="state in getStatesForCountry(address.add_country)" 
+                                :key="state.id" 
+                                :value="state.abbrev"
+                              >
+                                {{ state.name }} ({{ state.abbrev }})
+                              </option>
+                            </optgroup>
+                          </select>
                           <input 
+                            v-else
                             v-model="address.add_state" 
                             type="text" 
                             class="form-control form-control-sm"
-                            placeholder="State"
-                            required
+                            placeholder="Province (optional)"
                           />
                         </td>
                         <td>
@@ -249,8 +300,7 @@
                             v-model="address.add_zip" 
                             type="text" 
                             class="form-control form-control-sm"
-                            placeholder="12345"
-                            required
+                            :placeholder="address.add_country === 'United States' ? '12345 (optional)' : 'Postal Code (optional)'"
                           />
                         </td>
                         <td>
@@ -325,11 +375,33 @@ export default {
         alt_email: ''
       },
       phoneNumbers: [],
-      originalPhoneNumbers: [], // Store original state for reset
-      primaryPhoneIndex: 0, // Track which phone is primary by index
+      originalPhoneNumbers: [],
+      primaryPhoneIndex: 0,
       
       addresses: [],
-      originalAddresses: [], // Store original state for reset
+      originalAddresses: [],
+      
+      // Countries list for addresses
+      countries: [
+        'United States',
+        'Canada',
+        'United Kingdom',
+        'Australia',
+        'Germany',
+        'France',
+        'Italy',
+        'Spain',
+        'Mexico',
+        'Brazil',
+        'Japan',
+        'China',
+        'India',
+        'South Korea',
+        'Russia',
+        'South Africa',
+        'United Arab Emirates',
+        'Saudi Arabia'
+      ],
       
       // Account form state
       accountSaving: false,
@@ -345,29 +417,111 @@ export default {
       // Address form state
       showAddAddressRow: false,
       addressSaving: false,
-      addressError: null
+      addressError: null,
+      
+      // States and provinces data
+      statesProvinces: {},
+      statesProvincesLoaded: false,
+      
+      // Country codes list
+      countryCodes: [
+        { code: '+1', name: 'United States/Canada', flag: '🇺🇸' },
+        { code: '+44', name: 'United Kingdom', flag: '🇬🇧' },
+        { code: '+61', name: 'Australia', flag: '🇦🇺' },
+        { code: '+81', name: 'Japan', flag: '🇯🇵' },
+        { code: '+86', name: 'China', flag: '🇨🇳' },
+        { code: '+91', name: 'India', flag: '🇮🇳' },
+        { code: '+49', name: 'Germany', flag: '🇩🇪' },
+        { code: '+33', name: 'France', flag: '🇫🇷' },
+        { code: '+39', name: 'Italy', flag: '🇮🇹' },
+        { code: '+34', name: 'Spain', flag: '🇪🇸' },
+        { code: '+52', name: 'Mexico', flag: '🇲🇽' },
+        { code: '+55', name: 'Brazil', flag: '🇧🇷' },
+        { code: '+7', name: 'Russia', flag: '🇷🇺' },
+        { code: '+82', name: 'South Korea', flag: '🇰🇷' },
+        { code: '+27', name: 'South Africa', flag: '🇿🇦' },
+        { code: '+971', name: 'United Arab Emirates', flag: '🇦🇪' },
+        { code: '+966', name: 'Saudi Arabia', flag: '🇸🇦' }
+      ]
     }
   },
   computed: {
     isPhoneFormValid() {
-      // Check if all phones have required fields and at least one is primary
       return this.phoneNumbers.length > 0 && 
-             this.phoneNumbers.every(phone => phone.phone_type && phone.phone_number) &&
+             this.phoneNumbers.every(phone => 
+               phone.phone_type && 
+               phone.country_code && 
+               phone.phone_number && 
+               this.getCleanPhoneNumber(phone.phone_number).length > 0
+             ) &&
              this.primaryPhoneIndex !== null
     },
     isAddressFormValid() {
-      // Check if all addresses have required fields
-      return this.addresses.length === 0 || 
-             this.addresses.every(address => 
-               address.add_type && address.add_line1 && address.add_city && 
-               address.add_state && address.add_zip
-             )
+      if (this.addresses.length === 0) {
+        return true;
+      }
+      
+      return this.addresses.every(address => {
+        // Basic required fields (zip is optional)
+        const hasBasicFields = address.add_type && address.add_line1 && 
+                              address.add_city && address.add_country;
+        
+        if (!hasBasicFields) {
+          console.log('Missing basic fields:', address);
+          return false;
+        }
+        
+        // State is required only for United States, Canada, and Australia
+        const requiresState = ['United States', 'Canada', 'Australia'].includes(address.add_country);
+        
+        if (requiresState && !address.add_state) {
+          console.log('State required but missing:', address);
+          return false;
+        }
+        
+        return true;
+      });
+    },
+    // Get states/provinces for selected country
+    getStatesForCountry() {
+      return (country) => {
+        return this.statesProvinces[country] || [];
+      }
+    }
+  },
+  watch: {
+    addresses: {
+      handler(newVal) {
+        console.log('Addresses changed:', newVal);
+        console.log('Form valid:', this.isAddressFormValid);
+      },
+      deep: true
     }
   },
   async mounted() {
+    await this.fetchStatesProvinces()
     await this.fetchAccountData()
   },
   methods: {
+    async fetchStatesProvinces() {
+      try {
+        const response = await fetch(`${apiUrl}/api/states-provinces`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        
+        if (response.ok) {
+          this.statesProvinces = await response.json()
+          this.statesProvincesLoaded = true
+        }
+      } catch (error) {
+        console.error('Error fetching states/provinces:', error)
+      }
+    },
+    
     async fetchAccountData() {
       this.loading = true
       this.error = null
@@ -405,22 +559,20 @@ export default {
           alt_email: data.alt_email || ''
         }
         
-        // Set up phone numbers for editing
+        // Set up phone numbers for editing with formatted display
         this.phoneNumbers = (data.phone_numbers || []).map(phone => ({
           id: phone.id,
           phone_type: phone.phone_type,
-          phone_number: phone.phone_number,
+          country_code: phone.country_code || '+1',
+          phone_number: phone.formatted_number || phone.phone_number,
           is_primary: phone.is_primary
         }))
         
-        // Store original state for reset functionality
         this.originalPhoneNumbers = JSON.parse(JSON.stringify(this.phoneNumbers))
         
-        // Set primary phone index
         const primaryIndex = this.phoneNumbers.findIndex(phone => phone.is_primary)
         this.primaryPhoneIndex = primaryIndex >= 0 ? primaryIndex : 0
         
-        // Fetch addresses separately
         await this.fetchAddresses()
         
       } catch (error) {
@@ -471,12 +623,43 @@ export default {
       }
     },
     
+    formatPhoneNumber(phone, index) {
+      const countryCode = phone.country_code || '+1';
+      let value = phone.phone_number;
+      
+      // Remove all non-digit characters
+      const cleaned = value.replace(/\D/g, '');
+      
+      // Format based on country code
+      if (countryCode === '+1') {
+        // US/Canada format: (XXX) XXX-XXXX
+        if (cleaned.length === 0) {
+          phone.phone_number = '';
+        } else if (cleaned.length <= 3) {
+          phone.phone_number = cleaned;
+        } else if (cleaned.length <= 6) {
+          phone.phone_number = `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
+        } else {
+          phone.phone_number = `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
+        }
+      } else {
+        // For other countries, just clean the input (no special formatting)
+        phone.phone_number = cleaned;
+      }
+    },
+    
+    getCleanPhoneNumber(formattedNumber) {
+      // Remove all non-digit characters for API submission
+      return formattedNumber.replace(/\D/g, '');
+    },
+    
     addNewPhone() {
-      if (this.showAddPhoneRow) return // Prevent multiple new rows
+      if (this.showAddPhoneRow) return
       
       this.phoneNumbers.push({
-        id: null, // null ID indicates new phone
+        id: null,
         phone_type: '',
+        country_code: '+1', // Default to US
         phone_number: '',
         is_primary: false
       })
@@ -493,18 +676,16 @@ export default {
       
       const removedPhone = this.phoneNumbers[index]
       
-      // If removing the last phone that was just added (no ID)
       if (!removedPhone.id) {
         this.showAddPhoneRow = false
       }
       
       this.phoneNumbers.splice(index, 1)
       
-      // Adjust primary phone index if necessary
       if (this.primaryPhoneIndex === index) {
-        this.primaryPhoneIndex = 0 // Set first phone as primary
+        this.primaryPhoneIndex = 0
       } else if (this.primaryPhoneIndex > index) {
-        this.primaryPhoneIndex-- // Adjust index due to removal
+        this.primaryPhoneIndex--
       }
     },
     
@@ -528,7 +709,7 @@ export default {
         
         // First, unset all phones as primary to avoid conflicts
         const unsetPromises = this.phoneNumbers
-          .filter(phone => phone.id) // Only existing phones
+          .filter(phone => phone.id)
           .map(phone => 
             fetch(`${apiUrl}/api/phone-numbers/${phone.id}/`, {
               method: 'PUT',
@@ -539,8 +720,9 @@ export default {
               },
               body: JSON.stringify({
                 phone_type: phone.phone_type,
-                phone_number: phone.phone_number,
-                is_primary: false // Set all to false first
+                country_code: phone.country_code || '+1',
+                phone_number: this.getCleanPhoneNumber(phone.phone_number),
+                is_primary: false
               })
             })
           )
@@ -549,8 +731,14 @@ export default {
         
         // Then update/create all phones with correct primary status
         const updatePromises = this.phoneNumbers.map(async (phone) => {
+          const payload = {
+            phone_type: phone.phone_type,
+            country_code: phone.country_code || '+1',
+            phone_number: this.getCleanPhoneNumber(phone.phone_number),
+            is_primary: phone.is_primary
+          }
+          
           if (phone.id) {
-            // Update existing phone
             return fetch(`${apiUrl}/api/phone-numbers/${phone.id}/`, {
               method: 'PUT',
               credentials: 'include',
@@ -558,14 +746,9 @@ export default {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCSRFToken()
               },
-              body: JSON.stringify({
-                phone_type: phone.phone_type,
-                phone_number: phone.phone_number,
-                is_primary: phone.is_primary
-              })
+              body: JSON.stringify(payload)
             })
           } else {
-            // Create new phone
             return fetch(`${apiUrl}/api/phone-numbers/`, {
               method: 'POST',
               credentials: 'include',
@@ -573,25 +756,18 @@ export default {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCSRFToken()
               },
-              body: JSON.stringify({
-                phone_type: phone.phone_type,
-                phone_number: phone.phone_number,
-                is_primary: phone.is_primary
-              })
+              body: JSON.stringify(payload)
             })
           }
         })
         
         const responses = await Promise.all(updatePromises)
-        
-        // Check if all requests were successful
         const allSuccess = responses.every(response => response.ok)
         
         if (allSuccess) {
           await this.fetchAccountData()
           this.showAddPhoneRow = false
         } else {
-          // Handle errors
           const errorResponse = responses.find(response => !response.ok)
           const errorData = await errorResponse.json()
           this.phoneError = errorData.detail || 'Failed to save phone numbers'
@@ -623,11 +799,11 @@ export default {
             add_line1: address.add_line1,
             add_line2: address.add_line2 || '',
             add_city: address.add_city,
-            add_state: address.add_state,
-            add_zip: address.add_zip
+            add_state: address.add_state || '',
+            add_zip: address.add_zip,
+            add_country: address.add_country || 'United States'
           }))
           
-          // Store original state for reset functionality
           this.originalAddresses = JSON.parse(JSON.stringify(this.addresses))
         }
       } catch (error) {
@@ -645,7 +821,8 @@ export default {
         add_line2: '',
         add_city: '',
         add_state: '',
-        add_zip: ''
+        add_zip: '',
+        add_country: 'United States'
       })
       
       this.showAddAddressRow = true
@@ -674,8 +851,22 @@ export default {
       
       try {
         const promises = this.addresses.map(async (address) => {
+          // Determine if state should be sent based on country
+          const stateValue = ['United States', 'Canada', 'Australia'].includes(address.add_country) 
+            ? address.add_state 
+            : null;
+          
+          const payload = {
+            add_type: address.add_type,
+            add_line1: address.add_line1,
+            add_line2: address.add_line2,
+            add_city: address.add_city,
+            add_state: stateValue,
+            add_zip: address.add_zip || '',
+            add_country: address.add_country
+          };
+          
           if (address.id) {
-            // Update existing address
             return fetch(`${apiUrl}/api/addresses/${address.id}/`, {
               method: 'PUT',
               credentials: 'include',
@@ -683,17 +874,9 @@ export default {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCSRFToken()
               },
-              body: JSON.stringify({
-                add_type: address.add_type,
-                add_line1: address.add_line1,
-                add_line2: address.add_line2,
-                add_city: address.add_city,
-                add_state: address.add_state,
-                add_zip: address.add_zip
-              })
+              body: JSON.stringify(payload)
             })
           } else {
-            // Create new address
             return fetch(`${apiUrl}/api/addresses/`, {
               method: 'POST',
               credentials: 'include',
@@ -701,14 +884,7 @@ export default {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCSRFToken()
               },
-              body: JSON.stringify({
-                add_type: address.add_type,
-                add_line1: address.add_line1,
-                add_line2: address.add_line2,
-                add_city: address.add_city,
-                add_state: address.add_state,
-                add_zip: address.add_zip
-              })
+              body: JSON.stringify(payload)
             })
           }
         })
@@ -725,6 +901,8 @@ export default {
           
           if (errorData.add_type) {
             this.addressError = errorData.add_type[0]
+          } else if (errorData.add_state) {
+            this.addressError = errorData.add_state[0] || errorData.add_state
           } else {
             this.addressError = errorData.detail || 'Failed to save addresses'
           }
@@ -735,7 +913,7 @@ export default {
       } finally {
         this.addressSaving = false
       }
-    },
+    }
   }
 }
 </script>

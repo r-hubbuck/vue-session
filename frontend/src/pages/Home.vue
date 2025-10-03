@@ -33,7 +33,6 @@ export default {
         <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50">
         <div v-if="authStore.isAuthenticated">
             <p>Hi there {{ authStore.user?.email }}!</p> 
-            <p>You are logged in.</p> 
             <div class="button-group">
                 <button @click="$router.push('/account')" class="btn btn-secondary">View My Account</button>
                 <button @click="logout" class="btn btn-danger">Logout</button>

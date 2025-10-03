@@ -51,6 +51,11 @@
                   <i class="bi bi-person-circle me-2"></i>Account Settings
                 </router-link>
               </li>
+              <li>
+                <a class="dropdown-item" href="#" @click.prevent="handleLogout">
+                  <i class="bi bi-box-arrow-right me-2"></i>Logout
+                </a>
+              </li>
             </ul>
           </li>
         </ul>
@@ -60,14 +65,30 @@
 </template>
 
 <script>
+import { useAuthStore } from '../store/auth.js'
+
 export default {
   name: 'Navbar',
+  setup() {
+    const authStore = useAuthStore()
+    return {
+      authStore
+    }
+  },
   data() {
     return {
       showDropdown: false
     }
   },
   methods: {
+    async handleLogout() {
+      this.closeDropdown()
+      try {
+        await this.authStore.logout(this.$router)
+      } catch (error) {
+        console.error('Logout error:', error)
+      }
+    },
     navigateHome() {
       if (this.$route.name !== 'home') {
         this.$router.push('/');
@@ -137,7 +158,7 @@ export default {
 .dropdown-menu-end {
   right: 0 !important;
   left: auto !important;
-  transform: translate3d(0px, 38px, 0px) !important;
+  transform: translate3d(0px, 10px, 0px) !important;
 }
 
 .nav-link:hover .gear-icon {

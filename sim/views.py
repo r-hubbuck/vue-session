@@ -19,7 +19,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 from django.shortcuts import get_object_or_404
 
 from .tokens import account_activation_token, password_reset_token
-from .models import CustomUser, Member, Address, PhoneNumbers
+from .models import CustomUser, Member, Address, PhoneNumbers, StateProvince
 from .serializers import (
     CodeValidationSerializer,
     LoginSerializer,
@@ -29,7 +29,8 @@ from .serializers import (
     AddressSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
-    PhoneNumberSerializer
+    PhoneNumberSerializer,
+    StateProvinceSerializer
 )
 
 @ensure_csrf_cookie
@@ -586,3 +587,26 @@ class PhoneNumberViewSet(viewsets.ModelViewSet):
             remaining_phones.first().update(is_primary=True)
         
         return super().destroy(request, *args, **kwargs)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def state_province_list(request):
+    """
+    Return all states/provinces grouped by country
+    """
+    states_provinces = StateProvince.objects.all().order_by('st_ctrid', 'st_name')
+    
+    # Group by country
+    grouped_data = {}
+    for sp in states_provinces:
+        country = sp.country_name
+        if country not in grouped_data:
+            grouped_data[country] = []
+        
+        grouped_data[country].append({
+            'id': sp.st_id,
+            'name': sp.st_name,
+            'abbrev': sp.st_abbrev
+        })
+    
+    return Response(grouped_data, status=status.HTTP_200_OK)

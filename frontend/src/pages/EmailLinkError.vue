@@ -16,9 +16,6 @@
           </div>
           
           <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center mb-4">
-            <!-- <RouterLink to="/password-forgot" class="btn btn-primary">
-              Request New Reset Link
-            </RouterLink> -->
             <RouterLink to="/login" class="btn btn-secondary">
               Back to Login
             </RouterLink>

@@ -32,10 +32,11 @@ class Address(models.Model):
     add_line1 = models.CharField(max_length=255, blank=False)
     add_line2 = models.CharField(max_length=255, blank=True)
     add_city = models.CharField(max_length=100, blank=False)
-    add_state = models.CharField(max_length=100, blank=False)
-    add_zip = models.CharField(max_length=10, blank=False)
+    add_state = models.CharField(max_length=100, blank=True, null=True)  # Optional for non-US addresses
+    add_zip = models.CharField(max_length=20, blank=True)  # Optional for all addresses
+    add_country = models.CharField(max_length=100, default='United States', blank=False)  # New field
     
-    ADD_TYPE_CHOICES = [  # (stored value, displayed value)
+    ADD_TYPE_CHOICES = [
         ('Home', 'Home'),
         ('Work', 'Work'),
         ('School', 'School'),
@@ -43,7 +44,6 @@ class Address(models.Model):
     add_type = models.CharField(max_length=10, choices=ADD_TYPE_CHOICES, blank=False)
     
     class Meta:
-        # Database-level constraint: one address type per member
         constraints = [
             models.UniqueConstraint(
                 fields=['member', 'add_type'],
@@ -52,13 +52,24 @@ class Address(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.add_line1} {self.add_line2}, {self.add_city}, {self.add_state}, {self.add_zip}"
-    
+        parts = [self.add_line1]
+        if self.add_line2:
+            parts.append(self.add_line2)
+        parts.append(self.add_city)
+        if self.add_state:
+            parts.append(self.add_state)
+        parts.append(self.add_zip)
+        parts.append(self.add_country)
+        return ', '.join(parts)
+
 class PhoneNumbers(models.Model):
     member = models.ForeignKey('Member', on_delete=models.CASCADE, related_name='phone_numbers')
-    phone_number = PhoneNumberField()
+    
+    # Separate country code and phone number
+    country_code = models.CharField(max_length=5, default='+1', blank=False)
+    phone_number = models.CharField(max_length=20, blank=False)  # Store without formatting
 
-    PHONE_TYPE_CHOICES = [  # (stored value, displayed value)
+    PHONE_TYPE_CHOICES = [
         ('Mobile', 'Mobile'),
         ('Home', 'Home'),
         ('Work', 'Work'),
@@ -67,22 +78,27 @@ class PhoneNumbers(models.Model):
     is_primary = models.BooleanField(default=False)
 
     class Meta:
-        # Database-level constraint: one phone type per member
         constraints = [
             models.UniqueConstraint(
                 fields=['member', 'phone_type'],
                 name='unique_member_phone_type'
+            ),
+            models.UniqueConstraint(
+                fields=['member'],
+                condition=models.Q(is_primary=True),
+                name='unique_member_primary_phone'
             )
         ]
-        # Database-level constraint: only one primary phone per member
-        models.UniqueConstraint(
-            fields=['member'],
-            condition=models.Q(is_primary=True),
-            name='unique_member_primary_phone'
-        )
     
     def __str__(self):
-        return str(self.phone_number)
+        return f"{self.country_code} {self.phone_number}"
+    
+    def get_formatted_number(self):
+        """Return formatted phone number based on country code"""
+        if self.country_code == '+1' and len(self.phone_number) == 10:
+            # US/Canada format: (XXX) XXX-XXXX
+            return f"({self.phone_number[:3]}) {self.phone_number[3:6]}-{self.phone_number[6:]}"
+        return self.phone_number
     
 
 class Code(models.Model):
@@ -110,3 +126,33 @@ class UsedToken(models.Model):
     
     def __str__(self):
         return f"{self.user.email} - {self.token_type} - {self.used_at}"
+
+class StateProvince(models.Model):
+    st_id = models.IntegerField(primary_key=True)
+    st_name = models.CharField(max_length=50)
+    st_abbrev = models.CharField(max_length=5)
+    st_strtzip = models.CharField(max_length=5, blank=True)
+    st_endzip = models.CharField(max_length=5, blank=True)
+    st_region = models.CharField(max_length=50, blank=True)
+    st_conus = models.BooleanField(default=False)  # Continental US
+    st_foreign = models.BooleanField(default=False)  # Foreign territory
+    st_ctrid = models.IntegerField(null=True, blank=True)  # Country ID
+    
+    class Meta:
+        db_table = 'state_province'
+        ordering = ['st_name']
+    
+    def __str__(self):
+        return f"{self.st_name} ({self.st_abbrev})"
+    
+    @property
+    def country_name(self):
+        """Return the country this state/province belongs to"""
+        if self.st_ctrid == 0:  # United States
+            return "United States"
+        elif self.st_ctrid == 19:  # Canada
+            return "Canada"
+        elif self.st_ctrid == 4:  # Australia
+            return "Australia"
+        else:
+            return self.st_region or "Other"
