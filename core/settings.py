@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     'sim',
     'corsheaders',
     'phonenumber_field',
-    'anymail',
 ]
 
 MIDDLEWARE = [
@@ -199,13 +198,13 @@ if ENVIRONMENT == 'local':
     EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
     DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 else:
-    # Use Mailgun for dev and production
-    EMAIL_BACKEND = 'anymail.backends.mailgun.EmailBackend'
-    ANYMAIL = {
-        'MAILGUN_API_KEY': os.getenv('MAILGUN_API_KEY'),
-        'MAILGUN_SENDER_DOMAIN': os.getenv('MAILGUN_SENDER_DOMAIN'),  # e.g., 'portal-mg.tbp.org'
-        'MAILGUN_API_URL': os.getenv('MAILGUN_API_URL', 'https://api.mailgun.net/v3'),  # Use EU if needed
-    }
-    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')  # e.g., 'noreply@portal-mg.tbp.org'
+    # Use Mailgun SMTP for dev and production
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.mailgun.org'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = os.getenv('MAILGUN_SMTP_USER')
+    EMAIL_HOST_PASSWORD = os.getenv('MAILGUN_SMTP_PASSWORD')
+    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 
 os.environ['SSL_CERT_FILE'] = certifi.where()
