@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'sim',
     'corsheaders',
     'phonenumber_field',
+    'anymail',
 ]
 
 MIDDLEWARE = [
@@ -178,11 +179,33 @@ AUTH_USER_MODEL = 'sim.CustomUser'
 
 PHONENUMBER_DEFAULT_REGION = 'US'
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_USE_TLS = True
-EMAIL_PORT = 587
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_USE_TLS = True
+# EMAIL_PORT = 587
+# EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+# EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+# DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
+# Email Configuration
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'local')  # default to 'local'
+
+if ENVIRONMENT == 'local':
+    # Use Gmail for local development
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.gmail.com'
+    EMAIL_USE_TLS = True
+    EMAIL_PORT = 587
+    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
+else:
+    # Use Mailgun for dev and production
+    EMAIL_BACKEND = 'anymail.backends.mailgun.EmailBackend'
+    ANYMAIL = {
+        'MAILGUN_API_KEY': os.getenv('MAILGUN_API_KEY'),
+        'MAILGUN_SENDER_DOMAIN': os.getenv('MAILGUN_SENDER_DOMAIN'),  # e.g., 'portal-mg.tbp.org'
+        'MAILGUN_API_URL': os.getenv('MAILGUN_API_URL', 'https://api.mailgun.net/v3'),  # Use EU if needed
+    }
+    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')  # e.g., 'noreply@portal-mg.tbp.org'
+
 os.environ['SSL_CERT_FILE'] = certifi.where()
