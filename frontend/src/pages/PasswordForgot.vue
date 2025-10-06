@@ -100,7 +100,7 @@ export default {
         const data = await response.json();
         
         if (response.ok) {
-          this.success = data.message || "Password reset email has been sent. Please check your inbox.";
+          this.success = data.message || "Password reset email has been sent. Please allow a few minutes for it to arrive to your inbox.";
           this.email = "";
         } else {
           this.error = data.error || data.message || "Failed to send reset email";
