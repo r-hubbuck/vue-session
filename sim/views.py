@@ -194,30 +194,25 @@ def register(request):
     serializer = CreateUserSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
+        
         # Create Member instance from session variables
         member_first_name = request.session.get('member_first_name', '')
         member_middle_name = request.session.get('member_middle_name', '')
         member_last_name = request.session.get('member_last_name', '')
         member_chapter = request.session.get('member_chapter', '')
+        
         member = None
         if member_first_name and member_last_name and member_chapter:
             member = Member.objects.create(
                 first_name=member_first_name,
                 middle_name=member_middle_name,
                 last_name=member_last_name,
-                chapter=member_chapter,
-                # phone=user.phone,
-                email=user.email
+                chapter=member_chapter
             )
             user.member = member
             user.save()
-        # Create address instance from session variables
-        member_add1 = request.session.get('member_add1', '')
-        member_add2 = request.session.get('member_add2', '')
-        member_city = request.session.get('member_city', '')
-        member_state = request.session.get('member_state', '')
-        member_zip = request.session.get('member_zip', '')
-        member_add_type = request.session.get('member_add_type', '')
+        
+        # Send activation email
         current_site = get_current_site(request)
         mail_subject = 'Activate Your Account'
         message = render_to_string('registration/account_activation_email.html', {
@@ -227,13 +222,25 @@ def register(request):
             'token': account_activation_token.make_token(user)
         })
         to_email = user.email
-        email_msg = EmailMessage(
-            mail_subject, message, to=[to_email]
+        
+        # FIXED: Use EmailMultiAlternatives instead of EmailMessage
+        email_msg = EmailMultiAlternatives(
+            subject=mail_subject,
+            body='',  # Empty plain text body
+            to=[to_email]
         )
+        email_msg.attach_alternative(message, "text/html")  # Attach HTML version
         email_msg.send()
-        return Response({'success': 'User registered successfully'}, status=status.HTTP_201_CREATED)
+        
+        return Response(
+            {'success': 'User registered successfully'}, 
+            status=status.HTTP_201_CREATED
+        )
     else:
-        return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {'error': serializer.errors}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
     
 
 SQL_PASSWORD = os.getenv('SQL_PASSWORD')

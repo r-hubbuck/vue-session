@@ -45,24 +45,41 @@
           autocomplete="new-password"
           pattern="[A-Za-z0-9!@#$%^&*_=+\-.]{8,}"
         />
-  <div v-if="showPasswordReq" class="password-req-box bg-light border rounded p-2" style="z-index:100; position:absolute; left:0; top:100%; min-width:320px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-          <div :class="{'text-success': passwordLength, 'text-danger': !passwordLength}">
-            <span v-if="passwordLength">✔</span><span v-else>✖</span> At least 8 characters
+  <div v-if="showPasswordReq" class="password-req-box bg-light border rounded p-2" style="text-align:left; z-index:100; position:absolute; left:0; top:100%; min-width:320px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <div class="small">
+            <span v-if="passwordLength" style="color: #28a745; font-weight: bold;">✓</span>
+            <span v-else style="color: red !important; margin-right: 5px;">❌</span>
+            <span :class="{'text-success': passwordLength, 'text-danger': !passwordLength}"> At least 8 characters</span>
           </div>
-          <div :class="{'text-success': passwordUpper, 'text-danger': !passwordUpper}">
-            <span v-if="passwordUpper">✔</span><span v-else>✖</span> At least one uppercase letter
+          <div class="small">
+            <span v-if="passwordUpper" style="color: #28a745; font-weight: bold;">✓</span>
+            <span v-else style="color: red !important; margin-right: 5px;">❌</span>
+            <span :class="{'text-success': passwordUpper, 'text-danger': !passwordUpper}"> At least one uppercase letter</span>
           </div>
-          <div :class="{'text-success': passwordLower, 'text-danger': !passwordLower}">
-            <span v-if="passwordLower">✔</span><span v-else>✖</span> At least one lowercase letter
+          <div class="small">
+            <span v-if="passwordLower" style="color: #28a745; font-weight: bold;">✓</span>
+            <span v-else style="color: red !important; margin-right: 5px;">❌</span>
+            <span :class="{'text-success': passwordLower, 'text-danger': !passwordLower}"> At least one lowercase letter</span>
           </div>
-          <div :class="{'text-success': passwordNumber, 'text-danger': !passwordNumber}">
-            <span v-if="passwordNumber">✔</span><span v-else>✖</span> At least one number
+          <div class="small">
+            <span v-if="passwordNumber" style="color: #28a745; font-weight: bold;">✓</span>
+            <span v-else style="color: red !important; margin-right: 5px;">❌</span>
+            <span :class="{'text-success': passwordNumber, 'text-danger': !passwordNumber}"> At least one number</span>
           </div>
-          <div :class="{'text-success': passwordSpecial, 'text-danger': !passwordSpecial}">
-            <span v-if="passwordSpecial">✔</span><span v-else>✖</span> At least one special character (!@#$%^&*_=+-.)
+          <div class="small">
+            <span v-if="passwordSpecial" style="color: #28a745; font-weight: bold;">✓</span>
+            <span v-else style="color: red !important; margin-right: 5px;">❌</span>
+            <span :class="{'text-success': passwordSpecial, 'text-danger': !passwordSpecial}"> At least one special character (!@#$%^&*_=+-.)</span>
           </div>
-          <div :class="{'text-success': passwordSafe, 'text-danger': !passwordSafe}">
-            <span v-if="passwordSafe">✔</span><span v-else>✖</span> No invalid characters
+          <div class="small">
+            <span v-if="passwordSpecial" style="color: #28a745; font-weight: bold;">✓</span>
+            <span v-else style="color: red !important; margin-right: 5px;">❌</span>
+            <span :class="{'text-success': passwordSpecial, 'text-danger': !passwordSpecial}"> At least one special character (!@#$%^&*_=+-.)</span>
+          </div>
+          <div class="small">
+            <span v-if="passwordSafe" style="color: #28a745; font-weight: bold;">✓</span>
+            <span v-else style="color: red !important; margin-right: 5px;">❌</span>
+            <span :class="{'text-success': passwordSafe, 'text-danger': !passwordSafe}"> No invalid characters</span>
           </div>
         </div>
       </div>
@@ -82,24 +99,41 @@
           autocomplete="new-password"
           pattern="[A-Za-z0-9!@#$%^&*_=+\-.]{8,}"
         />
-  <div v-if="showPassword2Req" class="password-req-box bg-light border rounded p-2" style="z-index:100; position:absolute; left:0; top:100%; min-width:320px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-          <div :class="{'text-success': password2Length, 'text-danger': !password2Length}">
-            <span v-if="password2Length">✔</span><span v-else>✖</span> At least 8 characters
+  <div v-if="showPassword2Req" class="password-req-box bg-light border rounded p-2" style="text-align:left; z-index:100; position:absolute; left:0; top:100%; min-width:320px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <div class="small">
+            <span v-if="password2Length" style="color: #28a745; font-weight: bold;">✓</span>
+            <span v-else style="color: red !important; margin-right: 5px;">❌</span>
+            <span :class="{'text-success': password2Length, 'text-danger': !password2Length}"> At least 8 characters</span>
           </div>
-          <div :class="{'text-success': password2Upper, 'text-danger': !password2Upper}">
-            <span v-if="password2Upper">✔</span><span v-else>✖</span> At least one uppercase letter
+          <div class="small">
+            <span v-if="password2Upper" style="color: #28a745; font-weight: bold;">✓</span>
+            <span v-else style="color: red !important; margin-right: 5px;">❌</span>
+            <span :class="{'text-success': password2Upper, 'text-danger': !password2Upper}"> At least one uppercase letter</span>
           </div>
-          <div :class="{'text-success': password2Lower, 'text-danger': !password2Lower}">
-            <span v-if="password2Lower">✔</span><span v-else>✖</span> At least one lowercase letter
+          <div class="small">
+            <span v-if="password2Lower" style="color: #28a745; font-weight: bold;">✓</span>
+            <span v-else style="color: red !important; margin-right: 5px;">❌</span>
+            <span :class="{'text-success': password2Lower, 'text-danger': !password2Lower}"> At least one lowercase letter</span>
           </div>
-          <div :class="{'text-success': password2Number, 'text-danger': !password2Number}">
-            <span v-if="password2Number">✔</span><span v-else>✖</span> At least one number
+          <div class="small">
+            <span v-if="password2Number" style="color: #28a745; font-weight: bold;">✓</span>
+            <span v-else style="color: red !important; margin-right: 5px;">❌</span>
+            <span :class="{'text-success': password2Number, 'text-danger': !password2Number}"> At least one number</span>
           </div>
-          <div :class="{'text-success': password2Special, 'text-danger': !password2Special}">
-            <span v-if="password2Special">✔</span><span v-else>✖</span> At least one special character (!@#$%^&*_=+-.)
+          <div class="small">
+            <span v-if="password2Special" style="color: #28a745; font-weight: bold;">✓</span>
+            <span v-else style="color: red !important; margin-right: 5px;">❌</span>
+            <span :class="{'text-success': password2Special, 'text-danger': !password2Special}"> At least one special character (!@#$%^&*_=+-.)</span>
           </div>
-          <div :class="{'text-success': password2Safe, 'text-danger': !password2Safe}">
-            <span v-if="password2Safe">✔</span><span v-else>✖</span> No invalid characters
+          <div class="small">
+            <span v-if="password2Special" style="color: #28a745; font-weight: bold;">✓</span>
+            <span v-else style="color: red !important; margin-right: 5px;">❌</span>
+            <span :class="{'text-success': password2Special, 'text-danger': !password2Special}"> At least one special character (!@#$%^&*_=+-.)</span>
+          </div>
+          <div class="small">
+            <span v-if="password2Safe" style="color: #28a745; font-weight: bold;">✓</span>
+            <span v-else style="color: red !important; margin-right: 5px;">❌</span>
+            <span :class="{'text-success': password2Safe, 'text-danger': !password2Safe}"> No invalid characters</span>
           </div>
         </div>
         <div v-if="passwordError" class="text-danger mt-4 fw-bold">{{ passwordError }}</div>

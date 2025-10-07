@@ -1,9 +1,7 @@
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 import hashlib
-
 from .models import UsedToken
-
 
 class OneTimeTokenMixin:
     """Mixin to add one-time use functionality to token generators"""

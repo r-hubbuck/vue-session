@@ -64,11 +64,8 @@ class Address(models.Model):
 
 class PhoneNumbers(models.Model):
     member = models.ForeignKey('Member', on_delete=models.CASCADE, related_name='phone_numbers')
-    
-    # Separate country code and phone number
     country_code = models.CharField(max_length=5, default='+1', blank=False)
     phone_number = models.CharField(max_length=20, blank=False)  # Store without formatting
-
     PHONE_TYPE_CHOICES = [
         ('Mobile', 'Mobile'),
         ('Home', 'Home'),

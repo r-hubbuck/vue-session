@@ -207,4 +207,9 @@ else:
     EMAIL_HOST_PASSWORD = os.getenv('MAILGUN_SMTP_PASSWORD')
     DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 
+# Custom token timeouts (in seconds)
+ACCOUNT_ACTIVATION_TIMEOUT = 60 * 180    # 3 hours
+PASSWORD_RESET_TIMEOUT = 60 * 60  # 1 hour
+
+# Ensure SSL certificates are properly handled
 os.environ['SSL_CERT_FILE'] = certifi.where()

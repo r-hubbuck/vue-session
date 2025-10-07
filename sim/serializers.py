@@ -1,25 +1,18 @@
 from rest_framework import serializers
-from .models import Code, CustomUser, Address, PhoneNumbers, StateProvince
+from .models import Code, CustomUser, Address, PhoneNumbers, StateProvince, UsedToken
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 import re
 
 class CreateUserSerializer(serializers.ModelSerializer):
-    # Validate the password fields to meet complexity requirements
-    def validate_password2(self, value):
-        if len(value) < 8:
-            raise serializers.ValidationError('Password must be at least 8 characters long.')
-        if not re.search(r'[A-Z]', value):
-            raise serializers.ValidationError('Password must contain at least one uppercase letter.')
-        if not re.search(r'[a-z]', value):
-            raise serializers.ValidationError('Password must contain at least one lowercase letter.')
-        if not re.search(r'[0-9]', value):
-            raise serializers.ValidationError('Password must contain at least one number.')
-        if not re.search(r'[!@#$%^&*_=+\-.]', value):
-            raise serializers.ValidationError('Password must contain at least one special character (!@#$%^&*_=+-.)')
-        if re.search(r'[^A-Za-z0-9!@#$%^&*_=+\-.]', value):
-            raise serializers.ValidationError('Password contains invalid characters.')
-        return value
+    password1 = serializers.CharField(write_only=True, min_length=8)
+    password2 = serializers.CharField(write_only=True, min_length=8)
+
+    class Meta:
+        model = CustomUser
+        fields = ('email', 'password1', 'password2')
+
+    # Keep your existing password validation methods
     def validate_password1(self, value):
         if len(value) < 8:
             raise serializers.ValidationError('Password must be at least 8 characters long.')
@@ -34,35 +27,101 @@ class CreateUserSerializer(serializers.ModelSerializer):
         if re.search(r'[^A-Za-z0-9!@#$%^&*_=+\-.]', value):
             raise serializers.ValidationError('Password contains invalid characters.')
         return value
-    password1 = serializers.CharField(write_only=True, min_length=8)
-    password2 = serializers.CharField(write_only=True, min_length=8)
-
-    class Meta:
-        model = CustomUser
-        fields = ('email', 'password1', 'password2', 'phone')
+    
+    def validate_password2(self, value):
+        if len(value) < 8:
+            raise serializers.ValidationError('Password must be at least 8 characters long.')
+        if not re.search(r'[A-Z]', value):
+            raise serializers.ValidationError('Password must contain at least one uppercase letter.')
+        if not re.search(r'[a-z]', value):
+            raise serializers.ValidationError('Password must contain at least one lowercase letter.')
+        if not re.search(r'[0-9]', value):
+            raise serializers.ValidationError('Password must contain at least one number.')
+        if not re.search(r'[!@#$%^&*_=+\-.]', value):
+            raise serializers.ValidationError('Password must contain at least one special character (!@#$%^&*_=+-.)')
+        if re.search(r'[^A-Za-z0-9!@#$%^&*_=+\-.]', value):
+            raise serializers.ValidationError('Password contains invalid characters.')
+        return value
 
     def validate_email(self, value):
-        if CustomUser.objects.filter(email=value).exists():
-            raise serializers.ValidationError('An account with this email already exists.')
+        """
+        Modified to allow re-registration for inactive users.
+        Stores reference to existing inactive user if found.
+        """
+        # Check if user with this email already exists
+        existing_user = CustomUser.objects.filter(email=value).first()
+        
+        if existing_user:
+            # If user exists but is NOT active, allow re-registration
+            if not existing_user.is_active:
+                # Store the existing user so we can update it in create()
+                self.existing_inactive_user = existing_user
+                return value
+            else:
+                # User exists and IS active - block registration
+                raise serializers.ValidationError(
+                    'An account with this email already exists and is active. Please login instead.'
+                )
+        
+        # Email doesn't exist - normal registration flow
         return value
 
     def validate(self, data):
+        """Check that passwords match"""
         if data['password1'] != data['password2']:
             raise serializers.ValidationError({'password2': 'Passwords do not match.'})
         return data
 
     def create(self, validated_data):
+        """
+        Create new user OR update existing inactive user.
+        Also clears old activation tokens for existing users.
+        """
         email = validated_data['email']
         password = validated_data['password1']
-        phone = validated_data.get('phone')
-        user = CustomUser(
-            email=email,
-            phone=phone,
-            is_active=False
-        )
-        user.set_password(password)
-        user.save()
-        return user
+        
+        # Check if we have an existing inactive user (set in validate_email)
+        if hasattr(self, 'existing_inactive_user'):
+            # UPDATE EXISTING USER instead of creating new one
+            user = self.existing_inactive_user
+            
+            # Update password
+            user.set_password(password)
+            
+            # Keep inactive until email is verified
+            user.is_active = False
+            
+            # Save updated user
+            user.save()
+            
+            # Delete any old activation tokens for this user
+            # This ensures old activation links won't work
+            UsedToken.objects.filter(
+                user=user,
+                token_type='activation'
+            ).delete()
+            
+            # Note: The signal will NOT create a new Code because created=False
+            # So we need to update the Code manually
+            if hasattr(user, 'code'):
+                # Update existing code with new random number
+                user.code.save()  # This triggers Code.save() which generates new number
+            else:
+                # Create code if somehow it doesn't exist
+                Code.objects.create(user=user)
+            
+            return user
+        else:
+            # CREATE NEW USER (normal flow)
+            user = CustomUser(
+                email=email,
+                is_active=False
+            )
+            user.set_password(password)
+            user.save()
+            
+            # Signal automatically creates Code for new users
+            return user
 
 class CodeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -234,14 +293,14 @@ class PhoneNumberSerializer(serializers.ModelSerializer):
             phone_type = data['phone_type']
             
             if self.instance:
-                existing = PhoneNumbers.objects.filter(
+                existing_type = PhoneNumbers.objects.filter(
                     member=member, 
                     phone_type=phone_type
                 ).exclude(id=self.instance.id)
             else:
-                existing = PhoneNumbers.objects.filter(member=member, phone_type=phone_type)
+                existing_type = PhoneNumbers.objects.filter(member=member, phone_type=phone_type)
             
-            if existing.exists():
+            if existing_type.exists():
                 raise serializers.ValidationError({
                     'phone_type': f'You already have a {phone_type.lower()} phone number. You can only have one phone number of each type.'
                 })
