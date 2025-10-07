@@ -6,6 +6,9 @@ import router from './router'
 import App from './App.vue'
 import { useAuthStore } from './store/auth'
 
+import Toast from "vue-toastification"
+import "vue-toastification/dist/index.css"
+
 // Load Bootstrap CSS and JS from CDN
 const bootstrapCSS = document.createElement('link')
 bootstrapCSS.rel = 'stylesheet'
@@ -26,6 +29,10 @@ const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
+app.use(Toast, {
+  position: "top-right",
+  timeout: 3000
+})
 
 const authStore = useAuthStore()
 authStore.setCsrfToken()

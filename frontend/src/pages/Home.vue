@@ -33,10 +33,10 @@ export default {
         <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50">
         <div v-if="authStore.isAuthenticated">
             <p>Hi there {{ authStore.user?.email }}!</p> 
-            <div class="button-group">
+            <!-- <div class="button-group">
                 <button @click="$router.push('/account')" class="btn btn-secondary">View My Account</button>
                 <button @click="logout" class="btn btn-danger">Logout</button>
-            </div>
+            </div> -->
         </div> 
         <p v-else >You are not logged in. <RouterLink class="" to="/login">Login</RouterLink></p>
     </div>

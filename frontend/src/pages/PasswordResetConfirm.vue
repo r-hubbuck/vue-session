@@ -1,5 +1,5 @@
 <template>
-  <div class="container">
+  <div class="container-md">
     <div class="row justify-content-center">
       <div class="">
         <h1 class="text-center mb-4">Set New Password</h1>
@@ -30,24 +30,36 @@
               @input="validatePasswords"
               autocomplete="new-password"
             />
-            <div v-if="showPasswordReq" class="position-absolute bg-light border rounded shadow-sm p-2 mt-1" style="z-index: 1050; min-width: 320px;">
-              <div class="small" :class="passwordLength ? 'text-success' : 'text-danger'">
-                <span v-if="passwordLength">✓</span><span v-else>✖</span> At least 8 characters
+            <div v-if="showPasswordReq" class="position-absolute bg-light border rounded shadow-sm p-2 mt-1" style="text-align: left; z-index: 1050; min-width: 320px;">
+             <div class="small">
+                <span v-if="passwordLength" style="color: #28a745; font-weight: bold;">✓</span>
+                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+                <span :class="{'text-success': passwordLength, 'text-danger': !passwordLength}"> At least 8 characters</span>
               </div>
-              <div class="small" :class="passwordUpper ? 'text-success' : 'text-danger'">
-                <span v-if="passwordUpper">✓</span><span v-else>✖</span> At least one uppercase letter
+              <div class="small">
+                <span v-if="passwordUpper" style="color: #28a745; font-weight: bold;">✓</span>
+                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+                <span :class="{'text-success': passwordUpper, 'text-danger': !passwordUpper}"> At least one uppercase letter</span>
               </div>
-              <div class="small" :class="passwordLower ? 'text-success' : 'text-danger'">
-                <span v-if="passwordLower">✓</span><span v-else>✖</span> At least one lowercase letter
+              <div class="small">
+                <span v-if="passwordLower" style="color: #28a745; font-weight: bold;">✓</span>
+                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+                <span :class="{'text-success': passwordLower, 'text-danger': !passwordLower}"> At least one lowercase letter</span>
               </div>
-              <div class="small" :class="passwordNumber ? 'text-success' : 'text-danger'">
-                <span v-if="passwordNumber">✓</span><span v-else>✖</span> At least one number
+              <div class="small">
+                <span v-if="passwordNumber" style="color: #28a745; font-weight: bold;">✓</span>
+                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+                <span :class="{'text-success': passwordNumber, 'text-danger': !passwordNumber}"> At least one number</span>
               </div>
-              <div class="small" :class="passwordSpecial ? 'text-success' : 'text-danger'">
-                <span v-if="passwordSpecial">✓</span><span v-else>✖</span> At least one special character (!@#$%^&*_=+-.)
+              <div class="small">
+                <span v-if="passwordSpecial" style="color: #28a745; font-weight: bold;">✓</span>
+                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+                <span :class="{'text-success': passwordSpecial, 'text-danger': !passwordSpecial}"> At least one special character (!@#$%^&*_=+-.)</span>
               </div>
-              <div class="small" :class="passwordSafe ? 'text-success' : 'text-danger'">
-                <span v-if="passwordSafe">✓</span><span v-else>✖</span> No invalid characters
+              <div class="small">
+                <span v-if="passwordSafe" style="color: #28a745; font-weight: bold;">✓</span>
+                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+                <span :class="{'text-success': passwordSafe, 'text-danger': !passwordSafe}"> No invalid characters</span>
               </div>
             </div>
           </div>
@@ -66,24 +78,36 @@
               @input="validatePasswords"
               autocomplete="new-password"
             />
-            <div v-if="showPassword2Req" class="position-absolute bg-light border rounded shadow-sm p-2 mt-1" style="z-index: 1050; min-width: 320px;">
-              <div class="small" :class="password2Length ? 'text-success' : 'text-danger'">
-                <span v-if="password2Length">✓</span><span v-else>✖</span> At least 8 characters
+            <div v-if="showPassword2Req" class="position-absolute bg-light border rounded shadow-sm p-2 mt-1" style="text-align: left; z-index: 1050; min-width: 320px;">
+              <div class="small">
+                <span v-if="password2Length" style="color: #28a745; font-weight: bold;">✓</span>
+                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+                <span :class="{'text-success': password2Length, 'text-danger': !password2Length}"> At least 8 characters</span>
               </div>
-              <div class="small" :class="password2Upper ? 'text-success' : 'text-danger'">
-                <span v-if="password2Upper">✓</span><span v-else>✖</span> At least one uppercase letter
+              <div class="small">
+                <span v-if="password2Upper" style="color: #28a745; font-weight: bold;">✓</span>
+                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+                <span :class="{'text-success': password2Upper, 'text-danger': !password2Upper}"> At least one uppercase letter</span>
               </div>
-              <div class="small" :class="password2Lower ? 'text-success' : 'text-danger'">
-                <span v-if="password2Lower">✓</span><span v-else>✖</span> At least one lowercase letter
+              <div class="small">
+                <span v-if="password2Lower" style="color: #28a745; font-weight: bold;">✓</span>
+                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+                <span :class="{'text-success': password2Lower, 'text-danger': !password2Lower}"> At least one lowercase letter</span>
               </div>
-              <div class="small" :class="password2Number ? 'text-success' : 'text-danger'">
-                <span v-if="password2Number">✓</span><span v-else>✖</span> At least one number
+              <div class="small">
+                <span v-if="password2Number" style="color: #28a745; font-weight: bold;">✓</span>
+                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+                <span :class="{'text-success': password2Number, 'text-danger': !password2Number}"> At least one number</span>
               </div>
-              <div class="small" :class="password2Special ? 'text-success' : 'text-danger'">
-                <span v-if="password2Special">✓</span><span v-else>✖</span> At least one special character (!@#$%^&*_=+-.)
+              <div class="small">
+                <span v-if="password2Special" style="color: #28a745; font-weight: bold;">✓</span>
+                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+                <span :class="{'text-success': password2Special, 'text-danger': !password2Special}"> At least one special character (!@#$%^&*_=+-.)</span>
               </div>
-              <div class="small" :class="password2Safe ? 'text-success' : 'text-danger'">
-                <span v-if="password2Safe">✓</span><span v-else>✖</span> No invalid characters
+              <div class="small">
+                <span v-if="password2Safe" style="color: #28a745; font-weight: bold;">✓</span>
+                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+                <span :class="{'text-success': password2Safe, 'text-danger': !password2Safe}"> No invalid characters</span>
               </div>
             </div>
             <div v-if="passwordError" class="text-danger mt-2 fw-bold">{{ passwordError }}</div>
@@ -111,8 +135,7 @@
 </template>
 
 <script>
-import { getCSRFToken } from "../store/auth";
-const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000'
+import api from '../api'
 
 export default {
   name: 'PasswordResetConfirm',
@@ -220,46 +243,34 @@ export default {
       this.error = "";
 
       try {
-        const response = await fetch(
-          `${apiUrl}/api/password-reset-confirm/${this.uidb64}/${this.token}/`,
+        const response = await api.post(
+          `/api/password-reset-confirm/${this.uidb64}/${this.token}/`,
           {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": getCSRFToken(),
-            },
-            body: JSON.stringify({
-              new_password1: this.newPassword1,
-              new_password2: this.newPassword2,
-            }),
-            credentials: "include",
+            new_password1: this.newPassword1,
+            new_password2: this.newPassword2,
           }
         );
 
-        const data = await response.json();
-
-        if (response.ok) {
-          this.success = data.message || "Password has been reset successfully! You can now log in with your new password.";
-          this.newPassword1 = "";
-          this.newPassword2 = "";
-        } else {
-          if (response.status === 400) {
-            if (data.error) {
-              this.error = data.error;
-            } else if (data.new_password1) {
-              this.error = data.new_password1[0];
-            } else if (data.new_password2) {
-              this.error = data.new_password2[0];
-            } else {
-              this.error = "Invalid password. Please check the requirements.";
-            }
-          } else {
-            this.error = data.error || data.message || "Failed to reset password";
-          }
-        }
+        this.success = response.data.message || "Password has been reset successfully! You can now log in with your new password.";
+        this.newPassword1 = "";
+        this.newPassword2 = "";
       } catch (err) {
         console.error(err);
-        this.error = "An error occurred while resetting your password. Please try again.";
+        const data = err.response?.data;
+        
+        if (err.response?.status === 400) {
+          if (data?.error) {
+            this.error = data.error;
+          } else if (data?.new_password1) {
+            this.error = data.new_password1[0];
+          } else if (data?.new_password2) {
+            this.error = data.new_password2[0];
+          } else {
+            this.error = "Invalid password. Please check the requirements.";
+          }
+        } else {
+          this.error = data?.error || data?.message || "Failed to reset password";
+        }
       } finally {
         this.loading = false;
       }

@@ -22,8 +22,8 @@
                     </option>
                 </select>
             </div> 
-            <div v-if="authStore.serverMessage" class="text-danger mt-4 fw-bold">
-                {{ authStore.serverMessage }}
+            <div v-if="errorMessage" class="text-danger mt-4 fw-bold">
+                {{ errorMessage }}
             </div>
             <button class="btn btn-danger mt-5 me-4" type="button" @click="$router.push('/login')">Back</button>
             <button class="btn btn-primary mt-5" type="submit">Submit</button> 
@@ -31,20 +31,15 @@
     </div> 
 </template>
 
-<script >
+<script>
 import { useAuthStore } from '../store/auth.js'
-import { useRouter } from 'vue-router'
-import { storeToRefs } from 'pinia'
-import { reactive, onMounted } from 'vue'
+import api from '../api'
 
 export default {
     setup() {
         const authStore = useAuthStore()
-        const router = useRouter()
-
         return {
-            authStore,
-            router
+            authStore
         }
     },
     data() {
@@ -55,7 +50,8 @@ export default {
                 chapter: "",
                 email: "",
                 year: new Date().getFullYear(),
-            }
+            },
+            errorMessage: ""
         }
     },
     methods: {
@@ -66,27 +62,58 @@ export default {
             }
             return yearRange;
         },
+        
         handleYearChange(event) {
             this.formData.year = parseInt(event.target.value);
         },
-        async submitVerifyForm() {
-            console.log(this.formData)
-            await this.authStore.verifyMember(this.formData, this.$router)
-            this.resetForm()
+        
+        async fetchChapters() {
+            try {
+                const response = await api.get('/api/chapter-list')
+                this.chapters = Object.values(response.data.chapters)
+            } catch (error) {
+                console.error('Failed to fetch chapters', error)
+                this.errorMessage = 'Failed to load chapters'
+            }
         },
+        
+        async submitVerifyForm() {
+            try {
+                const response = await api.post('/api/verify-member', this.formData)
+                
+                if (response.data.message === 'OK') {
+                    // Set verification status in store
+                    this.authStore.setVerified(this.formData.email)
+                    await this.$router.push({ name: 'register' })
+                } else {
+                    this.errorMessage = response.data.message
+                }
+            } catch (error) {
+                console.error('Verification failed', error)
+                this.errorMessage = error.response?.data?.message || 'Verification failed'
+            }
+        },
+        
         resetForm() {
           this.formData = {
             chapter: "",
             email: "",
             year: new Date().getFullYear(),
-          };
+          }
+          this.errorMessage = ""
         }
     },
+    
     async mounted() {
         this.authStore.clearMessage()
         await this.authStore.fetchUser()
-        // options = await this.authStore.getChapters()
-        this.chapters = await this.authStore.getChapters()
+        await this.fetchChapters()
+        
+        // Show message if redirected from register page
+        if (this.authStore.serverMessage) {
+            this.errorMessage = this.authStore.serverMessage
+            this.authStore.clearMessage()
+        }
     },
 } 
 </script>

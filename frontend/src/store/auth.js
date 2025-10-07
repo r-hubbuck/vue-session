@@ -1,89 +1,88 @@
 import { defineStore } from 'pinia'
-const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000'
+import api from '../api'
 
 const getStoredState = () => {
-    const storedState = localStorage.getItem('authState')
-
-    return storedState
-  ? JSON.parse(storedState)
-  : {
-      user: null,
-      isAuthenticated: false,
-    }
+  const storedState = localStorage.getItem('authState')
+  return storedState
+    ? JSON.parse(storedState)
+    : {
+        user: null,
+        isAuthenticated: false,
+      }
 }
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    storedState: getStoredState(),
+    user: null,
+    isAuthenticated: false,
     serverMessage: null,
-    verified: false
+    // Verification state
+    isVerified: false,
+    verificationTimestamp: null,
+    verificationEmail: null, // Store the verified email
   }),
+  
+  getters: {
+    currentUser: (state) => state.user,
+    isLoggedIn: (state) => state.isAuthenticated,
+    
+    // Check if verification is still valid (expires after 15 minutes)
+    hasValidVerification: (state) => {
+      if (!state.isVerified || !state.verificationTimestamp) {
+        return false
+      }
+      
+      const now = Date.now()
+      const fifteenMinutes = 15 * 60 * 1000
+      const elapsed = now - state.verificationTimestamp
+      
+      return elapsed < fifteenMinutes
+    },
+  },
+  
   actions: {
     clearMessage() {
-        this.serverMessage = null;
+      this.serverMessage = null
+    },
+
+    setVerified(email) {
+      this.isVerified = true
+      this.verificationTimestamp = Date.now()
+      this.verificationEmail = email
+    },
+
+    clearVerification() {
+      this.isVerified = false
+      this.verificationTimestamp = null
+      this.verificationEmail = null
     },
 
     async setCsrfToken() {
-      await fetch(`${apiUrl}/api/set-csrf-token`, {
-        method: 'GET',
-        credentials: 'include',
-      })
-    },
-
-    async verifyMember(formData, router = null) {
-        console.log(this.formData)
-        try {
-            const response = await fetch(`${apiUrl}/api/verify-member`, {
-                method: 'POST',
-                body: JSON.stringify(formData),
-                headers: {
-                    'Content-Type': 'application/json',  
-                    'X-CSRFToken': getCSRFToken(),
-                },
-                credentials: 'include',
-            })
-            const json = await response.json();
-            console.log(json.message)
-            this.serverMessage = json.message
-            if (json.message == "OK") {
-                console.log("OK check")
-                if (router) {
-                    await router.push({
-                      name: 'register',
-                    })
-                  }
-            }
-        } catch (error) {
-            console.error('Failed', error)
-            console.log(response)
-            throw error
-        }
+      try {
+        await api.get('/api/set-csrf-token')
+      } catch (error) {
+        console.error('Failed to set CSRF token', error)
+      }
     },
 
     async login(email, password, router = null) {
-      const response = await fetch(`${apiUrl}/api/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCSRFToken(),
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-        credentials: 'include',
-      })
-      const data = await response.json()
-      console.log(data)
-      this.serverMessage = data.message
-      if (data.success) {
-        this.saveState()
-        if (router) {
-          await router.push({
-            name: 'code-check',
-          })
+      try {
+        const response = await api.post('/api/login', { email, password })
+        this.serverMessage = response.data.message
+        
+        if (response.data.success) {
+          this.saveState()
+          if (router) {
+            await router.push({ name: 'code-check' })
+          }
+        } else {
+          this.user = null
+          this.isAuthenticated = false
+          this.saveState()
         }
-      } else {
+      } catch (error) {
+        console.error('Login failed', error)
+        this.serverMessage = error.response?.data?.message || 'Login failed'
         this.user = null
         this.isAuthenticated = false
         this.saveState()
@@ -91,119 +90,32 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async verify(code, router = null) {
-      console.log("run verify")
       try {
-        const response = await fetch(`${apiUrl}/api/code-check`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken()
-            },
-            body: JSON.stringify({
-                code: code,
-            }),
-            credentials: 'include'
-        })
-        const data = await response.json()
-        console.log(data)
-        if (response.ok) {
-            this.isAuthenticated = true
-            this.success = 'Code is correct.'
-            console.log(data.success)
-            if (data.success == true) {
-              if (router) {
-                await router.push({
-                  name: 'home',
-                })
-              }
-            }
-        } else {
-            this.error = data.error || 'Incorrect code'
+        const response = await api.post('/api/code-check', { code })
+        
+        if (response.data.success) {
+          this.isAuthenticated = true
+          
+          if (router) {
+            await router.push({ name: 'home' })
+          }
         }
-      } catch (err) {
-          console.log(err)
-          this.error = 'An error occurred during verification: ' + err
+      } catch (error) {
+        console.error('Verification failed', error)
+        throw error
       }
     },
 
-    async requestPasswordReset(email) {
-    try {
-      const response = await fetch(`${apiUrl}/api/password-reset-request`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCSRFToken(),
-        },
-        body: JSON.stringify({ email }),
-        credentials: 'include',
-      })
-
-      const data = await response.json()
-      
-      if (response.ok) {
-        this.serverMessage = data.message || 'Password reset email sent successfully'
-        return { success: true, message: data.message }
-      } else {
-        this.serverMessage = data.error || data.message || 'Failed to send reset email'
-        return { success: false, error: data.error || data.message }
-      }
-    } catch (error) {
-      console.error('Password reset request failed', error)
-      this.serverMessage = 'An error occurred while sending the reset email'
-      return { success: false, error: 'Network error occurred' }
-    }
-  },
-
-  async confirmPasswordReset(uidb64, token, newPassword1, newPassword2) {
-    try {
-      const response = await fetch(`${apiUrl}/api/password-reset-confirm/${uidb64}/${token}/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCSRFToken(),
-        },
-        body: JSON.stringify({
-          new_password1: newPassword1,
-          new_password2: newPassword2,
-        }),
-        credentials: 'include',
-      })
-
-      const data = await response.json()
-      
-      if (response.ok) {
-        this.serverMessage = data.message || 'Password reset successfully'
-        return { success: true, message: data.message }
-      } else {
-        this.serverMessage = data.error || data.message || 'Failed to reset password'
-        return { success: false, error: data.error || data.message || data }
-      }
-    } catch (error) {
-      console.error('Password reset confirmation failed', error)
-      this.serverMessage = 'An error occurred while resetting password'
-      return { success: false, error: 'Network error occurred' }
-    }
-  },
-
     async logout(router = null) {
       try {
-        const response = await fetch(`${apiUrl}/api/logout`, {
-          method: 'POST',
-          headers: {
-            'X-CSRFToken': getCSRFToken(),
-          },
-          credentials: 'include',
-        })
-        if (response.ok) {
-          console.log(response)
-          this.user = null
-          this.isAuthenticated = false
-          this.saveState()
-          if (router) {
-            await router.push({
-              name: 'login',
-            })
-          }
+        await api.post('/api/logout')
+        this.user = null
+        this.isAuthenticated = false
+        this.clearVerification() // Clear verification on logout
+        this.saveState()
+        
+        if (router) {
+          await router.push({ name: 'login' })
         }
       } catch (error) {
         console.error('Logout failed', error)
@@ -213,21 +125,9 @@ export const useAuthStore = defineStore('auth', {
 
     async fetchUser() {
       try {
-        const response = await fetch(`${apiUrl}/api/user`, {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken(),
-          },
-        })
-        if (response.ok) {
-          const data = await response.json()
-          this.user = data
-          this.isAuthenticated = true
-        } else {
-          this.user = null
-          this.isAuthenticated = false
-        }
+        const response = await api.get('/api/user')
+        this.user = response.data
+        this.isAuthenticated = true
       } catch (error) {
         console.error('Failed to fetch user', error)
         this.user = null
@@ -236,65 +136,17 @@ export const useAuthStore = defineStore('auth', {
       this.saveState()
     },
 
-    async getChapters() {
-        try {
-            const response = await fetch(`${apiUrl}/api/chapter-list`, {
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken(),
-              },
-            })
-            if (response.ok) {
-              console.log(response)
-              const data = await response.json()
-              console.log(data.chapters)
-              return Object.values(data.chapters)
-            } else {
-              console.log(response)
-            }
-          } catch (error) {
-            console.error('Failed to fetch user', error)
-          }
-    },
-
     saveState() {
-      /*
-            We save state to local storage to keep the
-            state when the user reloads the page.
-            This is a simple way to persist state. For a more robust solution,
-            use pinia-persistent-state.
-             */
       localStorage.setItem(
         'authState',
         JSON.stringify({
           user: this.user,
           isAuthenticated: this.isAuthenticated,
-        }),
+        })
       )
     },
   },
 })
 
-export function getCSRFToken() {
-  /*
-    We get the CSRF token from the cookie to include in our requests.
-    This is necessary for CSRF protection in Django.
-     */
-  const name = 'csrftoken'
-  let cookieValue = null
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';')
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim()
-      if (cookie.substring(0, name.length + 1) === name + '=') {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1))
-        break
-      }
-    }
-  }
-  if (cookieValue === null) {
-    throw 'Missing CSRF cookie.'
-  }
-  return cookieValue
-}
+// Export getCSRFToken for use in other files if needed
+export { getCSRFToken } from '../api'

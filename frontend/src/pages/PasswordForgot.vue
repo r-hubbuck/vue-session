@@ -51,8 +51,7 @@
 </template>
 
 <script>
-import { getCSRFToken } from "../store/auth";
-const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000'
+import api from '../api'
 
 export default {
   name: 'PasswordForgot',
@@ -85,29 +84,15 @@ export default {
       this.success = "";
 
       try {
-        const response = await fetch(`${apiUrl}/api/password-reset-request`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": getCSRFToken(),
-          },
-          body: JSON.stringify({
-            email: this.email,
-          }),
-          credentials: "include",
+        const response = await api.post('/api/password-reset-request', {
+          email: this.email,
         });
 
-        const data = await response.json();
-        
-        if (response.ok) {
-          this.success = data.message || "Password reset email has been sent. Please allow a few minutes for it to arrive to your inbox.";
-          this.email = "";
-        } else {
-          this.error = data.error || data.message || "Failed to send reset email";
-        }
+        this.success = response.data.message || "Password reset email has been sent. Please allow a few minutes for it to arrive to your inbox.";
+        this.email = "";
       } catch (err) {
         console.error(err);
-        this.error = "An error occurred while sending the reset email. Please try again.";
+        this.error = err.response?.data?.error || err.response?.data?.message || "Failed to send reset email";
       } finally {
         this.loading = false;
       }

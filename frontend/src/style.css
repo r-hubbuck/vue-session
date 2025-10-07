@@ -11,6 +11,33 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  --brand-blue: #284080;
+  --brand-blue-dark: #1e3470;
+  --brand-gold: #cc9c4a;
+  --brand-gold-dark: #c29241;
+}
+
+.btn-blue {
+  background-color: var(--brand-blue) !important;
+  border-color: var(--brand-blue) !important;
+  color: white !important;
+}
+
+.btn-blue:hover {
+  background-color: var(--brand-blue-dark) !important;
+  border-color: var(--brand-blue-dark) !important;
+}
+
+.btn-gold {
+  background-color: var(--brand-gold) !important;
+  border-color: var(--brand-gold) !important;
+  color: white !important;
+}
+
+.btn-gold:hover {
+  background-color: var(--brand-gold-dark) !important;
+  border-color: var(--brand-gold-dark) !important;
 }
 
 .app-wrapper {
@@ -124,7 +151,7 @@ form.container-sm {
   max-width: 540px !important;
 }
 
-form.container-md {
+form.container-md, div.container-md {
   max-width: 720px !important;
 }
 

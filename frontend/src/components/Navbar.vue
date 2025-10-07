@@ -3,7 +3,7 @@
     <div class="container-fluid">
       <!-- Logo/Brand -->
       <router-link class="navbar-brand" to="/" @click="navigateHome">
-        <img src="/logo_circle_blue.png" alt="Logo" width="30" height="30" class="d-inline-block align-text-top">
+        <img src="/logo_circle_blue.png" alt="Logo" width="60" height="60" class="d-inline-block align-text-top">
       </router-link>
 
       <!-- Navbar toggler for mobile -->
@@ -24,8 +24,8 @@
         <!-- Left side items -->
         <ul class="navbar-nav me-auto">
           <li class="nav-item">
-            <router-link class="nav-link" to="/" @click="navigateHome">
-              Example Link
+            <router-link class="nav-link" to="/account" @click="navigateToAccount">
+              Account Settings
             </router-link>
           </li>
         </ul>
@@ -92,6 +92,11 @@ export default {
     navigateHome() {
       if (this.$route.name !== 'home') {
         this.$router.push('/');
+      }
+    },
+    navigateToAccount() {
+      if (this.$route.name !== 'account') {
+        this.$router.push('/account');
       }
     },
     toggleDropdown(event) {

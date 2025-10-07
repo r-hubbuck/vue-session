@@ -16,6 +16,7 @@ const routes = [
     path: '/',
     name: 'home',
     component: Home,
+    meta: { requiresAuth: true }
   },
   {
     path: '/login',
@@ -26,6 +27,7 @@ const routes = [
     path: '/register',
     name: 'register',
     component: Register,
+    meta: { requiresVerification: true }
   },
   {
     path: '/verify',
@@ -61,6 +63,7 @@ const routes = [
     path: '/account',
     name: 'account',
     component: UserAccount,
+    meta: { requiresAuth: true }
   }
 ]
 
@@ -73,8 +76,21 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
 
-  if (to.name == 'home' && !authStore.isAuthenticated) next({ name: 'login' })
-  else next()
+  // Check if route requires authentication
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    return next({ name: 'login' })
+  }
+
+  // Check if route requires verification (for registration)
+  if (to.meta.requiresVerification) {
+    if (!authStore.hasValidVerification) {
+      // Redirect to verify page with a message
+      authStore.serverMessage = 'Please verify your membership before registering.'
+      return next({ name: 'verify' })
+    }
+  }
+
+  next()
 })
 
 export default router
