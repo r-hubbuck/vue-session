@@ -1,5 +1,6 @@
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.conf import settings
 import hashlib
 from .models import UsedToken
 
@@ -12,7 +13,6 @@ class OneTimeTokenMixin:
             return False
         
         # Check if token has already been used
-        from .models import UsedToken
         token_hash = hashlib.sha256(f"{user.pk}-{token}".encode()).hexdigest()
         
         if UsedToken.objects.filter(
@@ -36,12 +36,22 @@ class OneTimeTokenMixin:
 
 class AccountActivationTokenGenerator(OneTimeTokenMixin, PasswordResetTokenGenerator):
     token_type = 'activation'
+
+    def __init__(self):
+        super().__init__()
+        self.timeout = getattr(settings, 'ACCOUNT_ACTIVATION_TIMEOUT', 60 * 60 * 24) # custom timeout from settings | 1 day
     
+    # Override to include last_login in hash to invalidate old tokens on password change
     def _make_hash_value(self, user: AbstractBaseUser, timestamp: int) -> str:
-        return str(user.pk) + str(timestamp) + str(user.is_active)
+        login_timestamp = '' if user.last_login is None else user.last_login.replace(microsecond=0, tzinfo=None)
+        return str(user.pk) + str(timestamp) + str(user.is_active) + str(login_timestamp)
 
 class PasswordResetTokenGenerator(OneTimeTokenMixin, PasswordResetTokenGenerator):
     token_type = 'password_reset'
+
+    def __init__(self):
+        super().__init__()
+        self.timeout = getattr(settings, 'PASSWORD_RESET_TIMEOUT', 60 * 60) # custom timeout from settings | 30 min
     
     def _make_hash_value(self, user: AbstractBaseUser, timestamp: int) -> str:
         return str(user.pk) + str(timestamp) + str(user.is_active)

@@ -260,22 +260,23 @@ class ChapterListAPIView(APIView):
             database='Member'
         )
         cursor = conn.cursor(as_dict=True)
-        cursor.execute(''' SELECT Chapters.chp_id
-                    ,Chapters.chp_code
-                    ,Chapters.Chp_Name_Short
-                    ,Chapters.PrimaryChapter
-                    ,Schools.sch_ConversationalName
-                    ,Schools.sch_school
-                    FROM Chapters
-                    INNER JOIN Schools
-                    ON Chapters.chp_id = Schools.sch_id
-                    where chp_name_greek != ''
-                    and PrimaryChapter = 'Y'
-                    and sch_ConversationalName != '' ''')
+        cursor.execute(''' select chapters.chp_number,
+                        chapters.chp_id,
+                        chapters.chp_code,
+                        chapters.chp_name,
+                        chapters.chp_name_short,
+                        schools.sch_name,
+                        schools.sch_school
+                        from chapters, schools
+                        where chapters.chp_id = schools.sch_chpid
+                        and chapters.CollegiateChapter = 1
+                        and Len(RTrim(schools.sch_name)) > 0
+                        and schools.sch_active = 1
+                        order by chp_code ''')
         chapters = cursor.fetchall()
         chap_list = {}
         for i, c in enumerate(chapters):
-            chap_list[i] = {"id": str(c['chp_code']),"title": c['sch_school'] + " (" + c['Chp_Name_Short'].strip() + ")"}
+            chap_list[i] = {"id": str(c['chp_code']),"title": c['chp_name'].strip() + " - " + c['sch_school']}
         return Response({'chapters': chap_list}, status=200)
 
 class VerifyMemberAPIView(APIView):

@@ -1,9 +1,9 @@
 <template>
-  <div class="container-md">
-    <div class="row justify-content-center">
-      <div class="">
-        <h1 class="text-center mb-4">Set New Password</h1>
-        
+  <div class="container mt-2">
+    <!-- <div class="row justify-content-center">
+      <div class=""> -->
+        <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50">
+        <h1 class="mt-4 mb-3">Set New Password</h1>
         <div v-if="tokenError" class="alert alert-danger">
           {{ tokenError }}
           <div class="mt-2">
@@ -15,7 +15,7 @@
           {{ success }}
         </div>
         
-        <form v-else @submit.prevent="resetPassword">
+        <form v-else @submit.prevent="resetPassword" class="container-md">
           <div class="mb-3 position-relative">
             <label for="newPassword1" class="form-label">New Password:</label>
             <input
@@ -119,19 +119,19 @@
 
           <button 
             type="submit"
-            class="btn btn-primary w-100 mb-3"
+            class="btn btn-primary mt-5"
             :disabled="loading || !isFormValid"
           >
             {{ loading ? 'Updating...' : 'Update Password' }}
           </button>
         </form>
 
-        <div class="text-center">
+        <p class="text-center mt-3">
           <RouterLink to="/login" class="text-decoration-none">Back to Login</RouterLink>
-        </div>
+        </p>
       </div>
-    </div>
-  </div>
+    <!-- </div>
+  </div> -->
 </template>
 
 <script>

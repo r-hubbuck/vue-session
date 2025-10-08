@@ -1,6 +1,7 @@
 <template>
-  <div class="container mt-5">
-    <h2>Register</h2>
+  <div class="container mt-2">
+    <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50">
+    <h1 class="mt-4 mb-3">Register for an Account</h1>
     <form @submit.prevent="register" class="container-md">
       <!-- Email -->
       <div class="form-group">
@@ -128,7 +129,7 @@
         </div>
         <div v-if="passwordError" class="text-danger mt-4 fw-bold">{{ passwordError }}</div>
       </div>
-
+      <button class="btn btn-danger mt-5 me-4" type="button" @click="$router.push('/login')">Back</button>
       <button class="btn btn-primary mt-5" type="submit">Register</button>
     </form>
 

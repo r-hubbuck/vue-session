@@ -1,6 +1,7 @@
 <template>
-    <div class="container mt-5">
-        <h1>Verify Tau Beta Pi Membership</h1> 
+    <div class="container mt-2">
+        <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50">
+        <h1 class="mt-4 mb-3">Verify Tau Beta Pi Membership</h1> 
         <form  @submit.prevent="submitVerifyForm" class="container-md">
             <div class="form-group row">
                 <label class="form-label" for="email" type="email">Email:</label> 
@@ -26,7 +27,7 @@
                 {{ errorMessage }}
             </div>
             <button class="btn btn-danger mt-5 me-4" type="button" @click="$router.push('/login')">Back</button>
-            <button class="btn btn-primary mt-5" type="submit">Submit</button> 
+            <button class="btn btn-primary mt-5" type="submit">Verify</button> 
         </form> 
     </div> 
 </template>

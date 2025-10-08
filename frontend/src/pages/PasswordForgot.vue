@@ -1,8 +1,9 @@
 <template>
-  <div class="container mt-5">
+  <div class="container mt-2">
     <div class="row justify-content-center">
       <div class="">
-        <h1 class="text-center mb-3">Reset Your Password</h1>
+        <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50">
+        <h1 class="mt-4 mb-3">Reset Your Password</h1>
         <p class="text-muted text-center mb-4">Enter your email address and we'll send you a link to reset your password.</p>
         
         <div v-if="success" class="alert alert-success">
@@ -31,20 +32,20 @@
 
           <button 
             type="submit"
-            class="btn btn-primary w-100 mb-3"
+            class="btn btn-primary"
             :disabled="loading || !!emailError"
           >
             {{ loading ? 'Sending...' : 'Send Reset Link' }}
           </button>
         </form>
 
-        <div class="text-center">
+        <p class="text-center mt-3">
           <RouterLink to="/login" class="text-decoration-none">Back to Login</RouterLink>
-        </div>
+        </p>
         
-        <div class="text-center mt-3">
+        <p class="text-center mt-3">
           Don't have an account yet? Please <RouterLink to="/verify" class="text-decoration-none">register</RouterLink> now.
-        </div>
+        </p>
       </div>
     </div>
   </div>

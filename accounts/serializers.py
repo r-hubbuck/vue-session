@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Code, User, Address, PhoneNumbers, StateProvince, UsedToken
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 import re
 
 class CreateUserSerializer(serializers.ModelSerializer):
@@ -11,6 +12,11 @@ class CreateUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('email', 'password1', 'password2')
+        extra_kwargs = {
+            'email': {
+                'validators': [],  # Remove default unique validator
+            }
+        }
 
     # Keep your existing password validation methods
     def validate_password1(self, value):
@@ -87,6 +93,9 @@ class CreateUserSerializer(serializers.ModelSerializer):
             
             # Update password
             user.set_password(password)
+
+            # Update last_login to invalidate old tokens
+            user.last_login = timezone.now()
             
             # Keep inactive until email is verified
             user.is_active = False
@@ -101,8 +110,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
                 token_type='activation'
             ).delete()
             
-            # Note: The signal will NOT create a new Code because created=False
-            # So we need to update the Code manually
+            # The signal will NOT create a new Code because created=False, so we need to update the Code manually
             if hasattr(user, 'code'):
                 # Update existing code with new random number
                 user.code.save()  # This triggers Code.save() which generates new number

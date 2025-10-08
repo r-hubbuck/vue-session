@@ -208,8 +208,8 @@ else:
     DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 
 # Custom token timeouts (in seconds)
-ACCOUNT_ACTIVATION_TIMEOUT = 60 * 180    # 3 hours
-PASSWORD_RESET_TIMEOUT = 60 * 60  # 1 hour
+ACCOUNT_ACTIVATION_TIMEOUT = 60 * 60 * 24  # 1 day
+PASSWORD_RESET_TIMEOUT = 60 * 30  # 30 minutes
 
 # Ensure SSL certificates are properly handled
 os.environ['SSL_CERT_FILE'] = certifi.where()

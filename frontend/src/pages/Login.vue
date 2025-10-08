@@ -1,7 +1,7 @@
 <template>
   <div class="container mt-2">
     <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50">
-    <h2 class="mt-4 mb-3">Login</h2>
+    <h1 class="mt-4 mb-3">Login</h1>
     <div>
       <p v-if="hasActivateParam" class="text-success">Your account has been activated!</p>
     </div>
