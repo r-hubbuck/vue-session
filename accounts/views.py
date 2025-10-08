@@ -19,7 +19,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 from django.shortcuts import get_object_or_404
 
 from .tokens import account_activation_token, password_reset_token
-from .models import CustomUser, Member, Address, PhoneNumbers, StateProvince
+from .models import User, Member, Address, PhoneNumbers, StateProvince
 from .serializers import (
     CodeValidationSerializer,
     LoginSerializer,
@@ -62,7 +62,7 @@ def code_check(request):
         )
     
     try:
-        user = CustomUser.objects.get(pk=pk)
+        user = User.objects.get(pk=pk)
         code = user.code
         
         serializer = CodeValidationSerializer(data=request.data)
@@ -85,7 +85,7 @@ def code_check(request):
                 {'success': False, 'errors': serializer.errors}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
-    except CustomUser.DoesNotExist:
+    except User.DoesNotExist:
         return Response(
             {'success': False, 'message': 'User not found'}, 
             status=status.HTTP_404_NOT_FOUND
@@ -143,7 +143,7 @@ def login_view(request):
                 status=status.HTTP_200_OK
             )
         else:
-            if not CustomUser.objects.filter(email=email).exists():
+            if not User.objects.filter(email=email).exists():
                 return Response(
                     {'success': False, 'message': 'There is no account registered for the provided email.'}, 
                     status=status.HTTP_401_UNAUTHORIZED
@@ -304,6 +304,7 @@ class VerifyMemberAPIView(APIView):
             print('success connecting to ms sqlserver')
             cursor = conn.cursor(as_dict=True)
 
+            # Could potentially use the values returned to populate phone, address, member, etc. 
             cursor.execute(''' SELECT Memblist.mem_id
                                 ,Memblist.mem_classy
                                 ,Memblist.mem_lname
@@ -386,7 +387,7 @@ def password_reset_request(request):
         email = serializer.validated_data['email']
         
         try:
-            user = CustomUser.objects.get(email=email, is_active=True)
+            user = User.objects.get(email=email, is_active=True)
             
             # Generate reset link
             current_site = get_current_site(request)
@@ -412,7 +413,7 @@ def password_reset_request(request):
                 'message': 'Password reset email has been sent. Please check your inbox.'
             }, status=status.HTTP_200_OK)
             
-        except CustomUser.DoesNotExist:
+        except User.DoesNotExist:
             # Return same message to prevent email enumeration
             return Response({
                 'message': 'Password reset email has been sent. Please check your inbox.'

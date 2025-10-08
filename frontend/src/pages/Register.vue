@@ -17,7 +17,7 @@
       </div>
 
       <!-- Phone -->
-      <div class="form-group">
+      <!-- <div class="form-group">
         <label class="form-label" for="phone">Phone:</label>
         <input
           class="form-control"
@@ -28,7 +28,7 @@
           @blur="validatePhone"
         />
         <div v-if="phoneError" class="text-danger mt-4 fw-bold">{{ phoneError }}</div>
-      </div>
+      </div> -->
 
       <!-- Password -->
       <div class="form-group position-relative">
@@ -152,13 +152,13 @@ export default {
   data() {
     return {
       email: "",
-      phone: "",
+      // phone: "",
       password1: "",
       password2: "",
       error: "",
       success: "",
       emailError: "",
-      phoneError: "",
+      // phoneError: "",
       passwordError: "",
       showPasswordReq: false,
       showPassword2Req: false,
@@ -228,15 +228,15 @@ export default {
         : "Please enter a valid email address.";
     },
 
-    validatePhone() {
-      const cleaned = this.phone.replace(/[\s\-\(\)\+]/g, "");
-      this.phone = cleaned;
+    // validatePhone() {
+    //   const cleaned = this.phone.replace(/[\s\-\(\)\+]/g, "");
+    //   this.phone = cleaned;
 
-      const re = /^[0-9]{10,15}$/;
-      this.phoneError = re.test(this.phone)
-        ? ""
-        : "Phone number must be 10-15 digits.";
-    },
+    //   const re = /^[0-9]{10,15}$/;
+    //   this.phoneError = re.test(this.phone)
+    //     ? ""
+    //     : "Phone number must be 10-15 digits.";
+    // },
 
     validatePasswords() {
       const allowedSpecial = /[!@#$%^&*_=+\-.]/;
@@ -260,12 +260,12 @@ export default {
 
     async register() {
       this.validateEmail();
-      this.validatePhone();
+      // this.validatePhone();
       const passwordsValid = this.validatePasswords();
 
       if (
         this.emailError ||
-        this.phoneError ||
+        // this.phoneError ||
         this.passwordError ||
         !passwordsValid
       ) {
@@ -276,7 +276,7 @@ export default {
       try {
         const response = await api.post('/api/register', {
           email: this.email,
-          phone: this.phone,
+          // phone: this.phone,
           password1: this.password1,
           password2: this.password2,
         });

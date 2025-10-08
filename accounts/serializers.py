@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Code, CustomUser, Address, PhoneNumbers, StateProvince, UsedToken
+from .models import Code, User, Address, PhoneNumbers, StateProvince, UsedToken
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 import re
@@ -9,7 +9,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
-        model = CustomUser
+        model = User
         fields = ('email', 'password1', 'password2')
 
     # Keep your existing password validation methods
@@ -49,7 +49,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
         Stores reference to existing inactive user if found.
         """
         # Check if user with this email already exists
-        existing_user = CustomUser.objects.filter(email=value).first()
+        existing_user = User.objects.filter(email=value).first()
         
         if existing_user:
             # If user exists but is NOT active, allow re-registration
@@ -113,7 +113,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
             return user
         else:
             # CREATE NEW USER (normal flow)
-            user = CustomUser(
+            user = User(
                 email=email,
                 is_active=False
             )
@@ -212,7 +212,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
             raise serializers.ValidationError("Please enter a valid email address.")
         
         # Check if user exists and is active
-        if not CustomUser.objects.filter(email=value, is_active=True).exists():
+        if not User.objects.filter(email=value, is_active=True).exists():
             raise serializers.ValidationError("No active account found with this email address.")
         
         return value
@@ -325,12 +325,12 @@ class UserAccountSerializer(serializers.ModelSerializer):
     phone_numbers = PhoneNumberSerializer(many=True, read_only=True, source='member.phone_numbers')
     
     class Meta:
-        model = CustomUser
+        model = User
         fields = ['id', 'email', 'alt_email', 'phone_numbers']
         read_only_fields = ['id', 'email']  # Email should not be editable
     
     def validate_alt_email(self, value):
-        if value and CustomUser.objects.filter(email=value).exists():
+        if value and User.objects.filter(email=value).exists():
             raise serializers.ValidationError('This email is already in use as a primary email.')
         return value
 

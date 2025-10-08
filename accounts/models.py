@@ -1,9 +1,10 @@
 from django.db import models
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from phonenumber_field.modelfields import PhoneNumberField
 import secrets
 
-class CustomUser(AbstractUser):
+class User(AbstractUser):
     first_name = None
     last_name = None
     username = None
@@ -21,8 +22,6 @@ class Member(models.Model):
     last_name = models.CharField(max_length=100)
     chapter = models.CharField(max_length=100)
     # phone = PhoneNumberField()
-    # email = models.EmailField(max_length=100, unique=True)
-    # alt_email = models.EmailField(max_length=100, blank=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -34,7 +33,7 @@ class Address(models.Model):
     add_city = models.CharField(max_length=100, blank=False)
     add_state = models.CharField(max_length=100, blank=True, null=True)  # Optional for non-US addresses
     add_zip = models.CharField(max_length=20, blank=True)  # Optional for all addresses
-    add_country = models.CharField(max_length=100, default='United States', blank=False)  # New field
+    add_country = models.CharField(max_length=100, default='United States', blank=False)  
     
     ADD_TYPE_CHOICES = [
         ('Home', 'Home'),
@@ -100,7 +99,7 @@ class PhoneNumbers(models.Model):
 
 class Code(models.Model):
     number = models.CharField(max_length=5, blank=False)
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, blank=False)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, blank=False)
 
     def __str__(self):
         return str(self.number)
@@ -110,7 +109,7 @@ class Code(models.Model):
         super().save(*args, **kwargs)
 
 class UsedToken(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     token_hash = models.CharField(max_length=64, unique=True)
     token_type = models.CharField(max_length=20, choices=[
         ('activation', 'Account Activation'),
@@ -145,11 +144,11 @@ class StateProvince(models.Model):
     @property
     def country_name(self):
         """Return the country this state/province belongs to"""
-        if self.st_ctrid == 0:  # United States
+        if self.st_ctrid == 0: 
             return "United States"
-        elif self.st_ctrid == 19:  # Canada
+        elif self.st_ctrid == 19:  
             return "Canada"
-        elif self.st_ctrid == 4:  # Australia
+        elif self.st_ctrid == 4:  
             return "Australia"
         else:
             return self.st_region or "Other"

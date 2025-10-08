@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'sim',
+    'accounts',
     'corsheaders',
     'phonenumber_field',
 ]
@@ -174,7 +174,7 @@ X_FRAME_OPTIONS = 'DENY' # Ensures that the page cannot be displayed in a frame
 # CSRF_COOKIE_SECURE = True
 # SESSION_COOKIE_SECURE = True
 
-AUTH_USER_MODEL = 'sim.CustomUser'
+AUTH_USER_MODEL = 'accounts.User'
 
 PHONENUMBER_DEFAULT_REGION = 'US'
 
