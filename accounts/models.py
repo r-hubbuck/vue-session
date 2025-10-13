@@ -79,11 +79,11 @@ class PhoneNumbers(models.Model):
                 fields=['member', 'phone_type'],
                 name='unique_member_phone_type'
             ),
-            models.UniqueConstraint(
-                fields=['member'],
-                condition=models.Q(is_primary=True),
-                name='unique_member_primary_phone'
-            )
+            # models.UniqueConstraint(
+            #     fields=['member'],
+            #     condition=models.Q(is_primary=True),
+            #     name='unique_member_primary_phone'
+            # )
         ]
     
     def __str__(self):
