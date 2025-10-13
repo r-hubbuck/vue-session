@@ -81,6 +81,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
+DOMAIN = os.getenv('DOMAIN')
+FRONTEND_URL = os.getenv('FRONTEND_URL')
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases

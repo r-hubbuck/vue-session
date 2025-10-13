@@ -8,6 +8,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.contrib.sites.shortcuts import get_current_site
+from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, get_user_model
 
 from rest_framework.decorators import api_view, permission_classes
@@ -32,6 +33,9 @@ from .serializers import (
     PhoneNumberSerializer,
     StateProvinceSerializer
 )
+
+FRONTEND_URL = settings.FRONTEND_URL
+DOMAIN = settings.DOMAIN
 
 @ensure_csrf_cookie
 @api_view(['GET'])
@@ -118,11 +122,12 @@ def login_view(request):
             
             # Try to send email
             try:
-                current_site = get_current_site(request)  # ADD THIS LINE
+                # current_site = get_current_site(request)  # ADD THIS LINE
                 mail_subject = 'TBP Portal Verification Code'
                 message = render_to_string('registration/two_factor_code_email.html', {
                     'user_code': code,
-                    'domain': current_site.domain,  # ADD THIS LINE
+                    # 'domain': current_site.domain,  # ADD THIS LINE
+                    'domain': DOMAIN,
                 })
                 to_email = user.email
                 
@@ -213,11 +218,12 @@ def register(request):
             user.save()
         
         # Send activation email
-        current_site = get_current_site(request)
+        # current_site = get_current_site(request)
         mail_subject = 'Activate Your Account'
         message = render_to_string('registration/account_activation_email.html', {
             'member': member,
-            'domain': current_site.domain,
+            # 'domain': current_site.domain,
+            'domain': DOMAIN,
             'uid': urlsafe_base64_encode(force_bytes(user.pk)),
             'token': account_activation_token.make_token(user)
         })
@@ -370,10 +376,10 @@ def activate(request, uidb64, token):
         account_activation_token.mark_token_used(user, token)
         user.is_active = True
         user.save()
-        return redirect('http://localhost:5173/login?activate=true')
+        return redirect(f'{FRONTEND_URL}/login?activate=true')
     else:
         # Token is invalid or already used - redirect to error page
-        return redirect('http://localhost:5173/email-link-error')
+        return redirect(f'{FRONTEND_URL}/email-link-error')
         # return Response(
         #     {'message': 'Invalid activation link or user not found. Please try again or contact tbp hq.'}, 
         #     status=status.HTTP_400_BAD_REQUEST
@@ -391,12 +397,13 @@ def password_reset_request(request):
             user = User.objects.get(email=email, is_active=True)
             
             # Generate reset link
-            current_site = get_current_site(request)
+            # current_site = get_current_site(request)
             mail_subject = 'Password Reset Request'
             message = render_to_string('registration/password_reset_confirm_email.html', {
                 'user': user,
                 'member': user.member if hasattr(user, 'member') else None,
-                'domain': current_site.domain,
+                # 'domain': current_site.domain,
+                'domain': DOMAIN,
                 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
                 'token': password_reset_token.make_token(user)
             })
@@ -442,7 +449,7 @@ def password_reset_confirm(request, uidb64, token):
     # Check token validity for both GET and POST
     if user is None or not password_reset_token.check_token(user, token):
         if request.method == 'GET':
-            return redirect('http://localhost:5173/email-link-error')
+            return redirect(f'{FRONTEND_URL}/email-link-error')
         else:
             return Response({
                 'error': 'Invalid or expired reset link'
@@ -451,7 +458,7 @@ def password_reset_confirm(request, uidb64, token):
     if request.method == 'GET':
         # Token is valid, redirect to password reset form on frontend
         # DON'T mark as used yet - wait for POST
-        return redirect(f'http://localhost:5173/password-reset-confirm/{uidb64}/{token}')
+        return redirect(f'{FRONTEND_URL}/password-reset-confirm/{uidb64}/{token}')
     
     elif request.method == 'POST':
         # Validate token again and mark as used
