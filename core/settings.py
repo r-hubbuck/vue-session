@@ -97,8 +97,8 @@ else:
             'NAME': os.getenv('DB_NAME'),
             'USER': os.getenv('DB_USER'),
             'PASSWORD': os.getenv('DB_PASSWORD'),
-            'HOST': os.getenv('localhost'),
-            'PORT': os.getenv('3306'),
+            'HOST': os.getenv('DB_HOST') or 'localhost',  # This will handle None properly
+            'PORT': os.getenv('DB_PORT') or '3306',
         }
     }
 
