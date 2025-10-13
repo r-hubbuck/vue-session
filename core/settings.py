@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     'phonenumber_field',
 ]
 
+SITE_ID = 1  # ADD THIS
+
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
