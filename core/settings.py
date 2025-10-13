@@ -18,10 +18,9 @@ import certifi, os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-ENVIRONMENT = os.getenv('ENVIRONMENT', 'local')  # default to 'local'
-
 # Load environment variables from .env file
 load_dotenv()
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'local')  # default to 'local'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
