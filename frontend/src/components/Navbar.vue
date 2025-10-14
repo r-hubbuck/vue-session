@@ -52,7 +52,7 @@
                 </router-link>
               </li>
               <li>
-                <a class="dropdown-item" href="#" @click.prevent="handleLogout">
+                <a class="dropdown-item text-danger" href="#" @click.prevent="handleLogout">
                   <i class="bi bi-box-arrow-right me-2"></i>Logout
                 </a>
               </li>
