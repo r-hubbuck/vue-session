@@ -572,30 +572,21 @@ export default {
       this.phoneError = null
     },
 
-    async saveAllPhones() {
+   async saveAllPhones() {
       this.phoneSaving = true
       this.phoneError = null
       this.phoneSuccess = null
 
       try {
+        // Mark which phone should be primary
         this.phoneNumbers.forEach((phone, index) => {
           phone.is_primary = index === this.primaryPhoneIndex
         })
 
-        const unsetPromises = this.phoneNumbers
-          .filter(phone => phone.id)
-          .map(phone =>
-            api.put(`/api/phone-numbers/${phone.id}/`, {
-              phone_type: phone.phone_type,
-              country_code: phone.country_code || '+1',
-              phone_number: this.getCleanPhoneNumber(phone.phone_number),
-              is_primary: false
-            })
-          )
-
-        await Promise.all(unsetPromises)
-
-        const updatePromises = this.phoneNumbers.map(async (phone) => {
+        // Save each phone
+        for (let i = 0; i < this.phoneNumbers.length; i++) {
+          const phone = this.phoneNumbers[i]
+          
           const payload = {
             phone_type: phone.phone_type,
             country_code: phone.country_code || '+1',
@@ -604,23 +595,46 @@ export default {
           }
 
           if (phone.id) {
-            return api.put(`/api/phone-numbers/${phone.id}/`, payload)
+            await api.put(`/api/phone-numbers/${phone.id}/`, payload)
           } else {
-            return api.post('/api/phone-numbers/', payload)
+            const response = await api.post('/api/phone-numbers/', payload)
+            phone.id = response.data.id
           }
-        })
+        }
 
-        await Promise.all(updatePromises)
-
+        // Success - refresh and show message
         await this.fetchAccountData()
         this.showAddPhoneRow = false
         this.phoneSuccess = 'Phone numbers updated successfully!'
         setTimeout(() => {
           this.phoneSuccess = null
         }, 3000)
+        
       } catch (error) {
-        console.error('Error saving phones:', error)
-        this.phoneError = error.response?.data?.detail || 'Failed to save phone numbers'
+        const errorData = error.response?.data
+        
+        // Extract error message from Django serializer
+        if (errorData) {
+          if (errorData.phone_type) {
+            this.phoneError = Array.isArray(errorData.phone_type) ? errorData.phone_type[0] : errorData.phone_type
+          } else if (errorData.is_primary) {
+            this.phoneError = Array.isArray(errorData.is_primary) ? errorData.is_primary[0] : errorData.is_primary
+          } else if (errorData.phone_number) {
+            this.phoneError = Array.isArray(errorData.phone_number) ? errorData.phone_number[0] : errorData.phone_number
+          } else if (errorData.country_code) {
+            this.phoneError = Array.isArray(errorData.country_code) ? errorData.country_code[0] : errorData.country_code
+          } else if (errorData.non_field_errors) {
+            this.phoneError = Array.isArray(errorData.non_field_errors) ? errorData.non_field_errors[0] : errorData.non_field_errors
+          } else if (errorData.detail) {
+            this.phoneError = errorData.detail
+          } else if (typeof errorData === 'string') {
+            this.phoneError = errorData
+          } else {
+            this.phoneError = JSON.stringify(errorData)
+          }
+        } else {
+          this.phoneError = 'Failed to save phone numbers'
+        }
       } finally {
         this.phoneSaving = false
       }
