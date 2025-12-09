@@ -17,6 +17,7 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
 
 class Member(models.Model):
+    member_id = models.IntegerField(unique=True, null=True, blank=True)
     first_name = models.CharField(max_length=100)
     middle_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100)

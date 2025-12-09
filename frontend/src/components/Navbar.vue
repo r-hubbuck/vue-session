@@ -28,6 +28,16 @@
               Account Settings
             </router-link>
           </li>
+          <li class="nav-item">
+            <router-link class="nav-link" to="/convention" @click="navigateToConvention">
+              Convention
+            </router-link>
+          </li>
+           <li class="nav-item">
+            <router-link class="nav-link" to="/expense-reports" @click="navigateToExpenseReports">
+              Expense Reports
+            </router-link>
+          </li>
         </ul>
 
         <!-- Right side items -->
@@ -97,6 +107,16 @@ export default {
     navigateToAccount() {
       if (this.$route.name !== 'account') {
         this.$router.push('/account');
+      }
+    },
+    navigateToConvention() {
+      if (this.$route.name !== 'convention') {
+        this.$router.push('/convention');
+      }
+    },
+    navigateToExpenseReports() {
+      if (this.$route.name !== 'expense-reports') {
+        this.$router.push('/expense-reports');
       }
     },
     toggleDropdown(event) {
