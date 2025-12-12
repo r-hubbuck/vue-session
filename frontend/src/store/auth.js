@@ -26,6 +26,32 @@ export const useAuthStore = defineStore('auth', {
     currentUser: (state) => state.user,
     isLoggedIn: (state) => state.isAuthenticated,
     
+    // Get user role
+    userRole: (state) => state.user?.role || 'non-member',
+    
+    // Role checking getters
+    isNonMember: (state) => state.user?.role === 'non-member',
+    isCollegiate: (state) => state.user?.role === 'collegiate',
+    isAlumni: (state) => state.user?.role === 'alumni',
+    isOfficial: (state) => state.user?.role === 'official',
+    
+    // Convenience getters for permission checks
+    isMember: (state) => {
+      const role = state.user?.role
+      return role === 'collegiate' || role === 'alumni' || role === 'official'
+    },
+    
+    canAccessConvention: (state) => {
+      // Example: only collegiate and officials can access convention
+      const role = state.user?.role
+      return role === 'collegiate' || role === 'official'
+    },
+    
+    canManageChapter: (state) => {
+      // Example: only officials can manage chapter
+      return state.user?.role === 'official'
+    },
+    
     // Check if verification is still valid (expires after 15 minutes)
     hasValidVerification: (state) => {
       if (!state.isVerified || !state.verificationTimestamp) {
@@ -59,7 +85,7 @@ export const useAuthStore = defineStore('auth', {
 
     async setCsrfToken() {
       try {
-        await api.get('/api/set-csrf-token')
+        await api.get('/api/accounts/set-csrf-token')
       } catch (error) {
         console.error('Failed to set CSRF token', error)
       }
@@ -67,7 +93,7 @@ export const useAuthStore = defineStore('auth', {
 
     async login(email, password, router = null) {
       try {
-        const response = await api.post('/api/login', { email, password })
+        const response = await api.post('/api/accounts/login', { email, password })
         this.serverMessage = response.data.message
         
         if (response.data.success) {
@@ -91,10 +117,13 @@ export const useAuthStore = defineStore('auth', {
 
     async verify(code, router = null) {
       try {
-        const response = await api.post('/api/code-check', { code })
+        const response = await api.post('/api/accounts/code-check', { code })
         
         if (response.data.success) {
           this.isAuthenticated = true
+          
+          // Fetch user data after successful verification to get role
+          await this.fetchUser()
           
           if (router) {
             await router.push({ name: 'home' })
@@ -108,7 +137,7 @@ export const useAuthStore = defineStore('auth', {
 
     async logout(router = null) {
       try {
-        await api.post('/api/logout')
+        await api.post('/api/accounts/logout')
         this.user = null
         this.isAuthenticated = false
         this.clearVerification() // Clear verification on logout
@@ -125,7 +154,7 @@ export const useAuthStore = defineStore('auth', {
 
     async fetchUser() {
       try {
-        const response = await api.get('/api/user')
+        const response = await api.get('/api/accounts/user')
         this.user = response.data
         this.isAuthenticated = true
       } catch (error) {

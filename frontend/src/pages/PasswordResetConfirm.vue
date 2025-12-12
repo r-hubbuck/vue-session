@@ -244,7 +244,7 @@ export default {
 
       try {
         const response = await api.post(
-          `/api/password-reset-confirm/${this.uidb64}/${this.token}/`,
+          `/api/accounts/password-reset-confirm/${this.uidb64}/${this.token}/`,
           {
             new_password1: this.newPassword1,
             new_password2: this.newPassword2,

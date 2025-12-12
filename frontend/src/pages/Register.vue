@@ -275,7 +275,7 @@ export default {
       }
 
       try {
-        const response = await api.post('/api/register', {
+        const response = await api.post('/api/accounts/register', {
           email: this.email,
           // phone: this.phone,
           password1: this.password1,

@@ -185,8 +185,8 @@ def user_view(request):
     """
     if request.user.is_authenticated:
         return Response({
-            'email': request.user.email
-            # 'email': request.user.email
+            'email': request.user.email,
+            'role': request.user.role
         }, status=status.HTTP_200_OK)
     
     return Response(

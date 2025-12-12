@@ -85,7 +85,7 @@ export default {
       this.success = "";
 
       try {
-        const response = await api.post('/api/password-reset-request', {
+        const response = await api.post('/api/accounts/password-reset-request', {
           email: this.email,
         });
 

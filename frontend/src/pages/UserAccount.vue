@@ -393,7 +393,7 @@ export default {
   methods: {
     async fetchStatesProvinces() {
       try {
-        const response = await api.get('/api/states-provinces')
+        const response = await api.get('/api/accounts/states-provinces')
         this.statesProvinces = response.data
         this.statesProvincesLoaded = true
       } catch (error) {
@@ -415,7 +415,7 @@ export default {
           return
         }
 
-        const response = await api.get('/api/user-account')
+        const response = await api.get('/api/accounts/user-account')
 
         this.accountData = {
           email: response.data.email,
@@ -458,7 +458,7 @@ export default {
       this.accountErrors = {}
 
       try {
-        await api.put('/api/user-account', {
+        await api.put('/api/accounts/user-account', {
           alt_email: this.accountData.alt_email
         })
 
@@ -548,7 +548,7 @@ export default {
       this.phoneError = null
 
       try {
-        await api.delete(`/api/phone-numbers/${phoneId}/`)
+        await api.delete(`/api/accounts/phone-numbers/${phoneId}/`)
 
         await this.fetchAccountData()
 
@@ -595,9 +595,9 @@ export default {
           }
 
           if (phone.id) {
-            await api.put(`/api/phone-numbers/${phone.id}/`, payload)
+            await api.put(`/api/accounts/phone-numbers/${phone.id}/`, payload)
           } else {
-            const response = await api.post('/api/phone-numbers/', payload)
+            const response = await api.post('/api/accounts/phone-numbers/', payload)
             phone.id = response.data.id
           }
         }
@@ -642,7 +642,7 @@ export default {
 
     async fetchAddresses() {
       try {
-        const response = await api.get('/api/addresses/')
+        const response = await api.get('/api/accounts/addresses/')
 
         this.addresses = response.data.map(address => ({
           id: address.id,
@@ -697,7 +697,7 @@ export default {
       this.addressError = null
 
       try {
-        await api.delete(`/api/addresses/${addressId}/`)
+        await api.delete(`/api/accounts/addresses/${addressId}/`)
 
         this.addresses.splice(index, 1)
         this.addressSuccess = 'Address deleted successfully!'
@@ -740,9 +740,9 @@ export default {
           };
 
           if (address.id) {
-            return api.put(`/api/addresses/${address.id}/`, payload)
+            return api.put(`/api/accounts/addresses/${address.id}/`, payload)
           } else {
-            return api.post('/api/addresses/', payload)
+            return api.post('/api/accounts/addresses/', payload)
           }
         })
 

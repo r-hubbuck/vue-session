@@ -13,6 +13,14 @@ class User(AbstractUser):
     alt_email = models.EmailField(max_length=100, blank=True)
     member = models.OneToOneField('Member', on_delete=models.CASCADE, null=True, blank=True, related_name='user')
 
+    ROLE_CHOICES = [
+    ('non-member', 'Non-Member'),
+    ('collegiate', 'Collegiate'),
+    ('alumni', 'Alumni'),
+    ('official', 'Official'),
+    ]
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='non-member', blank=False)
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 

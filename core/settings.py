@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'rest_framework',
     'accounts',
+    'convention',
     'corsheaders',
     'phonenumber_field',
 ]

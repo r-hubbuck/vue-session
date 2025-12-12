@@ -70,7 +70,7 @@ export default {
         
         async fetchChapters() {
             try {
-                const response = await api.get('/api/chapter-list')
+                const response = await api.get('/api/accounts/chapter-list')
                 this.chapters = Object.values(response.data.chapters)
             } catch (error) {
                 console.error('Failed to fetch chapters', error)
@@ -80,7 +80,7 @@ export default {
         
         async submitVerifyForm() {
             try {
-                const response = await api.post('/api/verify-member', this.formData)
+                const response = await api.post('/api/accounts/verify-member', this.formData)
                 
                 if (response.data.message === 'OK') {
                     // Set verification status in store
