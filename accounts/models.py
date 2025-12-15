@@ -27,10 +27,15 @@ class User(AbstractUser):
 class Member(models.Model):
     member_id = models.IntegerField(unique=True, null=True, blank=True)
     first_name = models.CharField(max_length=100)
+    preferred_first_name = models.CharField(max_length=100, blank=True)
     middle_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100)
     chapter = models.CharField(max_length=100)
     # phone = PhoneNumberField()
+
+    def get_badge_name(self):
+        first = self.preferred_first_name or self.first_name
+        return f"{first} {self.last_name}"
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -43,6 +48,7 @@ class Address(models.Model):
     add_state = models.CharField(max_length=100, blank=True, null=True)  # Optional for non-US addresses
     add_zip = models.CharField(max_length=20, blank=True)  # Optional for all addresses
     add_country = models.CharField(max_length=100, default='United States', blank=False)  
+    is_primary = models.BooleanField(default=False)
     
     ADD_TYPE_CHOICES = [
         ('Home', 'Home'),
