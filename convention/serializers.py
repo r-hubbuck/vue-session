@@ -141,6 +141,9 @@ class ConventionCommitteePreferenceSerializer(serializers.ModelSerializer):
             'constitution',
             'engineering_futures',
             'membership',
+            'public_relations',
+            'resolutions',
+            'rituals',
         ]
 
 

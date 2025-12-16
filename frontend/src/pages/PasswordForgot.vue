@@ -2,8 +2,10 @@
   <div class="container mt-2">
     <div class="row justify-content-center">
       <div class="">
-        <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50">
-        <h1 class="mt-4 mb-3">Reset Your Password</h1>
+        <div class="d-flex">
+          <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50 mx-auto">
+        </div>
+        <h1 class="page-title text-center my-4">Reset Your Password</h1>
         <p class="text-muted text-center mb-4">Enter your email address and we'll send you a link to reset your password.</p>
         
         <div v-if="success" class="alert alert-success">

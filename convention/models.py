@@ -118,6 +118,9 @@ class ConventionCommitteePreference(models.Model):
     constitution = models.IntegerField(choices=PREFERENCE_CHOICES, default=0)
     engineering_futures = models.IntegerField(choices=PREFERENCE_CHOICES, default=0)
     membership = models.IntegerField(choices=PREFERENCE_CHOICES, default=0)
+    public_relations = models.IntegerField(choices=PREFERENCE_CHOICES, default=0)
+    resolutions = models.IntegerField(choices=PREFERENCE_CHOICES, default=0)
+    rituals = models.IntegerField(choices=PREFERENCE_CHOICES, default=0)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

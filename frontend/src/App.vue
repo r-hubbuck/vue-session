@@ -7,15 +7,17 @@ const authStore = useAuthStore()
 </script>
 
 <template>
-  <div class="app-wrapper">
-    <!-- Show navbar only when user is authenticated - positioned outside container -->
+  <div id="app">
+    <!-- Show navbar when user is authenticated -->
     <Navbar v-if="authStore.isAuthenticated" />
     
-    <!-- Main content with centered container -->
+    <!-- Main content area -->
     <div class="main-content" :class="{ 'with-navbar': authStore.isAuthenticated }">
-      <div class="content-container">
-        <RouterView />
-      </div>
+      <RouterView />
     </div>
   </div>
 </template>
+
+<style>
+/* Global styles are in style.css */
+</style>

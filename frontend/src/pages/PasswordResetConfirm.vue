@@ -2,8 +2,10 @@
   <div class="container mt-2">
     <!-- <div class="row justify-content-center">
       <div class=""> -->
-        <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50">
-        <h1 class="mt-4 mb-3">Set New Password</h1>
+        <div class="d-flex">
+          <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50 mx-auto">
+        </div>
+        <h1 class="page-title text-center my-4">Reset Your Password</h1>
         <div v-if="tokenError" class="alert alert-danger">
           {{ tokenError }}
           <div class="mt-2">

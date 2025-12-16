@@ -1,7 +1,9 @@
 <template>
   <div class="container mt-2">
-    <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50">
-    <h1 class="mt-4 mb-3">Login</h1>
+    <div class="d-flex">
+      <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50 mx-auto">
+    </div>
+    <h1 class="page-title text-center my-4">Login</h1>
     <div>
       <p v-if="hasActivateParam" class="text-success">Your account has been activated!</p>
     </div>
@@ -46,12 +48,13 @@
         {{ loading ? 'Please wait...' : 'Login' }}
       </button>
     </form>
-    <p class="mt-3">
-      <RouterLink class="" to="/password-forgot">Forgot your password?</RouterLink>
-    </p>
-    <p class="mt-3">
-      Don't have an account yet? Please <RouterLink class="" to="/verify">register</RouterLink> now.
-    </p>
+    <div class="container-md mt-5">
+      <p class="mt-3">
+        <RouterLink class="" to="/password-forgot">Forgot your password?</RouterLink>
+      </p>
+      <p class="mt-3">Don't have an account yet? Please <RouterLink class="" to="/verify">register</RouterLink> now.</p>
+    </div>
+    
   </div>
 </template>
 

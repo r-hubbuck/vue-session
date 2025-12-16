@@ -15,7 +15,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'email': {
                 'validators': [],  # Remove default unique validator
-            }
+            } 
         }
 
     # Keep your existing password validation methods
@@ -288,8 +288,8 @@ class PhoneNumberSerializer(serializers.ModelSerializer):
     
     def validate(self, data):
         """
-        Validate that the member doesn't already have a phone of this type
-        and that only one phone can be primary
+        Validate that the member doesn't already have a phone of this type.
+        Primary phone validation is handled in the view's perform_update() method.
         """
         member = None
         if self.context and 'request' in self.context:
@@ -311,20 +311,6 @@ class PhoneNumberSerializer(serializers.ModelSerializer):
             if existing_type.exists():
                 raise serializers.ValidationError({
                     'phone_type': f'You already have a {phone_type.lower()} phone number. You can only have one phone number of each type.'
-                })
-        
-        if member and data.get('is_primary', False):
-            if self.instance:
-                existing_primary = PhoneNumbers.objects.filter(
-                    member=member,
-                    is_primary=True
-                ).exclude(id=self.instance.id)
-            else:
-                existing_primary = PhoneNumbers.objects.filter(member=member, is_primary=True)
-            
-            if existing_primary.exists():
-                raise serializers.ValidationError({
-                    'is_primary': 'You can only have one primary phone number. Please uncheck the primary option on your other phone number first.'
                 })
         
         return data
