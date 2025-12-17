@@ -3,7 +3,7 @@
     <div class="d-flex">
       <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50 mx-auto">
     </div>
-    <h1 class="page-title text-center my-4">Login</h1>
+    <h1 class="page-title text-center my-4">Member Portal</h1>
     <div>
       <p v-if="hasActivateParam" class="text-success">Your account has been activated!</p>
     </div>

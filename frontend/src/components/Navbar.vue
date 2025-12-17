@@ -48,7 +48,7 @@ const logout = async () => {
           <img src="/logo_circle_blue.png" alt="Logo" width="60" height="60" class="d-inline-block align-text-top">
           <div class="brand-text">
             <h5>Tau Beta Pi</h5>
-            <p>Management System</p>
+            <p>Member Portal</p>
           </div>
         </router-link>
         

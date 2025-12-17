@@ -33,8 +33,8 @@ export default {
         <!-- Page Header -->
         <div class="page-header">
             <div class="page-header-content">
-                <h1 class="page-title">Welcome to Tau Beta Pi</h1>
-                <p class="page-subtitle">Member Management System</p>
+                <h1 class="page-title">Welcome to the Tau Beta Pi</h1>
+                <p class="page-subtitle">Member Portal</p>
             </div>
         </div>
         
@@ -56,7 +56,7 @@ export default {
                         <i class="bi bi-info-circle-fill"></i>
                         <div class="info-alert-content">
                             Welcome back, <strong>{{ authStore.user?.email }}</strong>! 
-                            You're logged into the Tau Beta Pi Management System.
+                            You're logged into the Tau Beta Pi Member Portal.
                         </div>
                     </div>
                     
