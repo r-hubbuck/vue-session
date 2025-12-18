@@ -119,6 +119,7 @@
                 type="text" 
                 class="form-control"
                 placeholder="Leave blank to use legal first name"
+                maxlength="100"
               >
               <small class="form-text">Optional - only if you prefer a different name</small>
             </div>
@@ -134,31 +135,43 @@
 
         <hr class="my-4" style="border-color: #e2e8f0;">
 
-        <!-- Primary Phone -->
-        <h6 style="font-weight: 600; margin-bottom: 1rem; color: #1a202c;">Primary Contact Phone</h6>
-        <div v-if="memberPhones.length > 0" class="mb-3">
-          <div v-for="phone in memberPhones" :key="phone.id" class="form-check mb-2" style="padding: 1rem; background: #fafbfc; border-radius: 8px; border: 1px solid #e2e8f0;">
-            <input 
-              class="form-check-input" 
-              type="radio" 
-              :id="'phone-' + phone.id"
-              :checked="phone.is_primary"
-              @change="setPrimaryPhone(phone.id)"
-            >
-            <label class="form-check-label" :for="'phone-' + phone.id" style="font-weight: 500;">
-              {{ phone.phone_type }}: {{ phone.formatted_number }}
-              <span v-if="phone.is_primary" class="badge" style="background: #10b981; color: white; margin-left: 0.5rem;">Primary</span>
-            </label>
+        <!-- Mobile Phone for Convention Contact -->
+        <h6 style="font-weight: 600; margin-bottom: 0.5rem; color: #1a202c;">Mobile Phone Number</h6>
+        <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">
+          This number will be used for travel coordination and voting at the convention.
+        </p>
+        
+        <form @submit.prevent="saveMobilePhone">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Mobile Phone *</label>
+              <input 
+                v-model="mobilePhone.phone_number" 
+                @input="handlePhoneInput"
+                type="tel" 
+                class="form-control"
+                placeholder="(555) 123-4567"
+                required
+                maxlength="14"
+                title="Phone number"
+              >
+              <small class="form-text text-muted">
+                <span v-if="mobilePhone.formatted_number">
+                  Current: {{ mobilePhone.formatted_number }}
+                </span>
+                <span v-else>
+                  No mobile phone on file
+                </span>
+              </small>
+            </div>
           </div>
-          <router-link :to="{ name: 'account' }" class="btn btn-outline-custom btn-sm mt-2">
-            <i class="bi bi-pencil me-1"></i>Manage Phone Numbers
-          </router-link>
-        </div>
-        <div v-else class="alert alert-warning" style="border-left: 4px solid #f59e0b;">
-          <i class="bi bi-exclamation-triangle me-2"></i>
-          No phone numbers on file. 
-          <router-link :to="{ name: 'account' }">Add a phone number</router-link>
-        </div>
+          <button type="submit" class="btn btn-gold mt-3" :disabled="saving">
+            <span v-if="saving">
+              <span class="spinner-border spinner-border-sm me-2"></span>Saving...
+            </span>
+            <span v-else><i class="bi bi-check2 me-2"></i>Save Mobile Phone</span>
+          </button>
+        </form>
 
         <hr class="my-4" style="border-color: #e2e8f0;">
 
@@ -187,7 +200,7 @@
         </div>
         <div v-else class="alert alert-warning" style="border-left: 4px solid #f59e0b;">
           <i class="bi bi-exclamation-triangle me-2"></i>
-          No addresses on file. 
+          No addresses on file.
           <router-link :to="{ name: 'account' }">Add an address</router-link>
         </div>
       </div>
@@ -325,28 +338,28 @@
             <form @submit.prevent="addGuest">
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label">First Name</label>
-                  <input v-model="newGuest.guest_first_name" type="text" class="form-control" required>
+                  <label class="form-label">First Name *</label>
+                  <input v-model="newGuest.guest_first_name" type="text" class="form-control" required maxlength="100">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Last Name</label>
-                  <input v-model="newGuest.guest_last_name" type="text" class="form-control" required>
+                  <label class="form-label">Last Name *</label>
+                  <input v-model="newGuest.guest_last_name" type="text" class="form-control" required maxlength="100">
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Email</label>
-                  <input v-model="newGuest.guest_email" type="email" class="form-control">
+                  <input v-model="newGuest.guest_email" type="email" class="form-control" maxlength="254">
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Phone</label>
-                  <input v-model="newGuest.guest_phone" type="tel" class="form-control">
+                  <input v-model="newGuest.guest_phone" type="tel" class="form-control" maxlength="20" pattern="[\+]?[0-9\s\-\(\)]+" title="Phone number (numbers, spaces, dashes, parentheses allowed)">
                 </div>
                 <div class="col-12">
                   <label class="form-label">Dietary Restrictions</label>
-                  <input v-model="newGuest.guest_dietary_restrictions" type="text" class="form-control">
+                  <input v-model="newGuest.guest_dietary_restrictions" type="text" class="form-control" maxlength="500">
                 </div>
                 <div class="col-12">
                   <label class="form-label">Special Requests</label>
-                  <textarea v-model="newGuest.guest_special_requests" class="form-control" rows="2"></textarea>
+                  <textarea v-model="newGuest.guest_special_requests" class="form-control" rows="2" maxlength="1000"></textarea>
                 </div>
               </div>
               <button type="submit" class="btn btn-primary mt-3" :disabled="saving">
@@ -380,46 +393,144 @@
 
         <form @submit.prevent="saveTravel">
           <div class="row g-4">
-            <div class="col-md-6">
-              <label class="form-label">Travel Method</label>
-              <select v-model="travel.travel_method" class="form-select">
+            <!-- Travel Method -->
+            <div class="col-12">
+              <label class="form-label">Travel Method *</label>
+              <select v-model="travel.travel_method" class="form-select" @change="handleTravelMethodChange">
                 <option value="need_booking">Need Convention to Book</option>
                 <option value="self_booking">Booking My Own</option>
-                <option value="not_flying">Not Flying</option>
+                <option value="driving">Driving</option>
               </select>
             </div>
-            <div class="col-md-6">
-              <div class="form-check" style="padding: 1rem; background: #fafbfc; border-radius: 8px; border: 1px solid #e2e8f0;">
-                <input v-model="travel.has_booked_flight" class="form-check-input" type="checkbox" id="hasBookedFlight">
-                <label class="form-check-label" for="hasBookedFlight" style="font-weight: 500;">
-                  I have already booked my flight
-                </label>
+
+            <!-- Show flight details only if need_booking -->
+            <template v-if="travel.travel_method === 'need_booking'">
+              <!-- Seat Preference -->
+              <div class="col-md-6">
+                <label class="form-label">Seat Preference</label>
+                <select v-model="travel.seat_preference" class="form-select">
+                  <option value="none">No Preference</option>
+                  <option value="window">Window</option>
+                  <option value="aisle">Aisle</option>
+                </select>
               </div>
-            </div>
 
-            <div class="col-md-6">
-              <label class="form-label">Departure Airport</label>
-              <input v-model="travel.departure_airport" type="text" class="form-control" placeholder="e.g., TYS">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Return Airport</label>
-              <input v-model="travel.return_airport" type="text" class="form-control" placeholder="e.g., TYS">
-            </div>
+              <div class="col-md-6">
+                <!-- Spacer for layout -->
+              </div>
 
-            <div class="col-md-6">
-              <label class="form-label">Departure Date</label>
-              <input v-model="travel.departure_date" type="date" class="form-control">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Return Date</label>
-              <input v-model="travel.return_date" type="date" class="form-control">
+              <!-- Departure State -->
+              <div class="col-md-6">
+                <label class="form-label">Departure State *</label>
+                <select v-model="departureState" class="form-select" required>
+                  <option value="">Select State</option>
+                  <option v-for="state in states" :key="state.code" :value="state.code">
+                    {{ state.name }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Departure Airport -->
+              <div class="col-md-6">
+                <label class="form-label">Departure Airport *</label>
+                <select v-model="travel.departure_airport" class="form-select" :disabled="!departureState" required>
+                  <option value="">Select Airport</option>
+                  <option v-for="airport in departureAirports" :key="airport.code" :value="airport.code">
+                    {{ airport.code }} - {{ airport.description }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Departure Date -->
+              <div class="col-md-6">
+                <label class="form-label">Departure Date *</label>
+                <input v-model="travel.departure_date" type="date" class="form-control" required>
+              </div>
+
+              <!-- Departure Time -->
+              <div class="col-md-6">
+                <label class="form-label">Departure Time Preference *</label>
+                <select v-model.number="travel.departure_time_preference" class="form-select" required>
+                  <option :value="null">Select Time</option>
+                  <option v-for="time in timeOptions" :key="time.value" :value="time.value">
+                    {{ time.label }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Return State -->
+              <div class="col-md-6">
+                <label class="form-label">Return State *</label>
+                <select v-model="returnState" class="form-select" required>
+                  <option value="">Select State</option>
+                  <option v-for="state in states" :key="state.code" :value="state.code">
+                    {{ state.name }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Return Airport -->
+              <div class="col-md-6">
+                <label class="form-label">Return Airport *</label>
+                <select v-model="travel.return_airport" class="form-select" :disabled="!returnState" required>
+                  <option value="">Select Airport</option>
+                  <option v-for="airport in returnAirports" :key="airport.code" :value="airport.code">
+                    {{ airport.code }} - {{ airport.description }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Return Date -->
+              <div class="col-md-6">
+                <label class="form-label">Return Date *</label>
+                <input v-model="travel.return_date" type="date" class="form-control" required>
+              </div>
+
+              <!-- Return Time -->
+              <div class="col-md-6">
+                <label class="form-label">Return Time Preference *</label>
+                <select v-model.number="travel.return_time_preference" class="form-select" required>
+                  <option :value="null">Select Time</option>
+                  <option v-for="time in timeOptions" :key="time.value" :value="time.value">
+                    {{ time.label }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Ground Transportation -->
+              <div class="col-12">
+                <div class="form-check" style="padding: 1rem; background: #fafbfc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                  <input v-model="travel.needs_ground_transportation" class="form-check-input" type="checkbox" id="needsGroundTransport">
+                  <label class="form-check-label" for="needsGroundTransport" style="font-weight: 500;">
+                    I need transportation to/from the convention airport
+                  </label>
+                </div>
+              </div>
+            </template>
+
+            <!-- Message for self-booking or driving -->
+            <div v-else class="col-12">
+              <div class="alert alert-info" style="border-left: 4px solid #3b82f6;">
+                <i class="bi bi-info-circle me-2"></i>
+                <span v-if="travel.travel_method === 'self_booking'">
+                  <strong>Booking Your Own Flight:</strong> No additional information needed. Please arrange your own travel to the convention.
+                </span>
+                <span v-else-if="travel.travel_method === 'driving'">
+                  <strong>Driving to Convention:</strong> No flight information needed. We look forward to seeing you there!
+                </span>
+              </div>
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary mt-4" :disabled="saving">
+          <button type="submit" class="btn btn-primary mt-4" :disabled="saving || (travel.travel_method === 'need_booking' && !isValidTravelDates)">
             <span v-if="saving"><span class="spinner-border spinner-border-sm me-2"></span>Saving...</span>
             <span v-else><i class="bi bi-check2 me-2"></i>Save Travel Information</span>
           </button>
+          
+          <p v-if="travel.travel_method === 'need_booking' && !isValidTravelDates" class="text-danger mt-2 mb-0">
+            <i class="bi bi-exclamation-circle me-1"></i>
+            Return date must be on or after departure date
+          </p>
         </form>
       </div>
 
@@ -440,14 +551,16 @@
         <form @submit.prevent="saveAccommodation">
           <div class="row g-4">
             <div class="col-md-6">
-              <label class="form-label">Package Choice</label>
-              <select v-model="accommodation.package_choice" class="form-select">
-                <option value="full">Full Package (Hotel + Meals)</option>
-                <option value="hotel_only">Hotel Only</option>
-                <option value="none">No Package</option>
+              <label class="form-label">Package Choice *</label>
+              <select v-model="accommodation.package_choice" class="form-select" required>
+                <option value="full">Full Package - All meals and events</option>
+                <option value="partial">Partial Package - Select meals</option>
+                <option value="commuter">Commuter Package - No hotel</option>
+                <option value="custom">Custom Package</option>
               </select>
             </div>
-            <div class="col-md-6">
+            
+            <div class="col-12">
               <div class="form-check" style="padding: 1rem; background: #fafbfc; border-radius: 8px; border: 1px solid #e2e8f0;">
                 <input v-model="accommodation.needs_hotel" class="form-check-input" type="checkbox" id="needsHotel">
                 <label class="form-check-label" for="needsHotel" style="font-weight: 500;">
@@ -458,17 +571,17 @@
 
             <div v-if="accommodation.needs_hotel">
               <div class="col-md-6">
-                <label class="form-label">Check-In Date</label>
-                <input v-model="accommodation.check_in_date" type="date" class="form-control">
+                <label class="form-label">Check-In Date *</label>
+                <input v-model="accommodation.check_in_date" type="date" class="form-control" :required="accommodation.needs_hotel">
               </div>
               <div class="col-md-6">
-                <label class="form-label">Check-Out Date</label>
-                <input v-model="accommodation.check_out_date" type="date" class="form-control">
+                <label class="form-label">Check-Out Date *</label>
+                <input v-model="accommodation.check_out_date" type="date" class="form-control" :required="accommodation.needs_hotel">
               </div>
 
               <div class="col-12">
-                <label class="form-label">Roommate Preference</label>
-                <select v-model="accommodation.roommate_preference" class="form-select">
+                <label class="form-label">Roommate Preference *</label>
+                <select v-model="accommodation.roommate_preference" class="form-select" :required="accommodation.needs_hotel">
                   <option value="any">Any Roommate</option>
                   <option value="specific">Specific Roommate</option>
                   <option value="single">Single Room</option>
@@ -476,33 +589,38 @@
               </div>
 
               <div v-if="accommodation.roommate_preference === 'specific'" class="col-md-6">
-                <label class="form-label">Roommate Name</label>
-                <input v-model="accommodation.specific_roommate_name" type="text" class="form-control">
+                <label class="form-label">Roommate Name *</label>
+                <input v-model="accommodation.specific_roommate_name" type="text" class="form-control" maxlength="200" :required="accommodation.roommate_preference === 'specific'">
               </div>
               <div v-if="accommodation.roommate_preference === 'specific'" class="col-md-6">
-                <label class="form-label">Roommate Chapter</label>
-                <input v-model="accommodation.specific_roommate_chapter" type="text" class="form-control">
+                <label class="form-label">Roommate Chapter *</label>
+                <input v-model="accommodation.specific_roommate_chapter" type="text" class="form-control" maxlength="100" :required="accommodation.roommate_preference === 'specific'">
               </div>
             </div>
 
             <div class="col-12">
               <label class="form-label">Food Allergies</label>
-              <input v-model="accommodation.food_allergies" type="text" class="form-control">
+              <input v-model="accommodation.food_allergies" type="text" class="form-control" maxlength="500">
             </div>
             <div class="col-12">
               <label class="form-label">Dietary Restrictions</label>
-              <input v-model="accommodation.dietary_restrictions" type="text" class="form-control">
+              <input v-model="accommodation.dietary_restrictions" type="text" class="form-control" maxlength="500">
             </div>
             <div class="col-12">
               <label class="form-label">Special Requests</label>
-              <textarea v-model="accommodation.special_requests" class="form-control" rows="3"></textarea>
+              <textarea v-model="accommodation.special_requests" class="form-control" rows="3" maxlength="1000"></textarea>
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary mt-4" :disabled="saving">
+          <button type="submit" class="btn btn-primary mt-4" :disabled="saving || !isValidAccommodationDates">
             <span v-if="saving"><span class="spinner-border spinner-border-sm me-2"></span>Saving...</span>
             <span v-else><i class="bi bi-check2 me-2"></i>Save Accommodation Information</span>
           </button>
+          
+          <p v-if="!isValidAccommodationDates" class="text-danger mt-2 mb-0">
+            <i class="bi bi-exclamation-circle me-1"></i>
+            Check-out date must be on or after check-in date
+          </p>
         </form>
       </div>
     </div>
@@ -512,7 +630,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import api from '../../api'
 import { useToast } from 'vue-toastification'
 
@@ -533,6 +651,38 @@ const memberInfo = ref({
 
 const memberAddresses = ref([])
 const memberPhones = ref([])
+const mobilePhone = ref({
+  id: null,
+  phone_number: '',
+  formatted_number: ''
+})
+
+// Clean phone number - remove all non-digits
+const getCleanPhoneNumber = (phoneNumber) => {
+  if (!phoneNumber) return ''
+  return phoneNumber.replace(/\D/g, '')
+}
+
+// Format phone number to match UserAccount.vue formatting
+const formatPhoneNumber = (value) => {
+  if (!value) return value
+  
+  const cleaned = getCleanPhoneNumber(value)
+  
+  // Format US/Canada numbers (10 digits) as (XXX) XXX-XXXX
+  if (cleaned.length === 10) {
+    return `(${cleaned.substr(0, 3)}) ${cleaned.substr(3, 3)}-${cleaned.substr(6, 4)}`
+  }
+  
+  // For international or incomplete numbers, return cleaned digits
+  return cleaned
+}
+
+const handlePhoneInput = (event) => {
+  const input = event.target.value
+  const formatted = formatPhoneNumber(input)
+  mobilePhone.value.phone_number = formatted
+}
 
 // Committees
 const committees = [
@@ -575,24 +725,85 @@ const newGuest = ref({
   guest_special_requests: ''
 })
 
+// States and Airports
+const states = ref([])
+const departureAirports = ref([])
+const returnAirports = ref([])
+const departureState = ref('')
+const returnState = ref('')
+
 // Travel
 const travel = ref({
   travel_method: 'need_booking',
   departure_airport: '',
-  departure_date: '',
-  departure_time_preference: '',
+  departure_date: null,
+  departure_time_preference: null,
   return_airport: '',
-  return_date: '',
-  return_time_preference: '',
+  return_date: null,
+  return_time_preference: null,
+  seat_preference: 'none',
+  needs_ground_transportation: true,
   has_booked_flight: false
 })
+
+// Time options (minutes from midnight)
+const timeOptions = [
+  { value: 0, label: '12:00 AM' },
+  { value: 30, label: '12:30 AM' },
+  { value: 60, label: '01:00 AM' },
+  { value: 90, label: '01:30 AM' },
+  { value: 120, label: '02:00 AM' },
+  { value: 150, label: '02:30 AM' },
+  { value: 180, label: '03:00 AM' },
+  { value: 210, label: '03:30 AM' },
+  { value: 240, label: '04:00 AM' },
+  { value: 270, label: '04:30 AM' },
+  { value: 300, label: '05:00 AM' },
+  { value: 330, label: '05:30 AM' },
+  { value: 360, label: '06:00 AM' },
+  { value: 390, label: '06:30 AM' },
+  { value: 420, label: '07:00 AM' },
+  { value: 450, label: '07:30 AM' },
+  { value: 480, label: '08:00 AM' },
+  { value: 510, label: '08:30 AM' },
+  { value: 540, label: '09:00 AM' },
+  { value: 570, label: '09:30 AM' },
+  { value: 600, label: '10:00 AM' },
+  { value: 630, label: '10:30 AM' },
+  { value: 660, label: '11:00 AM' },
+  { value: 690, label: '11:30 AM' },
+  { value: 720, label: '12:00 PM' },
+  { value: 750, label: '12:30 PM' },
+  { value: 780, label: '01:00 PM' },
+  { value: 810, label: '01:30 PM' },
+  { value: 840, label: '02:00 PM' },
+  { value: 870, label: '02:30 PM' },
+  { value: 900, label: '03:00 PM' },
+  { value: 930, label: '03:30 PM' },
+  { value: 960, label: '04:00 PM' },
+  { value: 990, label: '04:30 PM' },
+  { value: 1020, label: '05:00 PM' },
+  { value: 1050, label: '05:30 PM' },
+  { value: 1080, label: '06:00 PM' },
+  { value: 1110, label: '06:30 PM' },
+  { value: 1140, label: '07:00 PM' },
+  { value: 1170, label: '07:30 PM' },
+  { value: 1200, label: '08:00 PM' },
+  { value: 1230, label: '08:30 PM' },
+  { value: 1260, label: '09:00 PM' },
+  { value: 1290, label: '09:30 PM' },
+  { value: 1320, label: '10:00 PM' },
+  { value: 1350, label: '10:30 PM' },
+  { value: 1380, label: '11:00 PM' },
+  { value: 1410, label: '11:30 PM' }
+]
 
 // Accommodation
 const accommodation = ref({
   package_choice: 'full',
   needs_hotel: true,
-  check_in_date: '',
-  check_out_date: '',
+  check_in_date: null,
+  check_out_date: null,
   roommate_preference: 'any',
   specific_roommate_name: '',
   specific_roommate_chapter: '',
@@ -605,7 +816,7 @@ const accommodation = ref({
 
 // Computed - Section Completion Status
 const isPersonalInfoComplete = computed(() => {
-  return memberPhones.value.length > 0 && memberAddresses.value.length > 0
+  return mobilePhone.value.phone_number && memberAddresses.value.length > 0
 })
 
 const isCommitteePrefsComplete = computed(() => {
@@ -614,9 +825,18 @@ const isCommitteePrefsComplete = computed(() => {
 })
 
 const isTravelComplete = computed(() => {
-  return travel.value.travel_method && 
-         (travel.value.travel_method === 'not_flying' || 
-          (travel.value.departure_airport && travel.value.return_airport))
+  if (!travel.value.travel_method) return false
+  
+  // For driving or self_booking, just having the travel method selected is complete
+  if (travel.value.travel_method === 'driving' || travel.value.travel_method === 'self_booking') {
+    return true
+  }
+  
+  // For need_booking, require all flight details
+  return travel.value.departure_airport && 
+         travel.value.return_airport && 
+         travel.value.departure_date && 
+         travel.value.return_date
 })
 
 const isAccommodationComplete = computed(() => {
@@ -629,6 +849,24 @@ const isGuestInfoComplete = computed(() => {
   // Guest section is optional, so it's complete if user has made a choice
   return !bringingGuest.value || guests.value.length > 0
 })
+
+// Date validation
+const isValidTravelDates = computed(() => {
+  if (!travel.value.departure_date || !travel.value.return_date) return true
+  return new Date(travel.value.return_date) >= new Date(travel.value.departure_date)
+})
+
+const isValidAccommodationDates = computed(() => {
+  if (!accommodation.value.check_in_date || !accommodation.value.check_out_date) return true
+  return new Date(accommodation.value.check_out_date) >= new Date(accommodation.value.check_in_date)
+})
+
+// Email validation helper
+const isValidEmail = (email) => {
+  if (!email) return true // Optional field
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return re.test(email)
+}
 
 // Progress tracking
 const sections = computed(() => [
@@ -698,7 +936,7 @@ const fetchRegistration = async () => {
       registration.value = null
     } else {
       registration.value = response.data
-      loadRegistrationData(response.data)
+      await loadRegistrationData(response.data)
     }
   } catch (error) {
     console.error('Error fetching registration:', error)
@@ -706,7 +944,7 @@ const fetchRegistration = async () => {
   }
 }
 
-const loadRegistrationData = (data) => {
+const loadRegistrationData = async (data) => {
   // Load member info
   if (data.member_info) {
     memberInfo.value = { ...data.member_info }
@@ -718,6 +956,15 @@ const loadRegistrationData = (data) => {
   }
   if (data.member_phones) {
     memberPhones.value = data.member_phones
+    // Extract mobile phone for easy access
+    const mobile = data.member_phones.find(phone => phone.phone_type === 'Mobile')
+    if (mobile) {
+      mobilePhone.value = {
+        id: mobile.id,
+        phone_number: formatPhoneNumber(mobile.phone_number),
+        formatted_number: mobile.formatted_number
+      }
+    }
   }
 
   // Load committee preferences
@@ -734,11 +981,47 @@ const loadRegistrationData = (data) => {
   // Load travel
   if (data.travel) {
     travel.value = { ...data.travel }
+    
+    // If airports are already set, find and set their states
+    if (travel.value.departure_airport || travel.value.return_airport) {
+      try {
+        const response = await api.get('/api/convention/airports/')
+        const allAirports = response.data
+        
+        if (travel.value.departure_airport) {
+          const departureAirport = allAirports.find(a => a.code === travel.value.departure_airport)
+          if (departureAirport) {
+            departureState.value = departureAirport.state
+            await fetchAirportsForState(departureAirport.state, true)
+          }
+        }
+        
+        if (travel.value.return_airport) {
+          const returnAirport = allAirports.find(a => a.code === travel.value.return_airport)
+          if (returnAirport) {
+            returnState.value = returnAirport.state
+            await fetchAirportsForState(returnAirport.state, false)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading airport states:', error)
+      }
+    }
   }
 
   // Load accommodation
   if (data.accommodation) {
     accommodation.value = { ...data.accommodation }
+    
+    // Migrate old package_choice values to new valid ones
+    const oldToNewMapping = {
+      'hotel_only': 'custom',      // Hotel only -> Custom package
+      'none': 'commuter'           // No package -> Commuter (no hotel)
+    }
+    
+    if (oldToNewMapping[accommodation.value.package_choice]) {
+      accommodation.value.package_choice = oldToNewMapping[accommodation.value.package_choice]
+    }
   }
 }
 
@@ -769,6 +1052,35 @@ const saveMemberInfo = async () => {
   } catch (error) {
     console.error('Error saving member info:', error)
     toast.error('Failed to save badge name')
+  } finally {
+    saving.value = false
+  }
+}
+
+const saveMobilePhone = async () => {
+  saving.value = true
+  try {
+    // Clean phone number - send only digits
+    const cleanNumber = getCleanPhoneNumber(mobilePhone.value.phone_number)
+    
+    const response = await api.put('/api/convention/member/update-mobile-phone/', {
+      phone_number: cleanNumber
+    })
+    toast.success('Mobile phone updated!')
+    
+    // Update the mobile phone data with the response
+    if (response.data.phone) {
+      mobilePhone.value = {
+        id: response.data.phone.id,
+        phone_number: formatPhoneNumber(response.data.phone.phone_number),
+        formatted_number: response.data.phone.formatted_number
+      }
+    }
+    
+    await fetchRegistration()
+  } catch (error) {
+    console.error('Error saving mobile phone:', error)
+    toast.error('Failed to save mobile phone')
   } finally {
     saving.value = false
   }
@@ -825,6 +1137,12 @@ const saveCommitteePreferences = async () => {
 }
 
 const addGuest = async () => {
+  // Validate email if provided
+  if (newGuest.value.guest_email && !isValidEmail(newGuest.value.guest_email)) {
+    toast.error('Please enter a valid email address')
+    return
+  }
+  
   saving.value = true
   try {
     const response = await api.post(
@@ -867,17 +1185,105 @@ const removeGuest = async (guestId) => {
   }
 }
 
+// Fetch states with airports
+const fetchStates = async () => {
+  try {
+    const response = await api.get('/api/convention/states/')
+    states.value = response.data
+  } catch (error) {
+    console.error('Error fetching states:', error)
+  }
+}
+
+// Fetch airports for selected state
+const fetchAirportsForState = async (state, isDeparture = true) => {
+  try {
+    const response = await api.get(`/api/convention/airports/?state=${state}`)
+    if (isDeparture) {
+      departureAirports.value = response.data
+    } else {
+      returnAirports.value = response.data
+    }
+  } catch (error) {
+    console.error('Error fetching airports:', error)
+  }
+}
+
+// Watch for state changes to load airports
+watch(departureState, (newState) => {
+  if (newState) {
+    fetchAirportsForState(newState, true)
+  } else {
+    departureAirports.value = []
+    travel.value.departure_airport = ''
+  }
+})
+
+watch(returnState, (newState) => {
+  if (newState) {
+    fetchAirportsForState(newState, false)
+  } else {
+    returnAirports.value = []
+    travel.value.return_airport = ''
+  }
+})
+
+// Handle travel method changes
+const handleTravelMethodChange = () => {
+  // If switching from need_booking to self_booking or driving, clear flight details
+  if (travel.value.travel_method !== 'need_booking') {
+    // Clear all flight-related data - use null for cleaner data
+    travel.value.departure_airport = ''
+    travel.value.departure_date = null
+    travel.value.departure_time_preference = null
+    travel.value.return_airport = ''
+    travel.value.return_date = null
+    travel.value.return_time_preference = null
+    travel.value.seat_preference = 'none'
+    travel.value.needs_ground_transportation = true
+    
+    // Clear state selections
+    departureState.value = ''
+    returnState.value = ''
+    departureAirports.value = []
+    returnAirports.value = []
+  }
+}
+
 const saveTravel = async () => {
   saving.value = true
   try {
+    // Clean the data before sending - convert empty strings to null
+    const cleanedData = {
+      ...travel.value,
+      departure_date: travel.value.departure_date || null,
+      return_date: travel.value.return_date || null,
+      departure_airport: travel.value.departure_airport || '',
+      return_airport: travel.value.return_airport || '',
+      departure_time_preference: travel.value.departure_time_preference ?? null,
+      return_time_preference: travel.value.return_time_preference ?? null
+    }
+    
     await api.put(
       `/api/convention/registration/${registration.value.id}/travel/`,
-      travel.value
+      cleanedData
     )
     toast.success('Travel information saved!')
   } catch (error) {
     console.error('Error saving travel:', error)
-    toast.error('Failed to save travel information')
+    console.error('Response data:', error.response?.data)
+    console.error('Travel value being sent:', travel.value)
+    
+    // Show specific error message if available
+    if (error.response?.data) {
+      const errors = error.response.data
+      const errorMessages = Object.entries(errors)
+        .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+        .join('\n')
+      toast.error(`Validation errors:\n${errorMessages}`)
+    } else {
+      toast.error('Failed to save travel information')
+    }
   } finally {
     saving.value = false
   }
@@ -886,14 +1292,33 @@ const saveTravel = async () => {
 const saveAccommodation = async () => {
   saving.value = true
   try {
+    // Clean the data before sending - convert empty strings to null for dates
+    const cleanedData = {
+      ...accommodation.value,
+      check_in_date: accommodation.value.check_in_date || null,
+      check_out_date: accommodation.value.check_out_date || null
+    }
+    
     await api.put(
       `/api/convention/registration/${registration.value.id}/accommodation/`,
-      accommodation.value
+      cleanedData
     )
     toast.success('Accommodation information saved!')
   } catch (error) {
     console.error('Error saving accommodation:', error)
-    toast.error('Failed to save accommodation information')
+    console.error('Response data:', error.response?.data)
+    console.error('Accommodation value being sent:', accommodation.value)
+    
+    // Show specific error message if available
+    if (error.response?.data) {
+      const errors = error.response.data
+      const errorMessages = Object.entries(errors)
+        .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+        .join('\n')
+      toast.error(`Validation errors:\n${errorMessages}`)
+    } else {
+      toast.error('Failed to save accommodation information')
+    }
   } finally {
     saving.value = false
   }
@@ -903,6 +1328,7 @@ const saveAccommodation = async () => {
 onMounted(async () => {
   loading.value = true
   try {
+    await fetchStates()
     await fetchConvention()
     if (convention.value) {
       await fetchRegistration()

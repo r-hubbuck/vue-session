@@ -33,8 +33,8 @@ export default {
         <!-- Page Header -->
         <div class="page-header">
             <div class="page-header-content">
-                <h1 class="page-title">Welcome to the Tau Beta Pi</h1>
-                <p class="page-subtitle">Member Portal</p>
+                <h1 class="page-title">Welcome to the Tau Beta Pi Member Portal</h1>
+                <!-- <p class="page-subtitle">Member Portal</p> -->
             </div>
         </div>
         

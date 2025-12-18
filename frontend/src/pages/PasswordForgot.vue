@@ -18,6 +18,7 @@
             <input
               v-model.trim="email"
               type="email"
+              maxlength="254"
               class="form-control"
               id="email"
               required

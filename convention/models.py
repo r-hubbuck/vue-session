@@ -3,6 +3,24 @@ from django.core.validators import MinValueValidator
 from accounts.models import Member  # Import Member from your accounts app
 
 
+class Airport(models.Model):
+    """
+    US Airports for convention travel.
+    """
+    code = models.CharField(max_length=3, unique=True, primary_key=True)
+    state = models.CharField(max_length=2, db_index=True)
+    description = models.CharField(max_length=200)
+    
+    class Meta:
+        ordering = ['state', 'description']
+        indexes = [
+            models.Index(fields=['state']),
+        ]
+    
+    def __str__(self):
+        return f"{self.code} - {self.description}"
+
+
 class Convention(models.Model):
     """
     Represents a TBP Convention event.
@@ -161,6 +179,12 @@ class ConventionTravel(models.Model):
         ('self_booking', 'Booking Own Flight'),
         ('need_booking', 'Need Flight Booked'),
     ]
+    
+    SEAT_PREFERENCE_CHOICES = [
+        ('none', 'No Preference'),
+        ('window', 'Window'),
+        ('aisle', 'Aisle'),
+    ]
 
     registration = models.OneToOneField(
         ConventionRegistration,
@@ -175,13 +199,32 @@ class ConventionTravel(models.Model):
     )
     
     # Flight request information (for need_booking)
-    departure_airport = models.CharField(max_length=10, blank=True)
+    departure_airport = models.CharField(max_length=3, blank=True, help_text="3-letter airport code")
     departure_date = models.DateField(null=True, blank=True)
-    departure_time_preference = models.CharField(max_length=50, blank=True)
+    departure_time_preference = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Minutes from midnight (0-1410)"
+    )
     
-    return_airport = models.CharField(max_length=10, blank=True)
+    return_airport = models.CharField(max_length=3, blank=True, help_text="3-letter airport code")
     return_date = models.DateField(null=True, blank=True)
-    return_time_preference = models.CharField(max_length=50, blank=True)
+    return_time_preference = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Minutes from midnight (0-1410)"
+    )
+    
+    seat_preference = models.CharField(
+        max_length=10,
+        choices=SEAT_PREFERENCE_CHOICES,
+        default='none'
+    )
+    
+    needs_ground_transportation = models.BooleanField(
+        default=True,
+        help_text="Whether member needs transportation to/from convention airport"
+    )
     
     # Booked flight information (staff-populated)
     outbound_airline = models.CharField(max_length=100, blank=True)

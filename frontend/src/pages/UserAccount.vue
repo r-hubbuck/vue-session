@@ -55,7 +55,7 @@
                 v-model.trim="accountData.alt_email"
                 :disabled="accountSaving" 
                 placeholder="Enter alternative email (optional)"
-                maxlength="100"
+                maxlength="254"
                 @blur="validateAltEmail"
                 :class="{'is-invalid': emailValidationError}"
               />

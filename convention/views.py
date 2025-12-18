@@ -13,6 +13,7 @@ from .models import (
     ConventionGuest,
     ConventionTravel,
     ConventionAccommodation,
+    Airport,
 )
 from .serializers import (
     ConventionSerializer,
@@ -23,6 +24,7 @@ from .serializers import (
     ConventionGuestSerializer,
     ConventionTravelSerializer,
     ConventionAccommodationSerializer,
+    AirportSerializer,
 )
 from accounts.models import Member, Address, PhoneNumbers
 
@@ -126,6 +128,54 @@ def update_member_info(request):
     
     serializer = MemberPersonalInfoSerializer(member)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_mobile_phone(request):
+    """
+    Update or create mobile phone number for the member.
+    """
+    if not hasattr(request.user, 'member'):
+        return Response(
+            {'message': 'User must have an associated member record'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    member = request.user.member
+    phone_number = request.data.get('phone_number', '').strip()
+    
+    if not phone_number:
+        return Response(
+            {'message': 'Phone number is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Get or create mobile phone
+    mobile_phone, created = PhoneNumbers.objects.get_or_create(
+        member=member,
+        phone_type='Mobile',
+        defaults={'phone_number': phone_number, 'is_primary': True}
+    )
+    
+    if not created:
+        # Update existing mobile phone
+        mobile_phone.phone_number = phone_number
+        mobile_phone.save()
+    
+    return Response(
+        {
+            'message': 'Mobile phone updated successfully',
+            'phone': {
+                'id': mobile_phone.id,
+                'phone_number': mobile_phone.phone_number,
+                'formatted_number': mobile_phone.get_formatted_number(),
+                'phone_type': mobile_phone.phone_type,
+                'is_primary': mobile_phone.is_primary
+            }
+        },
+        status=status.HTTP_200_OK
+    )
 
 
 @api_view(['PUT'])
@@ -307,6 +357,11 @@ def update_travel(request, registration_id):
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    # Log the validation errors for debugging
+    print("Travel validation errors:", serializer.errors)
+    print("Request data:", request.data)
+    
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -336,3 +391,58 @@ def update_accommodation(request, registration_id):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_airports(request):
+    """
+    Get all airports, optionally filtered by state.
+    Query params:
+      - state: Two-letter state code (optional)
+    """
+    state = request.query_params.get('state', None)
+    
+    if state:
+        airports = Airport.objects.filter(state=state.upper())
+    else:
+        airports = Airport.objects.all()
+    
+    serializer = AirportSerializer(airports, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_states(request):
+    """
+    Get list of unique states that have airports.
+    Returns list of state codes and names.
+    """
+    # Get unique states from Airport model
+    states = Airport.objects.values_list('state', flat=True).distinct().order_by('state')
+    
+    # Map state codes to names
+    state_names = {
+        'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas',
+        'CA': 'California', 'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware',
+        'FL': 'Florida', 'GA': 'Georgia', 'HI': 'Hawaii', 'ID': 'Idaho',
+        'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa', 'KS': 'Kansas',
+        'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
+        'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi',
+        'MO': 'Missouri', 'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada',
+        'NH': 'New Hampshire', 'NJ': 'New Jersey', 'NM': 'New Mexico', 'NY': 'New York',
+        'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio', 'OK': 'Oklahoma',
+        'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
+        'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah',
+        'VT': 'Vermont', 'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia',
+        'WI': 'Wisconsin', 'WY': 'Wyoming', 'DC': 'District of Columbia'
+    }
+    
+    state_list = [
+        {'code': state, 'name': state_names.get(state, state)}
+        for state in states
+    ]
+    
+    return Response(state_list, status=status.HTTP_200_OK)
+

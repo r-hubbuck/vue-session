@@ -5,11 +5,16 @@ urlpatterns = [
     # Convention info
     path('current/', views.current_convention, name='current-convention'),
     
+    # Reference data
+    path('airports/', views.get_airports, name='get-airports'),
+    path('states/', views.get_states, name='get-states'),
+    
     # Registration
     path('my-registration/', views.my_registration, name='my-registration'),
     
     # Member info (updates Member model directly - no duplication)
     path('member/update-info/', views.update_member_info, name='update-member-info'),
+    path('member/update-mobile-phone/', views.update_mobile_phone, name='update-mobile-phone'),
     path('member/address/<int:address_id>/set-primary/', views.set_primary_address, name='set-primary-address'),
     path('member/phone/<int:phone_id>/set-primary/', views.set_primary_phone, name='set-primary-phone'),
     
@@ -29,6 +34,8 @@ urlpatterns = [
 
 # Available endpoints:
 # GET    /api/convention/current/                                          - Get current active convention
+# GET    /api/convention/airports/                                         - Get all airports (optionally filter by ?state=XX)
+# GET    /api/convention/states/                                           - Get list of states with airports
 # GET    /api/convention/my-registration/                                  - Get user's registration
 # POST   /api/convention/my-registration/                                  - Create new registration
 # 

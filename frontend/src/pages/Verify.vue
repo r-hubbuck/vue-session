@@ -7,7 +7,7 @@
         <form  @submit.prevent="submitVerifyForm" class="container-md">
             <div class="form-group row">
                 <label class="form-label" for="email" type="email">Email:</label> 
-                <input class="form-control" v-model="formData.email" id="email" type ="text" required >
+                <input class="form-control" v-model="formData.email" id="email" type ="email" maxlength="254" required >
             </div> 
             <div class="form-group row">
                 <label class="form-label" for="chapter">Chapter:</label>

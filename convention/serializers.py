@@ -6,6 +6,7 @@ from .models import (
     ConventionGuest,
     ConventionTravel,
     ConventionAccommodation,
+    Airport,
 )
 from accounts.models import Member, Address, PhoneNumbers
 
@@ -78,6 +79,13 @@ class PhoneNumberSerializer(serializers.ModelSerializer):
     
     def get_formatted_number(self, obj):
         return obj.get_formatted_number()
+
+
+class AirportSerializer(serializers.ModelSerializer):
+    """Serializer for airports"""
+    class Meta:
+        model = Airport
+        fields = ['code', 'state', 'description']
 
 
 class MemberPersonalInfoSerializer(serializers.ModelSerializer):
@@ -163,7 +171,10 @@ class ConventionGuestSerializer(serializers.ModelSerializer):
 
 class ConventionTravelSerializer(serializers.ModelSerializer):
     travel_method_display = serializers.CharField(source='get_travel_method_display', read_only=True)
+    seat_preference_display = serializers.CharField(source='get_seat_preference_display', read_only=True)
     has_booked_flight = serializers.SerializerMethodField()
+    departure_time_formatted = serializers.SerializerMethodField()
+    return_time_formatted = serializers.SerializerMethodField()
     
     class Meta:
         model = ConventionTravel
@@ -174,9 +185,14 @@ class ConventionTravelSerializer(serializers.ModelSerializer):
             'departure_airport',
             'departure_date',
             'departure_time_preference',
+            'departure_time_formatted',
             'return_airport',
             'return_date',
             'return_time_preference',
+            'return_time_formatted',
+            'seat_preference',
+            'seat_preference_display',
+            'needs_ground_transportation',
             'outbound_airline',
             'outbound_flight_number',
             'outbound_departure_time',
@@ -203,9 +219,83 @@ class ConventionTravelSerializer(serializers.ModelSerializer):
             'return_confirmation'
         ]
     
+    def validate(self, data):
+        """
+        Validate that flight details are provided only when travel_method is 'need_booking'.
+        For 'driving' or 'self_booking', flight details are not required.
+        """
+        travel_method = data.get('travel_method', getattr(self.instance, 'travel_method', None))
+        
+        # If travel method is need_booking, require flight details
+        if travel_method == 'need_booking':
+            required_fields = {
+                'departure_airport': 'Departure airport',
+                'departure_date': 'Departure date',
+                'return_airport': 'Return airport',
+                'return_date': 'Return date',
+            }
+            
+            errors = {}
+            for field, label in required_fields.items():
+                if not data.get(field):
+                    errors[field] = f'{label} is required when convention booking is needed.'
+            
+            if errors:
+                raise serializers.ValidationError(errors)
+            
+            # Validate date logic
+            if data.get('departure_date') and data.get('return_date'):
+                if data['return_date'] < data['departure_date']:
+                    raise serializers.ValidationError({
+                        'return_date': 'Return date must be on or after departure date.'
+                    })
+        
+        return data
+    
+    def to_representation(self, instance):
+        """Override to handle empty strings in integer fields"""
+        # Fix empty strings in time preference fields before serialization
+        if instance.departure_time_preference == '':
+            instance.departure_time_preference = None
+        if instance.return_time_preference == '':
+            instance.return_time_preference = None
+        return super().to_representation(instance)
+    
+    def to_internal_value(self, data):
+        """Convert empty strings to None for integer fields"""
+        if 'departure_time_preference' in data and data['departure_time_preference'] == '':
+            data['departure_time_preference'] = None
+        if 'return_time_preference' in data and data['return_time_preference'] == '':
+            data['return_time_preference'] = None
+        return super().to_internal_value(data)
+    
     def get_has_booked_flight(self, obj):
         """Check if flight has been booked by staff"""
         return bool(obj.outbound_flight_number and obj.return_flight_number)
+    
+    def get_departure_time_formatted(self, obj):
+        """Convert minutes from midnight to formatted time string"""
+        if obj.departure_time_preference is None or obj.departure_time_preference == '':
+            return None
+        minutes = int(obj.departure_time_preference) if isinstance(obj.departure_time_preference, str) else obj.departure_time_preference
+        hours = minutes // 60
+        mins = minutes % 60
+        period = 'AM' if hours < 12 else 'PM'
+        display_hour = hours if hours <= 12 else hours - 12
+        display_hour = 12 if display_hour == 0 else display_hour
+        return f"{display_hour:02d}:{mins:02d} {period}"
+    
+    def get_return_time_formatted(self, obj):
+        """Convert minutes from midnight to formatted time string"""
+        if obj.return_time_preference is None or obj.return_time_preference == '':
+            return None
+        minutes = int(obj.return_time_preference) if isinstance(obj.return_time_preference, str) else obj.return_time_preference
+        hours = minutes // 60
+        mins = minutes % 60
+        period = 'AM' if hours < 12 else 'PM'
+        display_hour = hours if hours <= 12 else hours - 12
+        display_hour = 12 if display_hour == 0 else display_hour
+        return f"{display_hour:02d}:{mins:02d} {period}"
 
 
 class ConventionAccommodationSerializer(serializers.ModelSerializer):

@@ -84,7 +84,7 @@ const logout = async () => {
       <!-- User Menu -->
       <div class="user-menu">
         <div class="user-info" @click="logout" role="button" tabindex="0" aria-label="Logout">
-          <div class="user-avatar">{{ userInitials }}</div>
+          <!-- <div class="user-avatar">{{ userInitials }}</div> -->
           <div class="user-details">
             <span>{{ userEmail }}</span>
           </div>

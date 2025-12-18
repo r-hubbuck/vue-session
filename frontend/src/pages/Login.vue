@@ -15,7 +15,8 @@
           class="form-control"
           v-model.trim="email"
           id="email"
-          type="text"
+          type="email"
+          maxlength="254"
           required
           :disabled="loading"
         />

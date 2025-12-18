@@ -13,6 +13,7 @@
           v-model.trim="email"
           id="email"
           type="email"
+          maxlength="254"
           required
           @blur="validateEmail"
         />
