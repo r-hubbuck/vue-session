@@ -9,8 +9,8 @@ class User(AbstractUser):
     last_name = None
     username = None
     # phone = PhoneNumberField()
-    email = models.EmailField(max_length=100, unique=True)
-    alt_email = models.EmailField(max_length=100, blank=True)
+    email = models.EmailField(max_length=254, unique=True)
+    alt_email = models.EmailField(max_length=254, blank=True)
     member = models.OneToOneField('Member', on_delete=models.CASCADE, null=True, blank=True, related_name='user')
 
     ROLE_CHOICES = [

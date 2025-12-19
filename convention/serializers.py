@@ -1,3 +1,4 @@
+import bleach
 from rest_framework import serializers
 from .models import (
     Convention,
@@ -168,6 +169,18 @@ class ConventionGuestSerializer(serializers.ModelSerializer):
             'guest_special_requests',
         ]
 
+    def validate_guest_dietary_restrictions(self, value):
+        """Strip HTML tags from guest dietary restrictions"""
+        if value:
+            return bleach.clean(value, tags=[], strip=True)
+        return value
+    
+    def validate_guest_special_requests(self, value):
+        """Strip HTML tags from guest special requests"""
+        if value:
+            return bleach.clean(value, tags=[], strip=True)
+        return value
+
 
 class ConventionTravelSerializer(serializers.ModelSerializer):
     travel_method_display = serializers.CharField(source='get_travel_method_display', read_only=True)
@@ -296,6 +309,12 @@ class ConventionTravelSerializer(serializers.ModelSerializer):
         display_hour = hours if hours <= 12 else hours - 12
         display_hour = 12 if display_hour == 0 else display_hour
         return f"{display_hour:02d}:{mins:02d} {period}"
+    
+    def validate_flight_notes(self, value):
+        """Strip HTML tags from flight notes"""
+        if value:
+            return bleach.clean(value, tags=[], strip=True)
+        return value
 
 
 class ConventionAccommodationSerializer(serializers.ModelSerializer):
@@ -329,6 +348,24 @@ class ConventionAccommodationSerializer(serializers.ModelSerializer):
     def get_has_room_assignment(self, obj):
         """Check if room has been assigned"""
         return bool(obj.room_number)
+    
+    def validate_special_requests(self, value):
+        """Strip HTML tags from special requests"""
+        if value:
+            return bleach.clean(value, tags=[], strip=True)
+        return value
+    
+    def validate_food_allergies(self, value):
+        """Strip HTML tags from food allergies"""
+        if value:
+            return bleach.clean(value, tags=[], strip=True)
+        return value
+    
+    def validate_dietary_restrictions(self, value):
+        """Strip HTML tags from dietary restrictions"""
+        if value:
+            return bleach.clean(value, tags=[], strip=True)
+        return value
 
 
 class ConventionRegistrationDetailSerializer(serializers.ModelSerializer):

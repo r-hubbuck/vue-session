@@ -3,6 +3,7 @@ from .models import Code, User, Address, PhoneNumbers, StateProvince, UsedToken
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from datetime import timedelta
 import re
 
 class CreateUserSerializer(serializers.ModelSerializer):
@@ -60,6 +61,17 @@ class CreateUserSerializer(serializers.ModelSerializer):
         if existing_user:
             # If user exists but is NOT active, allow re-registration
             if not existing_user.is_active:
+                # Check how old the inactive account is
+                account_age = timezone.now() - existing_user.date_joined
+
+                if account_age < timedelta(hours=24):
+                     # Too soon to re-register
+                    raise serializers.ValidationError(
+                        'An activation email was recently sent to this address. '
+                        'Please check your email or wait 24 hours to re-register.'
+                    )
+                
+                # Account is old enough, allow re-registration
                 # Store the existing user so we can update it in create()
                 self.existing_inactive_user = existing_user
                 return value

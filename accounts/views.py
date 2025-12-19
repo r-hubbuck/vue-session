@@ -18,7 +18,10 @@ from rest_framework import status, generics, viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
 from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.decorators import throttle_classes
 from django.shortcuts import get_object_or_404
+
+from .throttles import LoginThrottle, RegisterThrottle, PasswordResetThrottle
 
 from .tokens import account_activation_token, password_reset_token
 from .models import User, Member, Address, PhoneNumbers, StateProvince
@@ -98,6 +101,7 @@ def code_check(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([LoginThrottle])
 def login_view(request):
     """
     Authenticate user with email and password.
@@ -164,6 +168,7 @@ def login_view(request):
             {'success': False, 'errors': serializer.errors}, 
             status=status.HTTP_400_BAD_REQUEST
         )
+    
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -196,6 +201,7 @@ def user_view(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([RegisterThrottle])
 def register(request):
     serializer = CreateUserSerializer(data=request.data)
     if serializer.is_valid():
@@ -561,6 +567,7 @@ def activate(request, uidb64, token):
 # API view to handle password reset request by sending an email to the user 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([PasswordResetThrottle])
 def password_reset_request(request):
     serializer = PasswordResetRequestSerializer(data=request.data)
     if serializer.is_valid():
