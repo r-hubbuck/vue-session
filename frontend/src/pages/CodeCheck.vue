@@ -1,8 +1,12 @@
 <template>
-    <div class="container-sm w-100 mt-5">
-        <h1>Code Verification</h1> 
+    <div class="container mt-2">
+        <div class="d-flex">
+            <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50 mx-auto">
+        </div>
+        <h1 class="page-title text-center my-4">Code Verification</h1>
+        <div>
+        <form @submit.prevent="verify" class="container-md">
         <p class="mt-4 mb-3">Please check your email for a 5-digit verification code.</p>
-        <form @submit.prevent="verify" >
             <div class="form-group">
                 <label class="form-label" for="code">Code:</label> 
                 <input 
@@ -20,7 +24,7 @@
 
             <button class="btn btn-primary mt-5" type="submit">Verify</button> 
         </form> 
-
+        </div>
     </div> 
 </template>
 
