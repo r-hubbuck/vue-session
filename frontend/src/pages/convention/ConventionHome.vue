@@ -206,178 +206,6 @@
       </div>
 
       <!-- Committee Preferences Section -->
-      <div id="committee-prefs" class="section-card scroll-target">
-        <div class="section-header">
-          <h2 class="section-title">
-            <div class="section-icon gold">
-              <i class="bi bi-people"></i>
-            </div>
-            Committee Preferences
-          </h2>
-          <span class="status-badge" :class="isCommitteePrefsComplete ? 'status-complete' : 'status-pending'">
-            {{ isCommitteePrefsComplete ? 'Complete' : 'Pending' }}
-          </span>
-        </div>
-
-        <p style="color: #64748b; margin-bottom: 1.5rem;">Please indicate your committee preference. If you agree to serve on a committee, you <strong>must</strong> select a level of interest in at least one committee. A summary of committee business is available <a href="#">here</a>. </p>
-        
-        <form @submit.prevent="saveCommitteePreferences">
-          <div class="table-responsive">
-            <table class="table table-custom">
-              <thead>
-                <tr>
-                  <th>Committee</th>
-                  <th class="text-center">No Interest</th>
-                  <th class="text-center">Interested</th>
-                  <th class="text-center">Prefer</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="committee in committees" :key="committee.field">
-                  <td style="font-weight: 500;">{{ committee.label }}</td>
-                  <td class="text-center">
-                    <input 
-                      type="radio" 
-                      :name="committee.field" 
-                      :value="0" 
-                      v-model.number="committeePreferences[committee.field]"
-                      class="form-check-input"
-                      style="width: 1.25rem; height: 1.25rem; cursor: pointer;"
-                    >
-                  </td>
-                  <td class="text-center">
-                    <input 
-                      type="radio" 
-                      :name="committee.field" 
-                      :value="1" 
-                      v-model.number="committeePreferences[committee.field]"
-                      class="form-check-input"
-                      style="width: 1.25rem; height: 1.25rem; cursor: pointer;"
-                    >
-                  </td>
-                  <td class="text-center">
-                    <input 
-                      type="radio" 
-                      :name="committee.field" 
-                      :value="2" 
-                      v-model.number="committeePreferences[committee.field]"
-                      class="form-check-input"
-                      style="width: 1.25rem; height: 1.25rem; cursor: pointer;"
-                    >
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <button type="submit" class="btn btn-gold mt-3" :disabled="saving">
-            <span v-if="saving">
-              <span class="spinner-border spinner-border-sm me-2"></span>Saving...
-            </span>
-            <span v-else><i class="bi bi-check2 me-2"></i>Save Preferences</span>
-          </button>
-        </form>
-      </div>
-
-      <!-- Guest Section -->
-      <div id="guest-info" class="section-card scroll-target">
-        <div class="section-header">
-          <h2 class="section-title">
-            <div class="section-icon">
-              <i class="bi bi-person-plus"></i>
-            </div>
-            Guest Information
-          </h2>
-          <button v-if="bringingGuest" @click="bringingGuest = true" class="btn btn-gold btn-sm">
-            <i class="bi bi-plus-lg me-1"></i>Add Guest
-          </button>
-        </div>
-
-        <div class="form-check mb-4" style="padding: 1rem; background: #fafbfc; border-radius: 8px; border: 1px solid #e2e8f0;">
-          <input 
-            v-model="bringingGuest" 
-            class="form-check-input" 
-            type="checkbox" 
-            id="bringingGuest"
-          >
-          <label class="form-check-label" for="bringingGuest" style="font-weight: 500;">
-            I will be bringing a guest to the convention
-          </label>
-        </div>
-
-        <div v-if="bringingGuest">
-          <!-- Existing Guests -->
-          <div v-if="guests.length > 0" class="mb-4">
-            <h6 style="font-weight: 600; margin-bottom: 1rem;">Registered Guests:</h6>
-            <div v-for="guest in guests" :key="guest.id" class="border rounded p-3 mb-3" style="border: 1px solid #e2e8f0 !important; border-radius: 12px;">
-              <div class="d-flex justify-content-between align-items-start">
-                <div>
-                  <strong style="font-size: 1.05rem;">{{ guest.guest_first_name }} {{ guest.guest_last_name }}</strong>
-                  <div class="text-muted small mt-1">
-                    <div v-if="guest.guest_email"><i class="bi bi-envelope me-1"></i>{{ guest.guest_email }}</div>
-                    <div v-if="guest.guest_phone"><i class="bi bi-telephone me-1"></i>{{ guest.guest_phone }}</div>
-                    <div v-if="guest.guest_dietary_restrictions">
-                      <i class="bi bi-info-circle me-1"></i>Dietary: {{ guest.guest_dietary_restrictions }}
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  @click="removeGuest(guest.id)" 
-                  class="btn btn-sm"
-                  style="border: 1.5px solid #e2e8f0; color: #ef4444; border-radius: 8px;"
-                  :disabled="saving"
-                >
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Add New Guest Form -->
-          <div class="border rounded p-4" style="background: #fafbfc; border: 1px solid #e2e8f0 !important; border-radius: 12px;">
-            <h6 style="font-weight: 600; margin-bottom: 1.25rem;">Add New Guest:</h6>
-            <form @submit.prevent="addGuest">
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label class="form-label">First Name *</label>
-                  <input v-model="newGuest.guest_first_name" type="text" class="form-control" required maxlength="100">
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Last Name *</label>
-                  <input v-model="newGuest.guest_last_name" type="text" class="form-control" required maxlength="100">
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Email</label>
-                  <input v-model="newGuest.guest_email" type="email" class="form-control" maxlength="254">
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Phone</label>
-                  <input v-model="newGuest.guest_phone" type="tel" class="form-control" maxlength="20" pattern="[\+]?[0-9\s\-\(\)]+" title="Phone number (numbers, spaces, dashes, parentheses allowed)">
-                </div>
-                <div class="col-12">
-                  <label class="form-label">Dietary Restrictions</label>
-                  <input v-model="newGuest.guest_dietary_restrictions" type="text" class="form-control" maxlength="500">
-                </div>
-                <div class="col-12">
-                  <label class="form-label">Special Requests</label>
-                  <textarea v-model="newGuest.guest_special_requests" class="form-control" rows="2" maxlength="1000"></textarea>
-                </div>
-              </div>
-              <button type="submit" class="btn btn-primary mt-3" :disabled="saving">
-                <span v-if="saving"><span class="spinner-border spinner-border-sm me-2"></span>Adding...</span>
-                <span v-else><i class="bi bi-plus-circle me-2"></i>Add Guest</span>
-              </button>
-            </form>
-          </div>
-        </div>
-        <div v-else class="info-alert" style="background: #f8fafc; border-left-color: #94a3b8;">
-          <i class="bi bi-info-circle" style="color: #64748b;"></i>
-          <div class="info-alert-content" style="color: #475569;">
-            No guests registered. Check the box above to add a guest.
-          </div>
-        </div>
-      </div>
-
-      <!-- Travel Section -->
       <div id="travel-info" class="section-card scroll-target">
         <div class="section-header">
           <h2 class="section-title">
@@ -389,6 +217,57 @@
           <span class="status-badge" :class="isTravelComplete ? 'status-complete' : 'status-pending'">
             {{ isTravelComplete ? 'Complete' : 'Pending' }}
           </span>
+        </div>
+
+        <!-- Display Booked Flight Information (if available) -->
+        <div v-if="travel.has_booked_flight" class="booked-flight-info mb-4" style="background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; padding: 1.5rem;">
+          <h5 class="mb-3" style="color: #1e40af; font-weight: 600;">
+            <i class="bi bi-check-circle-fill me-2"></i>Your Flight Has Been Booked!
+          </h5>
+          
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="flight-card" style="background: white; border: 1px solid #bfdbfe; border-radius: 6px; padding: 1rem;">
+                <h6 class="fw-bold mb-3" style="color: #1e40af;">
+                  <i class="bi bi-airplane-fill me-2"></i>Outbound Flight
+                </h6>
+                <p class="mb-1"><strong>Airline:</strong> {{ travel.outbound_airline }}</p>
+                <p class="mb-1"><strong>Flight:</strong> {{ travel.outbound_flight_number }}</p>
+                <p class="mb-1" v-if="travel.outbound_departure_time">
+                  <strong>Departure:</strong> {{ formatDateTime(travel.outbound_departure_time) }}
+                </p>
+                <p class="mb-1" v-if="travel.outbound_arrival_time">
+                  <strong>Arrival:</strong> {{ formatDateTime(travel.outbound_arrival_time) }}
+                </p>
+                <p class="mb-0" v-if="travel.outbound_confirmation">
+                  <strong>Confirmation:</strong> {{ travel.outbound_confirmation }}
+                </p>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="flight-card" style="background: white; border: 1px solid #bfdbfe; border-radius: 6px; padding: 1rem;">
+                <h6 class="fw-bold mb-3" style="color: #1e40af;">
+                  <i class="bi bi-airplane-fill me-2" style="transform: rotate(90deg); display: inline-block;"></i>Return Flight
+                </h6>
+                <p class="mb-1"><strong>Airline:</strong> {{ travel.return_airline }}</p>
+                <p class="mb-1"><strong>Flight:</strong> {{ travel.return_flight_number }}</p>
+                <p class="mb-1" v-if="travel.return_departure_time">
+                  <strong>Departure:</strong> {{ formatDateTime(travel.return_departure_time) }}
+                </p>
+                <p class="mb-1" v-if="travel.return_arrival_time">
+                  <strong>Arrival:</strong> {{ formatDateTime(travel.return_arrival_time) }}
+                </p>
+                <p class="mb-0" v-if="travel.return_confirmation">
+                  <strong>Confirmation:</strong> {{ travel.return_confirmation }}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div v-if="travel.flight_notes" class="mt-3 alert alert-light mb-0">
+            <strong>Notes:</strong> {{ travel.flight_notes }}
+          </div>
         </div>
 
         <form @submit.prevent="saveTravel">
@@ -535,6 +414,105 @@
       </div>
 
       <!-- Accommodation Section -->
+      <div id="guest-info" class="section-card scroll-target">
+        <div class="section-header">
+          <h2 class="section-title">
+            <div class="section-icon">
+              <i class="bi bi-person-plus"></i>
+            </div>
+            Guest Information
+          </h2>
+          <button v-if="bringingGuest" @click="bringingGuest = true" class="btn btn-gold btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Add Guest
+          </button>
+        </div>
+
+        <div class="form-check mb-4" style="padding: 1rem; background: #fafbfc; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <input 
+            v-model="bringingGuest" 
+            class="form-check-input" 
+            type="checkbox" 
+            id="bringingGuest"
+          >
+          <label class="form-check-label" for="bringingGuest" style="font-weight: 500;">
+            I will be bringing a guest to the convention
+          </label>
+        </div>
+
+        <div v-if="bringingGuest">
+          <!-- Existing Guests -->
+          <div v-if="guests.length > 0" class="mb-4">
+            <h6 style="font-weight: 600; margin-bottom: 1rem;">Registered Guests:</h6>
+            <div v-for="guest in guests" :key="guest.id" class="border rounded p-3 mb-3" style="border: 1px solid #e2e8f0 !important; border-radius: 12px;">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <strong style="font-size: 1.05rem;">{{ guest.guest_first_name }} {{ guest.guest_last_name }}</strong>
+                  <div class="text-muted small mt-1">
+                    <div v-if="guest.guest_email"><i class="bi bi-envelope me-1"></i>{{ guest.guest_email }}</div>
+                    <div v-if="guest.guest_phone"><i class="bi bi-telephone me-1"></i>{{ guest.guest_phone }}</div>
+                    <div v-if="guest.guest_dietary_restrictions">
+                      <i class="bi bi-info-circle me-1"></i>Dietary: {{ guest.guest_dietary_restrictions }}
+                    </div>
+                  </div>
+                </div>
+                <button 
+                  @click="removeGuest(guest.id)" 
+                  class="btn btn-sm"
+                  style="border: 1.5px solid #e2e8f0; color: #ef4444; border-radius: 8px;"
+                  :disabled="saving"
+                >
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add New Guest Form -->
+          <div class="border rounded p-4" style="background: #fafbfc; border: 1px solid #e2e8f0 !important; border-radius: 12px;">
+            <h6 style="font-weight: 600; margin-bottom: 1.25rem;">Add New Guest:</h6>
+            <form @submit.prevent="addGuest">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">First Name *</label>
+                  <input v-model="newGuest.guest_first_name" type="text" class="form-control" required maxlength="100">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Last Name *</label>
+                  <input v-model="newGuest.guest_last_name" type="text" class="form-control" required maxlength="100">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Email</label>
+                  <input v-model="newGuest.guest_email" type="email" class="form-control" maxlength="254">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Phone</label>
+                  <input v-model="newGuest.guest_phone" type="tel" class="form-control" maxlength="20" pattern="[\+]?[0-9\s\-\(\)]+" title="Phone number (numbers, spaces, dashes, parentheses allowed)">
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Dietary Restrictions</label>
+                  <input v-model="newGuest.guest_dietary_restrictions" type="text" class="form-control" maxlength="500">
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Special Requests</label>
+                  <textarea v-model="newGuest.guest_special_requests" class="form-control" rows="2" maxlength="1000"></textarea>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary mt-3" :disabled="saving">
+                <span v-if="saving"><span class="spinner-border spinner-border-sm me-2"></span>Adding...</span>
+                <span v-else><i class="bi bi-plus-circle me-2"></i>Add Guest</span>
+              </button>
+            </form>
+          </div>
+        </div>
+        <div v-else class="info-alert" style="background: #f8fafc; border-left-color: #94a3b8;">
+          <i class="bi bi-info-circle" style="color: #64748b;"></i>
+          <div class="info-alert-content" style="color: #475569;">
+            No guests registered. Check the box above to add a guest.
+          </div>
+        </div>
+      </div>
+
+      <!-- Travel Section -->
       <div id="accommodation" class="section-card scroll-target">
         <div class="section-header">
           <h2 class="section-title">
@@ -624,6 +602,79 @@
         </form>
       </div>
     </div>
+      <div id="committee-prefs" class="section-card scroll-target">
+        <div class="section-header">
+          <h2 class="section-title">
+            <div class="section-icon gold">
+              <i class="bi bi-people"></i>
+            </div>
+            Committee Preferences
+          </h2>
+          <span class="status-badge" :class="isCommitteePrefsComplete ? 'status-complete' : 'status-pending'">
+            {{ isCommitteePrefsComplete ? 'Complete' : 'Pending' }}
+          </span>
+        </div>
+
+        <p style="color: #64748b; margin-bottom: 1.5rem;">Please indicate your committee preference. If you agree to serve on a committee, you <strong>must</strong> select a level of interest in at least one committee. A summary of committee business is available <a href="#">here</a>. </p>
+        
+        <form @submit.prevent="saveCommitteePreferences">
+          <div class="table-responsive">
+            <table class="table table-custom">
+              <thead>
+                <tr>
+                  <th>Committee</th>
+                  <th class="text-center">No Interest</th>
+                  <th class="text-center">Interested</th>
+                  <th class="text-center">Prefer</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="committee in committees" :key="committee.field">
+                  <td style="font-weight: 500;">{{ committee.label }}</td>
+                  <td class="text-center">
+                    <input 
+                      type="radio" 
+                      :name="committee.field" 
+                      :value="0" 
+                      v-model.number="committeePreferences[committee.field]"
+                      class="form-check-input"
+                      style="width: 1.25rem; height: 1.25rem; cursor: pointer;"
+                    >
+                  </td>
+                  <td class="text-center">
+                    <input 
+                      type="radio" 
+                      :name="committee.field" 
+                      :value="1" 
+                      v-model.number="committeePreferences[committee.field]"
+                      class="form-check-input"
+                      style="width: 1.25rem; height: 1.25rem; cursor: pointer;"
+                    >
+                  </td>
+                  <td class="text-center">
+                    <input 
+                      type="radio" 
+                      :name="committee.field" 
+                      :value="2" 
+                      v-model.number="committeePreferences[committee.field]"
+                      class="form-check-input"
+                      style="width: 1.25rem; height: 1.25rem; cursor: pointer;"
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button type="submit" class="btn btn-gold mt-3" :disabled="saving">
+            <span v-if="saving">
+              <span class="spinner-border spinner-border-sm me-2"></span>Saving...
+            </span>
+            <span v-else><i class="bi bi-check2 me-2"></i>Save Preferences</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Guest Section -->
   </div>
     </div>
 
@@ -868,6 +919,20 @@ const isValidEmail = (email) => {
   return re.test(email)
 }
 
+const formatDateTime = (dateTimeString) => {
+  if (!dateTimeString) return ''
+  const date = new Date(dateTimeString)
+  const options = { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }
+  return date.toLocaleString('en-US', options)
+}
+
 // Progress tracking
 const sections = computed(() => [
   {
@@ -876,9 +941,9 @@ const sections = computed(() => [
     isComplete: isPersonalInfoComplete.value
   },
   {
-    id: 'committee-prefs',
-    title: 'Committee Preferences',
-    isComplete: isCommitteePrefsComplete.value
+    id: 'travel-info',
+    title: 'Travel',
+    isComplete: isTravelComplete.value
   },
   {
     id: 'guest-info',
@@ -886,14 +951,14 @@ const sections = computed(() => [
     isComplete: isGuestInfoComplete.value
   },
   {
-    id: 'travel-info',
-    title: 'Travel',
-    isComplete: isTravelComplete.value
-  },
-  {
     id: 'accommodation',
     title: 'Accommodation',
     isComplete: isAccommodationComplete.value
+  },
+  {
+    id: 'committee-prefs',
+    title: 'Committee Preferences',
+    isComplete: isCommitteePrefsComplete.value
   }
 ])
 

@@ -11,6 +11,7 @@ import EmailLinkError from './pages/EmailLinkError.vue'
 import { useAuthStore } from './store/auth'
 import UserAccount from './pages/UserAccount.vue'
 import ConventionHome from './pages/convention/ConventionHome.vue'
+import ConventionTravel from './pages/convention/ConventionTravel.vue'
 
 const routes = [
   {
@@ -75,6 +76,16 @@ const routes = [
       requiresRoles: ['collegiate', 'official', 'non-member'] // Example: only collegiate and officials can access
     }
   },
+  {
+  path: '/convention-travel',
+  name: 'convention-travel',
+  component: ConventionTravel,
+  meta: { 
+    requiresAuth: true,
+    // Optional: Add role restriction if you want only certain users
+    // requiresRoles: ['official'] // Only officials can access
+  }
+},
   // Example: Route only for officials
   // {
   //   path: '/admin',

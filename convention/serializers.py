@@ -436,3 +436,247 @@ class ConventionRegistrationCreateSerializer(serializers.ModelSerializer):
         ConventionAccommodation.objects.create(registration=registration)
         
         return registration
+
+
+class AdminConventionTravelListSerializer(serializers.ModelSerializer):
+    """
+    Serializer for admin travel list view with member information.
+    """
+    member_id = serializers.IntegerField(source='registration.member.id', read_only=True)
+    member_number = serializers.CharField(source='registration.member.member_id', read_only=True)
+    first_name = serializers.CharField(source='registration.member.first_name', read_only=True)
+    last_name = serializers.CharField(source='registration.member.last_name', read_only=True)
+    chapter = serializers.CharField(source='registration.member.chapter', read_only=True)
+    registration_id = serializers.IntegerField(source='registration.id', read_only=True)
+    
+    # Get state for departure and return airports
+    departure_state = serializers.SerializerMethodField()
+    return_state = serializers.SerializerMethodField()
+    
+    travel_method_display = serializers.CharField(source='get_travel_method_display', read_only=True)
+    seat_preference_display = serializers.CharField(source='get_seat_preference_display', read_only=True)
+    departure_time_formatted = serializers.SerializerMethodField()
+    return_time_formatted = serializers.SerializerMethodField()
+    has_booked_flight = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ConventionTravel
+        fields = [
+            'id',
+            'registration_id',
+            'member_id',
+            'member_number',
+            'first_name',
+            'last_name',
+            'chapter',
+            'travel_method',
+            'travel_method_display',
+            'departure_airport',
+            'departure_state',
+            'departure_date',
+            'departure_time_preference',
+            'departure_time_formatted',
+            'return_airport',
+            'return_state',
+            'return_date',
+            'return_time_preference',
+            'return_time_formatted',
+            'seat_preference',
+            'seat_preference_display',
+            'needs_ground_transportation',
+            'has_booked_flight',
+        ]
+    
+    def get_departure_state(self, obj):
+        """Get state for departure airport"""
+        if obj.departure_airport:
+            try:
+                airport = Airport.objects.get(code=obj.departure_airport)
+                return airport.state
+            except Airport.DoesNotExist:
+                return None
+        return None
+    
+    def get_return_state(self, obj):
+        """Get state for return airport"""
+        if obj.return_airport:
+            try:
+                airport = Airport.objects.get(code=obj.return_airport)
+                return airport.state
+            except Airport.DoesNotExist:
+                return None
+        return None
+    
+    def get_has_booked_flight(self, obj):
+        """Check if flight has been booked by staff"""
+        return bool(obj.outbound_flight_number and obj.return_flight_number)
+    
+    def get_departure_time_formatted(self, obj):
+        """Convert minutes from midnight to formatted time string"""
+        if obj.departure_time_preference is None or obj.departure_time_preference == '':
+            return None
+        minutes = int(obj.departure_time_preference) if isinstance(obj.departure_time_preference, str) else obj.departure_time_preference
+        hours = minutes // 60
+        mins = minutes % 60
+        period = 'AM' if hours < 12 else 'PM'
+        display_hour = hours if hours <= 12 else hours - 12
+        display_hour = 12 if display_hour == 0 else display_hour
+        return f"{display_hour:02d}:{mins:02d} {period}"
+    
+    def get_return_time_formatted(self, obj):
+        """Convert minutes from midnight to formatted time string"""
+        if obj.return_time_preference is None or obj.return_time_preference == '':
+            return None
+        minutes = int(obj.return_time_preference) if isinstance(obj.return_time_preference, str) else obj.return_time_preference
+        hours = minutes // 60
+        mins = minutes % 60
+        period = 'AM' if hours < 12 else 'PM'
+        display_hour = hours if hours <= 12 else hours - 12
+        display_hour = 12 if display_hour == 0 else display_hour
+        return f"{display_hour:02d}:{mins:02d} {period}"
+
+
+class AdminConventionTravelUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for admin to update booked flight information.
+    Includes comprehensive validation to match existing code standards.
+    """
+    class Meta:
+        model = ConventionTravel
+        fields = [
+            'outbound_airline',
+            'outbound_flight_number',
+            'outbound_departure_time',
+            'outbound_arrival_time',
+            'outbound_confirmation',
+            'return_airline',
+            'return_flight_number',
+            'return_departure_time',
+            'return_arrival_time',
+            'return_confirmation',
+            'flight_notes',
+        ]
+    
+    def validate(self, data):
+        """
+        Validate flight booking data - ensures data integrity.
+        Similar to ConventionTravelSerializer validation logic.
+        """
+        errors = {}
+        
+        # Get current values if updating existing record
+        outbound_flight = data.get('outbound_flight_number', '')
+        return_flight = data.get('return_flight_number', '')
+        outbound_airline = data.get('outbound_airline', '')
+        return_airline = data.get('return_airline', '')
+        
+        if self.instance:
+            outbound_flight = outbound_flight or self.instance.outbound_flight_number
+            return_flight = return_flight or self.instance.return_flight_number
+            outbound_airline = outbound_airline or self.instance.outbound_airline
+            return_airline = return_airline or self.instance.return_airline
+        
+        # If booking flights, require both outbound and return
+        if outbound_flight and not return_flight:
+            errors['return_flight_number'] = 'Return flight required when outbound flight is provided.'
+        elif return_flight and not outbound_flight:
+            errors['outbound_flight_number'] = 'Outbound flight required when return flight is provided.'
+        
+        # If providing outbound flight, require airline
+        if outbound_flight and not outbound_airline:
+            errors['outbound_airline'] = 'Airline required when flight number is provided.'
+        
+        # If providing return flight, require airline
+        if return_flight and not return_airline:
+            errors['return_airline'] = 'Airline required when flight number is provided.'
+        
+        # Validate outbound times - arrival must be after departure
+        outbound_dep = data.get('outbound_departure_time')
+        outbound_arr = data.get('outbound_arrival_time')
+        
+        if self.instance:
+            outbound_dep = outbound_dep or self.instance.outbound_departure_time
+            outbound_arr = outbound_arr or self.instance.outbound_arrival_time
+        
+        if outbound_dep and outbound_arr:
+            if outbound_arr <= outbound_dep:
+                errors['outbound_arrival_time'] = 'Arrival time must be after departure time.'
+        
+        # Validate return times - arrival must be after departure
+        return_dep = data.get('return_departure_time')
+        return_arr = data.get('return_arrival_time')
+        
+        if self.instance:
+            return_dep = return_dep or self.instance.return_departure_time
+            return_arr = return_arr or self.instance.return_arrival_time
+        
+        if return_dep and return_arr:
+            if return_arr <= return_dep:
+                errors['return_arrival_time'] = 'Arrival time must be after departure time.'
+        
+        if errors:
+            raise serializers.ValidationError(errors)
+        
+        return data
+    
+    def validate_flight_notes(self, value):
+        """
+        Strip HTML tags from flight notes to prevent XSS.
+        Matches security pattern in ConventionTravelSerializer.
+        """
+        if value:
+            return bleach.clean(value, tags=[], strip=True)
+        return value
+    
+    def validate_outbound_airline(self, value):
+        """Validate and sanitize airline name"""
+        if value:
+            value = value.strip()
+            if len(value) > 100:
+                raise serializers.ValidationError('Airline name cannot exceed 100 characters.')
+            # Remove any potentially malicious content
+            value = bleach.clean(value, tags=[], strip=True)
+        return value
+    
+    def validate_return_airline(self, value):
+        """Validate and sanitize airline name"""
+        if value:
+            value = value.strip()
+            if len(value) > 100:
+                raise serializers.ValidationError('Airline name cannot exceed 100 characters.')
+            # Remove any potentially malicious content
+            value = bleach.clean(value, tags=[], strip=True)
+        return value
+    
+    def validate_outbound_flight_number(self, value):
+        """Validate and normalize flight number"""
+        if value:
+            value = value.strip().upper()
+            if len(value) > 20:
+                raise serializers.ValidationError('Flight number cannot exceed 20 characters.')
+        return value
+    
+    def validate_return_flight_number(self, value):
+        """Validate and normalize flight number"""
+        if value:
+            value = value.strip().upper()
+            if len(value) > 20:
+                raise serializers.ValidationError('Flight number cannot exceed 20 characters.')
+        return value
+    
+    def validate_outbound_confirmation(self, value):
+        """Validate and normalize confirmation number"""
+        if value:
+            value = value.strip().upper()
+            if len(value) > 50:
+                raise serializers.ValidationError('Confirmation number cannot exceed 50 characters.')
+        return value
+    
+    def validate_return_confirmation(self, value):
+        """Validate and normalize confirmation number"""
+        if value:
+            value = value.strip().upper()
+            if len(value) > 50:
+                raise serializers.ValidationError('Confirmation number cannot exceed 50 characters.')
+        return value
+

@@ -1,5 +1,5 @@
 from django.views.decorators.csrf import ensure_csrf_cookie
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -26,8 +26,23 @@ from .serializers import (
     ConventionTravelSerializer,
     ConventionAccommodationSerializer,
     AirportSerializer,
+    AdminConventionTravelListSerializer,
+    AdminConventionTravelUpdateSerializer,
 )
 from accounts.models import Member, Address, PhoneNumbers
+import logging
+
+# Set up logging for audit trail
+logger = logging.getLogger(__name__)
+
+
+# Custom rate throttle for admin endpoints
+class AdminRateThrottle(UserRateThrottle):
+    """
+    Rate limiting for admin endpoints - 100 requests per hour.
+    Matches the pattern used elsewhere in the application.
+    """
+    rate = '100/hour'
 
 
 @api_view(['GET'])
@@ -446,4 +461,215 @@ def get_states(request):
     ]
     
     return Response(state_list, status=status.HTTP_200_OK)
+
+
+# Admin views
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def admin_travel_list(request):
+    """
+    Admin view to list all travel registrations with member information.
+    Rate limited to 100 requests per hour per user.
+    Query params:
+      - convention_id: Filter by convention (optional, defaults to active convention)
+      - travel_method: Filter by travel method (optional)
+      - booked: Filter by booking status ('true' for booked flights, 'false' for pending)
+    """
+    # Audit log
+    logger.info(
+        f"Admin travel list accessed by user {request.user.email or request.user.username}",
+        extra={
+            'user_id': request.user.id,
+            'action': 'admin_travel_list_view',
+            'filters': {
+                'convention_id': request.query_params.get('convention_id'),
+                'travel_method': request.query_params.get('travel_method'),
+                'booked': request.query_params.get('booked'),
+            }
+        }
+    )
+    
+    # Get convention filter
+    convention_id = request.query_params.get('convention_id', None)
+    
+    if convention_id:
+        convention = get_object_or_404(Convention, id=convention_id)
+    else:
+        try:
+            convention = Convention.objects.filter(is_active=True).latest('year')
+        except Convention.DoesNotExist:
+            return Response(
+                {'message': 'No active convention found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    # Get all travel records for the convention
+    travels = ConventionTravel.objects.filter(
+        registration__convention=convention
+    ).select_related('registration__member')
+    
+    # Filter by travel method if specified
+    travel_method = request.query_params.get('travel_method', None)
+    if travel_method:
+        travels = travels.filter(travel_method=travel_method)
+    
+    # Filter by booking status if specified
+    booked_filter = request.query_params.get('booked', None)
+    if booked_filter == 'true':
+        # Has booked flights (both outbound and return flight numbers exist)
+        travels = travels.exclude(outbound_flight_number='').exclude(return_flight_number='')
+    elif booked_filter == 'false':
+        # No booked flights (missing either outbound or return flight number)
+        from django.db.models import Q
+        travels = travels.filter(
+            Q(outbound_flight_number='') | Q(return_flight_number='') | 
+            Q(outbound_flight_number__isnull=True) | Q(return_flight_number__isnull=True)
+        )
+    
+    # Order by member last name
+    travels = travels.order_by('registration__member__last_name', 'registration__member__first_name')
+    
+    serializer = AdminConventionTravelListSerializer(travels, many=True)
+    
+    logger.info(
+        f"Admin travel list returned {len(serializer.data)} records",
+        extra={'user_id': request.user.id, 'record_count': len(serializer.data)}
+    )
+    
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def admin_travel_detail(request, travel_id):
+    """
+    Admin view to get or update a specific travel record.
+    Rate limited to 100 requests per hour per user.
+    GET: Get full travel details including member info
+    PUT: Update booked flight information
+    """
+    travel = get_object_or_404(
+        ConventionTravel.objects.select_related('registration__member'),
+        id=travel_id
+    )
+    
+    if request.method == 'GET':
+        # Audit log
+        logger.info(
+            f"Admin viewed travel details for travel_id={travel_id}",
+            extra={
+                'user_id': request.user.id,
+                'action': 'admin_travel_detail_view',
+                'travel_id': travel_id,
+                'member_id': travel.registration.member.id
+            }
+        )
+        
+        # Return full travel details with member info
+        member = travel.registration.member
+        
+        # Get airport descriptions
+        departure_airport_info = None
+        return_airport_info = None
+        
+        if travel.departure_airport:
+            try:
+                airport = Airport.objects.get(code=travel.departure_airport)
+                departure_airport_info = {
+                    'code': airport.code,
+                    'state': airport.state,
+                    'description': airport.description
+                }
+            except Airport.DoesNotExist:
+                pass
+        
+        if travel.return_airport:
+            try:
+                airport = Airport.objects.get(code=travel.return_airport)
+                return_airport_info = {
+                    'code': airport.code,
+                    'state': airport.state,
+                    'description': airport.description
+                }
+            except Airport.DoesNotExist:
+                pass
+        
+        # Build response with all details
+        travel_serializer = ConventionTravelSerializer(travel)
+        
+        response_data = {
+            'id': travel.id,
+            'registration_id': travel.registration.id,
+            'member': {
+                'id': member.id,
+                'member_number': member.member_id,
+                'first_name': member.first_name,
+                'last_name': member.last_name,
+                'chapter': member.chapter,
+            },
+            'travel': travel_serializer.data,
+            'departure_airport_info': departure_airport_info,
+            'return_airport_info': return_airport_info,
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+    elif request.method == 'PUT':
+        # Store original values for audit log
+        original_data = {
+            'outbound_flight': travel.outbound_flight_number,
+            'return_flight': travel.return_flight_number,
+            'outbound_airline': travel.outbound_airline,
+            'return_airline': travel.return_airline,
+        }
+        
+        # Admin updates booked flight information
+        serializer = AdminConventionTravelUpdateSerializer(
+            travel,
+            data=request.data,
+            partial=True
+        )
+        
+        if serializer.is_valid():
+            updated_travel = serializer.save()
+            
+            # Audit log - record what was changed
+            changes = {}
+            for field in ['outbound_airline', 'outbound_flight_number', 'outbound_confirmation',
+                         'return_airline', 'return_flight_number', 'return_confirmation']:
+                old_value = getattr(travel, field, None)
+                new_value = serializer.validated_data.get(field, old_value)
+                if old_value != new_value:
+                    changes[field] = {'old': old_value, 'new': new_value}
+            
+            logger.info(
+                f"Admin updated travel booking for travel_id={travel_id}",
+                extra={
+                    'user_id': request.user.id,
+                    'user_email': request.user.email or request.user.username,
+                    'action': 'admin_travel_update',
+                    'travel_id': travel_id,
+                    'member_id': travel.registration.member.id,
+                    'member_name': f"{travel.registration.member.first_name} {travel.registration.member.last_name}",
+                    'changes': changes,
+                }
+            )
+            
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        # Log validation errors
+        logger.warning(
+            f"Admin travel update failed validation for travel_id={travel_id}",
+            extra={
+                'user_id': request.user.id,
+                'action': 'admin_travel_update_failed',
+                'travel_id': travel_id,
+                'errors': serializer.errors
+            }
+        )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
