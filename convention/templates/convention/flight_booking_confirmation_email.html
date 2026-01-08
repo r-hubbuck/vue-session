@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flight Details</title>
+</head>
+<body>
+    <h2>Your Flight Details</h2>
+    
+    {% if member %}
+        <p>Hi {{ member.first_name }},</p>
+    {% else %}
+        <p>Hello,</p>
+    {% endif %}
+    
+    <p>Great news! Your flights have been booked for the <strong>{{ convention.name }}</strong> in {{ convention.city }}, {{ convention.state }}.</p>
+    
+    <p><strong>Important:</strong> Please review all flight details carefully and arrive at the airport at least 2 hours before your scheduled departure time.</p>
+    
+    <hr>
+    
+    <h3>Outbound Flight</h3>
+    
+    <p><strong>Airline:</strong> {{ travel.outbound_airline }}<br>
+    <strong>Flight Number:</strong> {{ travel.outbound_flight_number }}<br>
+    <strong>Departure:</strong> {{ travel.outbound_departure_time|date:"l, F d, Y" }} at {{ travel.outbound_departure_time|date:"g:i A" }}<br>
+    <strong>Arrival:</strong> {{ travel.outbound_arrival_time|date:"g:i A" }}<br>
+    <strong>Departing From:</strong> {{ travel.departure_airport }}</p>
+    
+    {% if travel.outbound_confirmation %}
+    <p><strong>Confirmation Number:</strong> {{ travel.outbound_confirmation }}</p>
+    {% endif %}
+    
+    <hr>
+    
+    <h3>Return Flight</h3>
+    
+    <p><strong>Airline:</strong> {{ travel.return_airline }}<br>
+    <strong>Flight Number:</strong> {{ travel.return_flight_number }}<br>
+    <strong>Departure:</strong> {{ travel.return_departure_time|date:"l, F d, Y" }} at {{ travel.return_departure_time|date:"g:i A" }}<br>
+    <strong>Arrival:</strong> {{ travel.return_arrival_time|date:"g:i A" }}<br>
+    <strong>Departing From:</strong> {{ travel.return_airport }}</p>
+    
+    {% if travel.return_confirmation %}
+    <p><strong>Confirmation Number:</strong> {{ travel.return_confirmation }}</p>
+    {% endif %}
+    
+    <hr>
+    
+    {% if travel.seat_preference or travel.needs_ground_transportation or travel.flight_notes %}
+    <h3>Additional Information</h3>
+    
+    {% if travel.seat_preference %}
+    <p><strong>Seat Preference:</strong> {{ travel.get_seat_preference_display }}</p>
+    {% endif %}
+    
+    <p><strong>Ground Transportation:</strong> {{ travel.needs_ground_transportation|yesno:"Needed,Not needed" }}</p>
+    
+    {% if travel.flight_notes %}
+    <p><strong>Special Notes:</strong><br>{{ travel.flight_notes }}</p>
+    {% endif %}
+    
+    <hr>
+    {% endif %}
+    
+    <p><strong>What to do next:</strong></p>
+    <ul>
+        <li>Add these flights to your calendar</li>
+        <li>Check in online 24 hours before your flight</li>
+        <li>Bring a valid photo ID to the airport</li>
+        <li>Check your airline's baggage policies</li>
+        {% if travel.needs_ground_transportation %}
+        <li>Watch for further communication about ground transportation arrangements</li>
+        {% endif %}
+    </ul>
+    
+    <p>If you notice any issues with your flight details or need to make changes, please contact our convention team as soon as possible.</p>
+    
+    <p>We look forward to seeing you at the convention!</p>
+    
+    <p>Best regards,<br>TBP Convention Team</p>
+</body>
+</html>

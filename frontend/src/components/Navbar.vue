@@ -77,7 +77,12 @@ const logout = async () => {
               Account
             </router-link>
           </li>
-          <!-- Add more navigation items as needed -->
+          <li>
+            <router-link to="/expense-report" @click="closeMobileMenu">
+              <i class="bi bi-receipt"></i>
+              Expense Reports
+            </router-link>
+          </li>
         </ul>
       </div>
       

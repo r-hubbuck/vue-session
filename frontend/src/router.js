@@ -12,6 +12,8 @@ import { useAuthStore } from './store/auth'
 import UserAccount from './pages/UserAccount.vue'
 import ConventionHome from './pages/convention/ConventionHome.vue'
 import ConventionTravel from './pages/convention/ConventionTravel.vue'
+import ExpenseReport from './pages/ExpenseReport.vue'
+import ExpenseReportAdmin from './pages/ExpenseReportAdmin.vue'
 
 const routes = [
   {
@@ -73,7 +75,25 @@ const routes = [
     component: ConventionHome,
     meta: { 
       requiresAuth: true,
-      requiresRoles: ['collegiate', 'official', 'non-member'] // Example: only collegiate and officials can access
+      requiresRoles: ['collegiate', 'official', 'non-member', 'alumni'] // Example: only collegiate and officials can access
+    }
+  },
+  {
+    path: '/expense-report',
+    name: 'expense-report',
+    component: ExpenseReport,
+    meta: { 
+      requiresAuth: true,
+      requiresRoles: ['collegiate', 'official', 'non-member', 'alumni']
+    }
+  },
+  {
+    path: '/expense-report-admin',
+    name: 'expense-report-admin',
+    component: ExpenseReportAdmin,
+    meta: { 
+      requiresAuth: true,
+      requiresRoles: ['collegiate', 'official', 'non-member', 'alumni']
     }
   },
   {

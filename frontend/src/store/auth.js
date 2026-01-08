@@ -13,8 +13,7 @@ const getStoredState = () => {
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: null,
-    isAuthenticated: false,
+    ...getStoredState(),  // ✅ FIXED: Load saved auth state from localStorage
     serverMessage: null,
     // Verification state
     isVerified: false,

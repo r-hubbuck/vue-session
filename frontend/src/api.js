@@ -1,5 +1,7 @@
 import axios from 'axios'
 import { useToast } from "vue-toastification"
+import router from './router'  // ✅ ADDED: Import router so it can be used in interceptor
+
 const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000'
 
 const toast = useToast()
@@ -31,8 +33,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      // User is not authenticated - redirect to login
       router.push('/login')
     }
+    // Note: 403 Forbidden means user IS authenticated but lacks permission
+    // We don't redirect on 403 - let the component handle it
     if (error.response?.status === 500) {
       toast.error('Server error occurred')
     }

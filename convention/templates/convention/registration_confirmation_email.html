@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Convention Registration Confirmation</title>
+</head>
+<body>
+    <h2>Convention Registration Received</h2>
+    
+    {% if member %}
+        <p>Hi {{ member.first_name }},</p>
+    {% else %}
+        <p>Hello,</p>
+    {% endif %}
+    
+    <p>Thank you for registering for the <strong>{{ convention.name }}</strong>!</p>
+    
+    <p><strong>Convention Details:</strong><br>
+    {{ convention.name }}<br>
+    {{ convention.city }}, {{ convention.state }}<br>
+    Registration Date: {{ registration.created_at|date:"F d, Y" }}</p>
+    
+    <p>We have received your registration and are processing your information. Our team will review your travel preferences and accommodation requests.</p>
+    
+    <p><strong>What happens next?</strong></p>
+    <ul>
+        <li>Our team will review your travel preferences</li>
+        <li>If you requested flight booking, we will arrange your flights</li>
+        <li>You will receive a separate email with your flight details once they are confirmed</li>
+        <li>Further convention information will be sent closer to the event date</li>
+    </ul>
+    
+    <p>If you need to make any changes to your registration or have questions, please contact our convention team.</p>
+    
+    <p>We look forward to seeing you at the convention!</p>
+    
+    <p>Best regards,<br>TBP Convention Team</p>
+</body>
+</html>

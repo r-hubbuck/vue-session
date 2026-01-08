@@ -5,7 +5,7 @@
     </div>
     <h1 class="page-title text-center my-4">Member Portal</h1>
     <div>
-      <p v-if="hasActivateParam" class="text-success">Your account has been activated!</p>
+      <p v-if="hasActivateParam" class="text-success text-center">Your account has been activated!</p>
     </div>
     <form @submit.prevent="login" class="container-md">
       <!-- Email -->

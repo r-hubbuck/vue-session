@@ -6,6 +6,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.throttling import UserRateThrottle
 from django.shortcuts import get_object_or_404
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.conf import settings
 
 from .models import (
     Convention,
@@ -34,6 +37,9 @@ import logging
 
 # Set up logging for audit trail
 logger = logging.getLogger(__name__)
+
+# Get DOMAIN setting (same as used in other emails)
+DOMAIN = getattr(settings, 'DOMAIN', 'localhost:8000')
 
 
 # Custom rate throttle for admin endpoints
@@ -114,6 +120,48 @@ def my_registration(request):
         )
         if serializer.is_valid():
             registration = serializer.save(member=request.user.member)
+            
+            # Send confirmation email (inline - matches account activation pattern)
+            try:
+                member = registration.member
+                convention = registration.convention
+                mail_subject = f'{convention.name} Registration Received'
+                
+                message = render_to_string('convention/registration_confirmation_email.html', {
+                    'member': member,
+                    'convention': convention,
+                    'registration': registration,
+                    'domain': DOMAIN,
+                })
+                
+                to_email = member.user.email  # Email is on User, not Member
+                email_msg = EmailMultiAlternatives(
+                    subject=mail_subject,
+                    body='',
+                    to=[to_email]
+                )
+                email_msg.attach_alternative(message, "text/html")
+                email_msg.send()
+                
+                logger.info(
+                    f"Registration confirmation email sent to {to_email}",
+                    extra={
+                        'member_id': member.id,
+                        'registration_id': registration.id,
+                        'convention_id': convention.id
+                    }
+                )
+            except Exception as e:
+                # Log error but don't fail the registration
+                logger.error(
+                    f"Failed to send registration confirmation email: {str(e)}",
+                    extra={
+                        'registration_id': registration.id,
+                        'member_id': request.user.member.id,
+                        'error': str(e)
+                    }
+                )
+            
             detail_serializer = ConventionRegistrationDetailSerializer(registration)
             return Response(
                 detail_serializer.data,
@@ -656,6 +704,54 @@ def admin_travel_detail(request, travel_id):
                     'changes': changes,
                 }
             )
+            
+            # Send flight booking confirmation email if both flights are booked
+            # Refresh the travel object to get the updated data
+            updated_travel.refresh_from_db()
+            if updated_travel.outbound_flight_number and updated_travel.return_flight_number:
+                try:
+                    # Send flight confirmation email (inline - matches existing pattern)
+                    member = updated_travel.registration.member
+                    convention = updated_travel.registration.convention
+                    mail_subject = f'{convention.name} - Your Flight Details'
+                    
+                    message = render_to_string('convention/flight_booking_confirmation_email.html', {
+                        'member': member,
+                        'convention': convention,
+                        'travel': updated_travel,
+                        'registration': updated_travel.registration,
+                        'domain': DOMAIN,
+                    })
+                    
+                    to_email = member.user.email  # Email is on User, not Member
+                    email_msg = EmailMultiAlternatives(
+                        subject=mail_subject,
+                        body='',
+                        to=[to_email]
+                    )
+                    email_msg.attach_alternative(message, "text/html")
+                    email_msg.send()
+                    
+                    logger.info(
+                        f"Flight booking confirmation email sent to {to_email}",
+                        extra={
+                            'member_id': member.id,
+                            'travel_id': updated_travel.id,
+                            'convention_id': convention.id,
+                            'outbound_flight': updated_travel.outbound_flight_number,
+                            'return_flight': updated_travel.return_flight_number
+                        }
+                    )
+                except Exception as e:
+                    # Log error but don't fail the update
+                    logger.error(
+                        f"Failed to send flight booking confirmation email: {str(e)}",
+                        extra={
+                            'travel_id': travel_id,
+                            'member_id': travel.registration.member.id,
+                            'error': str(e)
+                        }
+                    )
             
             return Response(serializer.data, status=status.HTTP_200_OK)
         
