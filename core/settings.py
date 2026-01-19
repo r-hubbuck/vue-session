@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'accounts',
     'convention',
-    'expense_reports',
+    'expense_reports.apps.ExpenseReportsConfig',
     'corsheaders',
     'phonenumber_field',
 ]

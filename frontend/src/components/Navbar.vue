@@ -59,22 +59,22 @@ const logout = async () => {
         
         <!-- Main Navigation -->
         <ul class="main-nav" :class="{ 'show': mobileMenuOpen }">
-          <li>
+          <!-- <li>
             <router-link to="/" @click="closeMobileMenu">
               <i class="bi bi-house-door"></i>
               Dashboard
+            </router-link>
+          </li> -->
+          <li>
+            <router-link to="/account" @click="closeMobileMenu">
+              <i class="bi bi-person"></i>
+              Account
             </router-link>
           </li>
           <li>
             <router-link to="/convention" @click="closeMobileMenu">
               <i class="bi bi-calendar-event"></i>
               Convention
-            </router-link>
-          </li>
-          <li>
-            <router-link to="/account" @click="closeMobileMenu">
-              <i class="bi bi-person"></i>
-              Account
             </router-link>
           </li>
           <li>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Expense Report Payment Issued</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #17a2b8;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 30px;
+            border: 1px solid #dee2e6;
+            border-top: none;
+        }
+        .info-box {
+            background-color: white;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .info-box strong {
+            color: #17a2b8;
+        }
+        .payment-details {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .payment-details h3 {
+            color: #0c5460;
+            margin-top: 0;
+        }
+        .amount-highlight {
+            font-size: 1.5em;
+            color: #17a2b8;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #284080;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>✓ Payment Issued</h2>
+        </div>
+        
+        <div class="content">
+            {% if member %}
+                <p>Hi {{ member.first_name }},</p>
+            {% else %}
+                <p>Hello,</p>
+            {% endif %}
+            
+            <p>Your expense reimbursement has been processed and payment has been issued!</p>
+            
+            <div class="info-box">
+                <p><strong>Report ID:</strong> #{{ report_id }}</p>
+                <p><strong>Report Type:</strong> {{ report_type_name }}</p>
+                <p><strong>Reimbursement Amount:</strong> <span class="amount-highlight">${{ total_amount }}</span></p>
+            </div>
+            
+            <div class="payment-details">
+                <h3>Payment Details</h3>
+                <p><strong>Payment Method:</strong> {{ payment_method_display }}</p>
+                {% if payment_check_number %}
+                    <p><strong>Check Number:</strong> {{ payment_check_number }}</p>
+                {% endif %}
+                {% if payment_payer %}
+                    <p><strong>Issued By:</strong> {{ payment_payer }}</p>
+                {% endif %}
+                <p><strong>Payment Date:</strong> {{ payment_date }}</p>
+            </div>
+            
+            {% if payment_method == 'check' %}
+                <p><strong>Next Steps:</strong> Your check has been issued and should arrive via mail within 5-7 business days.</p>
+            {% elif payment_method == 'direct_deposit' %}
+                <p><strong>Next Steps:</strong> Your direct deposit should appear in your account within 1-2 business days.</p>
+            {% elif payment_method == 'credit' %}
+                <p><strong>Next Steps:</strong> The credit has been applied to your account.</p>
+            {% else %}
+                <p><strong>Next Steps:</strong> Please contact the finance department if you have any questions about receiving your payment.</p>
+            {% endif %}
+            
+            <p>Thank you for submitting your expense report!</p>
+            
+            <a href="http://{{ domain }}/expense-reports" class="btn text-white" style="color:white;">View My Expense Reports</a>
+        </div>
+        
+        <div class="footer">
+            <p>Best regards,<br>TBP Finance Team</p>
+            <p style="font-size: 0.8em; color: #adb5bd;">
+                This is an automated message. Please do not reply to this email.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

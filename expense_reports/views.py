@@ -24,9 +24,9 @@ logger = logging.getLogger(__name__)
 def expense_report_types_list(request):
     """
     Get list of available expense report types.
-    Only returns implemented types.
+    Only returns active types.
     """
-    report_types = ExpenseReportType.objects.filter(implemented=True)
+    report_types = ExpenseReportType.objects.filter(is_active=True)
     serializer = ExpenseReportTypeSerializer(report_types, many=True)
     return Response(serializer.data)
 
@@ -75,7 +75,8 @@ def my_expense_reports(request):
             # Save with current member
             expense_report = serializer.save(
                 member=member,
-                status='draft'
+                status='submitted',
+                chapter=member.chapter
             )
             
             logger.info(
@@ -99,13 +100,12 @@ def my_expense_reports(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET', 'PUT', 'DELETE'])
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def expense_report_detail(request, report_id):
     """
     GET: Retrieve a specific expense report.
-    PUT: Update an expense report (member can only update their own drafts).
-    DELETE: Delete an expense report (member can only delete their own drafts).
+    Members can only view their own reports.
     """
     member = request.user.member
     
@@ -125,108 +125,9 @@ def expense_report_detail(request, report_id):
             status=status.HTTP_403_FORBIDDEN
         )
     
-    if request.method == 'GET':
-        serializer = ExpenseReportDetailedSerializer(expense_report)
-        return Response(serializer.data)
-    
-    elif request.method == 'PUT':
-        # Can only edit drafts
-        if expense_report.status != 'draft':
-            return Response(
-                {'error': 'Only draft reports can be edited'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        serializer = ExpenseReportUpdateSerializer(
-            expense_report,
-            data=request.data,
-            partial=True
-        )
-        
-        if serializer.is_valid():
-            updated_report = serializer.save()
-            
-            logger.info(
-                f"User {request.user.email} updated expense report {report_id}",
-                extra={
-                    'user_id': request.user.id,
-                    'member_id': member.id,
-                    'report_id': report_id
-                }
-            )
-            
-            detail_serializer = ExpenseReportDetailedSerializer(updated_report)
-            return Response(detail_serializer.data)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    elif request.method == 'DELETE':
-        # Can only delete drafts
-        if expense_report.status != 'draft':
-            return Response(
-                {'error': 'Only draft reports can be deleted'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        logger.info(
-            f"User {request.user.email} deleted expense report {report_id}",
-            extra={
-                'user_id': request.user.id,
-                'member_id': member.id,
-                'report_id': report_id
-            }
-        )
-        
-        expense_report.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def submit_expense_report(request, report_id):
-    """
-    Submit an expense report (change status from draft to submitted).
-    """
-    member = request.user.member
-    
-    if not member:
-        return Response(
-            {'error': 'User does not have an associated member record'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    
-    expense_report = get_object_or_404(ExpenseReport, id=report_id)
-    
-    # Check ownership
-    if expense_report.member != member:
-        return Response(
-            {'error': 'You do not have permission to submit this report'},
-            status=status.HTTP_403_FORBIDDEN
-        )
-    
-    # Can only submit drafts
-    if expense_report.status != 'draft':
-        return Response(
-            {'error': 'Only draft reports can be submitted'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    
-    # Change status to submitted
-    expense_report.status = 'submitted'
-    expense_report.save()
-    
-    logger.info(
-        f"User {request.user.email} submitted expense report {report_id}",
-        extra={
-            'user_id': request.user.id,
-            'member_id': member.id,
-            'report_id': report_id,
-            'total_amount': str(expense_report.total_amount)
-        }
-    )
-    
     serializer = ExpenseReportDetailedSerializer(expense_report)
     return Response(serializer.data)
+
 
 
 # Staff/Admin endpoints (no authorization yet, but structured for future)

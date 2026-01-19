@@ -11,7 +11,7 @@ class ExpenseReportType(models.Model):
     """
     report_code = models.CharField(max_length=5, unique=True)
     report_name = models.CharField(max_length=200)
-    implemented = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
     update_board = models.BooleanField(default=False)
     
     # Mileage reimbursement rates
@@ -84,7 +84,7 @@ class ExpenseReportType(models.Model):
         ordering = ['report_code']
         indexes = [
             models.Index(fields=['report_code']),
-            models.Index(fields=['implemented']),
+            models.Index(fields=['is_active']),
         ]
     
     def __str__(self):
@@ -97,9 +97,8 @@ class ExpenseReport(models.Model):
     Tracks the report through review, approval, and payment.
     """
     STATUS_CHOICES = [
-        ('draft', 'Draft'),
         ('submitted', 'Submitted'),
-        ('under_review', 'Under Review'),
+        ('reviewed', 'Reviewed'),
         ('approved', 'Approved'),
         ('paid', 'Paid'),
         ('rejected', 'Rejected'),
@@ -133,7 +132,7 @@ class ExpenseReport(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='draft'
+        default='submitted'
     )
     
     # Review and approval

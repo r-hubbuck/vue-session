@@ -99,12 +99,12 @@ export default {
                         <div class="col-md-4">
                             <div class="card h-100 text-center p-4" style="border: 1px solid #e2e8f0; border-radius: 12px;">
                                 <div class="card-body">
-                                    <i class="bi bi-file-text" style="font-size: 2.5rem; color: var(--brand-blue);"></i>
-                                    <h5 class="mt-3">Reports</h5>
-                                    <p class="text-muted">Access chapter reports and data</p>
-                                    <button class="btn btn-secondary btn-sm" disabled>
-                                        Coming Soon
-                                    </button>
+                                    <i class="bi bi-receipt" style="font-size: 2.5rem; color: var(--brand-blue);"></i>
+                                    <h5 class="mt-3">Expense Reports</h5>
+                                    <p class="text-muted">Submit and track your travel expenses</p>
+                                    <router-link to="/expense-report" class="btn btn-primary btn-sm">
+                                        Go to Expense Reports
+                                    </router-link>
                                 </div>
                             </div>
                         </div>

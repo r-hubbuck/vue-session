@@ -14,7 +14,7 @@ class ExpenseReportTypeSerializer(serializers.ModelSerializer):
             'id',
             'report_code',
             'report_name',
-            'implemented',
+            'is_active',
             'description',
             'mileage_rate',
             'max_passengers',
@@ -96,6 +96,8 @@ class ExpenseReportDetailedSerializer(serializers.ModelSerializer):
     member_name = serializers.SerializerMethodField()
     member_email = serializers.SerializerMethodField()
     report_type_detail = ExpenseReportTypeSerializer(source='report_type', read_only=True)
+    report_type_code = serializers.CharField(source='report_type.report_code', read_only=True)
+    report_type_name = serializers.CharField(source='report_type.report_name', read_only=True)
     details = ExpenseReportDetailSerializer(read_only=True)
     reviewer_name = serializers.SerializerMethodField()
     approver_name = serializers.SerializerMethodField()
@@ -109,6 +111,8 @@ class ExpenseReportDetailedSerializer(serializers.ModelSerializer):
             'member_name',
             'member_email',
             'report_type_detail',
+            'report_type_code',
+            'report_type_name',
             'chapter',
             'report_date',
             'status',
@@ -167,7 +171,6 @@ class ExpenseReportCreateSerializer(serializers.ModelSerializer):
         model = ExpenseReport
         fields = [
             'report_type',
-            'chapter',
             'report_date',
             'details',
         ]
@@ -201,9 +204,7 @@ class ExpenseReportUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ExpenseReport
         fields = [
-            'chapter',
             'report_date',
-            'status',
             'details',
         ]
     
@@ -254,7 +255,7 @@ class ExpenseReportStaffUpdateSerializer(serializers.ModelSerializer):
         if 'status' in validated_data:
             new_status = validated_data['status']
             
-            if new_status == 'under_review' and not instance.reviewer:
+            if new_status == 'reviewed' and not instance.reviewer:
                 instance.reviewer = user
             
             if new_status == 'approved' and not instance.approver:

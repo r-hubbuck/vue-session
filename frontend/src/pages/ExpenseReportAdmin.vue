@@ -24,7 +24,7 @@
         <div class="card">
           <div class="card-body">
             <h6 class="card-subtitle mb-2 text-muted">Under Review</h6>
-            <h3 class="card-title">{{ reportsByStatus('under_review') }}</h3>
+            <h3 class="card-title">{{ reportsByStatus('reviewed') }}</h3>
           </div>
         </div>
       </div>
@@ -62,9 +62,8 @@
             <label class="form-label">Filter by Status</label>
             <select v-model="statusFilter" class="form-select" @change="loadReports">
               <option value="">All Statuses</option>
-              <option value="draft">Draft</option>
               <option value="submitted">Submitted</option>
-              <option value="under_review">Under Review</option>
+              <option value="reviewed">Reviewed</option>
               <option value="approved">Approved</option>
               <option value="paid">Paid</option>
               <option value="rejected">Rejected</option>
@@ -191,6 +190,7 @@
               <div class="col-md-6">
                 <h6 class="text-muted">Report Information</h6>
                 <table class="table table-sm">
+                  <tbody>
                   <tr>
                     <th style="width: 40%;">Member:</th>
                     <td>{{ selectedReport.member_name }}</td>
@@ -220,11 +220,13 @@
                     <th>Submitted:</th>
                     <td>{{ formatDateTime(selectedReport.created_at) }}</td>
                   </tr>
+                  </tbody>
                 </table>
               </div>
               <div class="col-md-6">
                 <h6 class="text-muted">Status & Processing</h6>
                 <table class="table table-sm">
+                  <tbody>
                   <tr>
                     <th style="width: 40%;">Status:</th>
                     <td>
@@ -253,6 +255,7 @@
                     <th>Total Amount:</th>
                     <td class="fs-4 fw-bold text-success">${{ selectedReport.total_amount }}</td>
                   </tr>
+                  </tbody>
                 </table>
               </div>
             </div>
@@ -381,9 +384,8 @@
                     <div class="col-md-4 mb-3">
                       <label class="form-label">Status *</label>
                       <select v-model="updateForm.status" class="form-select" required>
-                        <option value="draft">Draft</option>
                         <option value="submitted">Submitted</option>
-                        <option value="under_review">Under Review</option>
+                        <option value="reviewed">Reviewed</option>
                         <option value="approved">Approved</option>
                         <option value="paid">Paid</option>
                         <option value="rejected">Rejected</option>
@@ -636,7 +638,7 @@ export default {
           }
         }
         
-        if (this.updateForm.status === 'under_review') {
+        if (this.updateForm.status === 'reviewed') {
           updateData.review_date = new Date().toISOString()
         }
         
@@ -717,9 +719,8 @@ export default {
     
     getStatusBadgeClass(status) {
       const classes = {
-        draft: 'badge bg-secondary',
-        submitted: 'badge bg-primary',
-        under_review: 'badge bg-info',
+        submitted: 'badge bg-warning text-dark',
+        reviewed: 'badge bg-info',
         approved: 'badge bg-success',
         paid: 'badge bg-success',
         rejected: 'badge bg-danger'

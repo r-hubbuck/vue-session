@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Expense Report Rejected</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #dc3545;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 30px;
+            border: 1px solid #dee2e6;
+            border-top: none;
+        }
+        .info-box {
+            background-color: white;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .info-box strong {
+            color: #dc3545;
+        }
+        .reason-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #284080;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Expense Report Rejected</h2>
+        </div>
+        
+        <div class="content">
+            {% if member %}
+                <p>Hi {{ member.first_name }},</p>
+            {% else %}
+                <p>Hello,</p>
+            {% endif %}
+            
+            <p>Unfortunately, your expense report has been rejected and requires revision.</p>
+            
+            <div class="info-box">
+                <p><strong>Report ID:</strong> #{{ report_id }}</p>
+                <p><strong>Report Type:</strong> {{ report_type_name }}</p>
+                <p><strong>Total Amount:</strong> ${{ total_amount }}</p>
+                <p><strong>Submitted Date:</strong> {{ submitted_date }}</p>
+            </div>
+            
+            <div class="reason-box">
+                <p><strong>Rejection Reason:</strong></p>
+                <p>{{ rejection_reason }}</p>
+            </div>
+            
+            <p>Please review the rejection reason above and submit a new expense report with the necessary corrections.</p>
+            
+            <p>If you have any questions about this rejection, please contact the finance department.</p>
+            
+            <a href="http://{{ domain }}/expense-reports" class="btn text-white" style="color:white;">View My Expense Reports</a>
+        </div>
+        
+        <div class="footer">
+            <p>Best regards,<br>TBP Finance Team</p>
+            <p style="font-size: 0.8em; color: #adb5bd;">
+                This is an automated message. Please do not reply to this email.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
