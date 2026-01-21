@@ -13,7 +13,10 @@ from .serializers import (
     ExpenseReportCreateSerializer,
     ExpenseReportUpdateSerializer,
     ExpenseReportStaffUpdateSerializer,
+    ReceiptUploadSerializer,
 )
+from .utils import combine_receipts_to_pdf, create_receipt_filename
+from django.core.files.base import ContentFile
 import logging
 
 logger = logging.getLogger(__name__)
@@ -125,8 +128,103 @@ def expense_report_detail(request, report_id):
             status=status.HTTP_403_FORBIDDEN
         )
     
-    serializer = ExpenseReportDetailedSerializer(expense_report)
+    serializer = ExpenseReportDetailedSerializer(expense_report, context={'request': request})
     return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_receipts(request, report_id):
+    """
+    POST: Upload receipt files for an expense report.
+    Combines multiple files into a single PDF.
+    """
+    member = request.user.member
+    
+    if not member:
+        return Response(
+            {'error': 'User does not have an associated member record'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Get the report
+    expense_report = get_object_or_404(ExpenseReport, id=report_id)
+    
+    # Check ownership
+    if expense_report.member != member:
+        return Response(
+            {'error': 'You do not have permission to modify this report'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    # Check if report can still be modified
+    if expense_report.status not in ['submitted']:
+        return Response(
+            {'error': f'Cannot upload receipts for a report with status: {expense_report.get_status_display()}'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Get files from request
+    files = request.FILES.getlist('files')
+    
+    if not files:
+        return Response(
+            {'error': 'No files provided. Please upload at least one receipt file.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Validate files using serializer
+    serializer = ReceiptUploadSerializer(data={'files': files})
+    
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        # Combine files into single PDF
+        combined_pdf = combine_receipts_to_pdf(files)
+        
+        # Create filename
+        filename = create_receipt_filename(expense_report)
+        
+        # Delete old receipt if exists
+        if expense_report.receipt:
+            expense_report.receipt.delete(save=False)
+        
+        # Save new receipt
+        expense_report.receipt.save(
+            filename,
+            ContentFile(combined_pdf.read()),
+            save=True
+        )
+        
+        logger.info(
+            f"User {request.user.email} uploaded receipts for expense report {report_id}",
+            extra={
+                'user_id': request.user.id,
+                'member_id': member.id,
+                'report_id': report_id,
+                'file_count': len(files),
+                'total_size': sum(f.size for f in files)
+            }
+        )
+        
+        # Return updated report
+        detail_serializer = ExpenseReportDetailedSerializer(expense_report, context={'request': request})
+        return Response(detail_serializer.data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(
+            f"Failed to upload receipts for report {report_id}: {str(e)}",
+            extra={
+                'user_id': request.user.id,
+                'report_id': report_id,
+                'error': str(e)
+            }
+        )
+        return Response(
+            {'error': f'Failed to process receipt files: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 
@@ -175,7 +273,7 @@ def staff_expense_report_detail(request, report_id):
     )
     
     if request.method == 'GET':
-        serializer = ExpenseReportDetailedSerializer(expense_report)
+        serializer = ExpenseReportDetailedSerializer(expense_report, context={'request': request})
         return Response(serializer.data)
     
     elif request.method == 'PUT':
@@ -198,7 +296,7 @@ def staff_expense_report_detail(request, report_id):
                 }
             )
             
-            detail_serializer = ExpenseReportDetailedSerializer(updated_report)
+            detail_serializer = ExpenseReportDetailedSerializer(updated_report, context={'request': request})
             return Response(detail_serializer.data)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

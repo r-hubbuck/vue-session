@@ -177,6 +177,14 @@ class ExpenseReport(models.Model):
         help_text="Total reimbursement amount"
     )
     
+    # Receipt file (combined PDF)
+    receipt = models.FileField(
+        upload_to='receipts/',
+        blank=True,
+        null=True,
+        help_text="Combined PDF of all receipt images"
+    )
+    
     # Notes
     notes = models.TextField(blank=True, help_text="Internal notes")
     rejection_reason = models.TextField(blank=True, help_text="Reason for rejection")

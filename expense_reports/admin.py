@@ -154,6 +154,7 @@ class ExpenseReportAdmin(admin.ModelAdmin):
         'get_review_info',
         'get_approval_info',
         'get_payment_info',
+        'get_receipt_link',
     )
     
     fieldsets = (
@@ -174,6 +175,7 @@ class ExpenseReportAdmin(admin.ModelAdmin):
             'fields': (
                 'status',
                 'total_amount',
+                'get_receipt_link',
             )
         }),
         ('Review', {
@@ -324,6 +326,16 @@ class ExpenseReportAdmin(admin.ModelAdmin):
         
         return format_html(info)
     get_payment_info.short_description = 'Payment Information'
+    
+    def get_receipt_link(self, obj):
+        """Display link to receipt PDF"""
+        if obj.receipt:
+            return format_html(
+                '<a href="{}" target="_blank" class="button">View Receipt PDF</a>',
+                obj.receipt.url
+            )
+        return "No receipt uploaded"
+    get_receipt_link.short_description = 'Receipt'
     
     def save_model(self, request, obj, form, change):
         """Recalculate total when saving"""

@@ -231,3 +231,7 @@ PASSWORD_RESET_TIMEOUT = 60 * 30  # 30 minutes
 
 # Ensure SSL certificates are properly handled
 os.environ['SSL_CERT_FILE'] = certifi.where()
+
+# Media files configuration
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

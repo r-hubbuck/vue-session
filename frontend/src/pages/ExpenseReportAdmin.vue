@@ -477,6 +477,27 @@
               <strong>Rejection Reason:</strong>
               <p class="mb-0 mt-2">{{ selectedReport.rejection_reason }}</p>
             </div>
+
+            <!-- Receipt -->
+            <div class="card mt-3">
+              <div class="card-header bg-light">
+                <i class="bi bi-receipt me-2"></i>Receipts
+              </div>
+              <div class="card-body">
+                <div v-if="selectedReport.receipt_url">
+                  <a :href="selectedReport.receipt_url" target="_blank" class="btn btn-primary">
+                    <i class="bi bi-file-earmark-pdf me-2"></i>View Receipts PDF
+                  </a>
+                  <p class="text-muted mt-2 mb-0">
+                    <small>Click to open the combined receipts PDF in a new tab for review</small>
+                  </p>
+                </div>
+                <div v-else class="text-danger">
+                  <i class="bi bi-exclamation-triangle me-2"></i>
+                  <strong>Warning:</strong> No receipts uploaded for this expense report
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import bleach
 from rest_framework import serializers
 from .models import ExpenseReportType, ExpenseReport, ExpenseReportDetail
 from accounts.models import Member
@@ -55,6 +56,12 @@ class ExpenseReportDetailSerializer(serializers.ModelSerializer):
             'expense_notes',
         ]
         read_only_fields = ['id']
+    
+    def validate_expense_notes(self, value):
+        """Strip HTML tags from expense notes to prevent XSS"""
+        if value:
+            return bleach.clean(value, tags=[], strip=True)
+        return value
 
 
 class ExpenseReportListSerializer(serializers.ModelSerializer):
@@ -103,6 +110,7 @@ class ExpenseReportDetailedSerializer(serializers.ModelSerializer):
     approver_name = serializers.SerializerMethodField()
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
+    receipt_url = serializers.SerializerMethodField()
     
     class Meta:
         model = ExpenseReport
@@ -132,6 +140,7 @@ class ExpenseReportDetailedSerializer(serializers.ModelSerializer):
             'total_amount',
             'notes',
             'rejection_reason',
+            'receipt_url',
             'details',
             'created_at',
             'updated_at',
@@ -158,12 +167,22 @@ class ExpenseReportDetailedSerializer(serializers.ModelSerializer):
         if obj.approver:
             return obj.approver.email
         return None
+    
+    def get_receipt_url(self, obj):
+        """Return the URL for the receipt PDF if it exists"""
+        if obj.receipt:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.receipt.url)
+            return obj.receipt.url
+        return None
 
 
 class ExpenseReportCreateSerializer(serializers.ModelSerializer):
     """
     Serializer for creating a new expense report.
     Includes nested creation of expense details.
+    Note: Receipt files should be uploaded separately via the upload_receipts endpoint.
     """
     details = ExpenseReportDetailSerializer(required=True)
     
@@ -192,6 +211,33 @@ class ExpenseReportCreateSerializer(serializers.ModelSerializer):
         expense_report.save()
         
         return expense_report
+
+
+class ReceiptUploadSerializer(serializers.Serializer):
+    """
+    Serializer for uploading receipt files.
+    Accepts multiple files and combines them into a single PDF.
+    """
+    files = serializers.ListField(
+        child=serializers.FileField(
+            max_length=100000,
+            allow_empty_file=False,
+            use_url=False
+        ),
+        allow_empty=False,
+        help_text="List of receipt files (PNG, JPG, or PDF)"
+    )
+    
+    def validate_files(self, files):
+        """Validate uploaded files"""
+        from .utils import validate_receipt_files
+        
+        try:
+            validate_receipt_files(files)
+        except Exception as e:
+            raise serializers.ValidationError(str(e))
+        
+        return files
 
 
 class ExpenseReportUpdateSerializer(serializers.ModelSerializer):
@@ -247,6 +293,38 @@ class ExpenseReportStaffUpdateSerializer(serializers.ModelSerializer):
             'notes',
             'rejection_reason',
         ]
+    
+    def validate_notes(self, value):
+        """Strip HTML tags from notes to prevent XSS"""
+        if value:
+            return bleach.clean(value, tags=[], strip=True)
+        return value
+    
+    def validate_rejection_reason(self, value):
+        """Strip HTML tags from rejection reason to prevent XSS"""
+        if value:
+            return bleach.clean(value, tags=[], strip=True)
+        return value
+    
+    def validate_payment_check_number(self, value):
+        """Validate and sanitize check number"""
+        if value:
+            value = value.strip()
+            if len(value) > 50:
+                raise serializers.ValidationError('Check number cannot exceed 50 characters.')
+            # Remove any potentially malicious content
+            value = bleach.clean(value, tags=[], strip=True)
+        return value
+    
+    def validate_payment_payer(self, value):
+        """Validate and sanitize payer name"""
+        if value:
+            value = value.strip()
+            if len(value) > 200:
+                raise serializers.ValidationError('Payer name cannot exceed 200 characters.')
+            # Remove any potentially malicious content
+            value = bleach.clean(value, tags=[], strip=True)
+        return value
     
     def update(self, instance, validated_data):
         user = self.context['request'].user

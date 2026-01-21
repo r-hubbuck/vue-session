@@ -219,6 +219,55 @@
             </div>
           </div>
 
+          <!-- Receipt Upload Section -->
+          <div class="form-section mt-4">
+            <h4 class="form-section-title">
+              <i class="bi bi-receipt me-2"></i>Receipt Upload
+            </h4>
+            <div class="alert alert-info" style="background: #eff6ff; border-left: 4px solid #284080;">
+              <i class="bi bi-info-circle me-2"></i>
+              <strong>Important:</strong> You must upload receipts showing each charge you are claiming. 
+              Accepted formats: PNG, JPG, PDF. Maximum 10MB per file, 50MB total.
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Receipt Files *</label>
+              <input 
+                type="file" 
+                ref="receiptInput"
+                class="form-control" 
+                @change="handleReceiptUpload" 
+                multiple
+                accept="image/png,image/jpeg,application/pdf"
+              >
+              <small class="form-text text-muted">
+                Select one or more files (PNG, JPG, or PDF). They will be combined into a single PDF.
+              </small>
+            </div>
+
+            <!-- Preview of selected files -->
+            <div v-if="selectedReceipts.length > 0" class="mt-3">
+              <strong>Selected Files ({{ selectedReceipts.length }}):</strong>
+              <ul class="list-group mt-2">
+                <li v-for="(file, index) in selectedReceipts" :key="index" class="list-group-item d-flex justify-content-between align-items-center">
+                  <span>
+                    <i :class="getFileIcon(file.name)" class="me-2"></i>
+                    {{ file.name }}
+                  </span>
+                  <div>
+                    <span class="badge bg-secondary me-2">{{ formatFileSize(file.size) }}</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger" @click="removeReceipt(index)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </li>
+              </ul>
+              <div class="mt-2">
+                <strong>Total Size:</strong> {{ formatFileSize(totalReceiptSize) }}
+              </div>
+            </div>
+          </div>
+
           <div v-if="error" class="alert alert-danger mt-4" style="border-left: 4px solid #ef4444;">
             <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
           </div>
@@ -549,6 +598,26 @@
               <strong>Rejection Reason:</strong>
               <p class="mb-0 mt-2">{{ selectedReport.rejection_reason }}</p>
             </div>
+
+            <!-- Receipt -->
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <i class="bi bi-receipt me-2"></i>Receipts
+              </div>
+              <div class="card-body">
+                <div v-if="selectedReport.receipt_url">
+                  <a :href="selectedReport.receipt_url" target="_blank" class="btn btn-primary">
+                    <i class="bi bi-file-earmark-pdf me-2"></i>View Receipts PDF
+                  </a>
+                  <p class="text-muted mt-2 mb-0">
+                    <small>Click to open the combined receipts PDF in a new tab</small>
+                  </p>
+                </div>
+                <div v-else class="text-muted">
+                  <i class="bi bi-exclamation-triangle me-2"></i>No receipts uploaded
+                </div>
+              </div>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
@@ -576,6 +645,7 @@ export default {
       success: null,
       selectedReport: null,
       detailModal: null,
+      selectedReceipts: [],
       newReport: {
         report_type: '',
         report_date: '',
@@ -609,6 +679,9 @@ export default {
         .filter(r => r.status === 'paid')
         .reduce((sum, r) => sum + parseFloat(r.total_amount), 0)
         .toFixed(2)
+    },
+    totalReceiptSize() {
+      return this.selectedReceipts.reduce((sum, file) => sum + file.size, 0)
     }
   },
   mounted() {
@@ -643,17 +716,41 @@ export default {
       this.error = null
       this.success = null
       
+      // Validate receipts
+      if (this.selectedReceipts.length === 0) {
+        this.error = 'Please upload at least one receipt file.'
+        this.loading = false
+        return
+      }
+      
       try {
+        // First create the report
         const response = await api.post('/api/expense-reports/my-reports/', this.newReport)
-        this.expenseReports.unshift(response.data)
-        this.success = 'Expense report created successfully!'
-        this.resetForm()
-        this.showCreateForm = false
+        const newReport = response.data
         
-        // Clear success message after 3 seconds
-        setTimeout(() => {
-          this.success = null
-        }, 3000)
+        // Then upload receipts
+        try {
+          await this.uploadReceipts(newReport.id)
+          
+          // Reload the report to get the updated data with receipt URL
+          const updatedResponse = await api.get(`/api/expense-reports/my-reports/${newReport.id}/`)
+          this.expenseReports.unshift(updatedResponse.data)
+          
+          this.success = 'Expense report created successfully!'
+          this.resetForm()
+          this.showCreateForm = false
+          
+          // Clear success message after 3 seconds
+          setTimeout(() => {
+            this.success = null
+          }, 3000)
+        } catch (uploadErr) {
+          // Report was created but receipt upload failed
+          this.expenseReports.unshift(newReport)
+          this.error = 'Report created, but receipt upload failed: ' + (uploadErr.response?.data?.error || uploadErr.message)
+          this.loading = false
+          return
+        }
       } catch (err) {
         console.error('Error creating expense report:', err)
         this.error = err.response?.data?.error || 'Failed to create expense report. Please try again.'
@@ -690,6 +787,80 @@ export default {
           expense_notes: ''
         }
       }
+      this.selectedReceipts = []
+      if (this.$refs.receiptInput) {
+        this.$refs.receiptInput.value = ''
+      }
+    },
+    
+    handleReceiptUpload(event) {
+      const files = Array.from(event.target.files)
+      
+      // Validate file types
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf']
+      const invalidFiles = files.filter(f => !allowedTypes.includes(f.type))
+      
+      if (invalidFiles.length > 0) {
+        this.error = `Invalid file type(s). Only PNG, JPG, and PDF files are allowed.`
+        return
+      }
+      
+      // Validate file sizes
+      const maxFileSize = 10 * 1024 * 1024 // 10MB
+      const oversizedFiles = files.filter(f => f.size > maxFileSize)
+      
+      if (oversizedFiles.length > 0) {
+        this.error = `File(s) too large. Maximum size is 10MB per file.`
+        return
+      }
+      
+      // Validate total size
+      const totalSize = files.reduce((sum, f) => sum + f.size, 0)
+      const maxTotalSize = 50 * 1024 * 1024 // 50MB
+      
+      if (totalSize > maxTotalSize) {
+        this.error = `Total file size too large. Maximum total size is 50MB.`
+        return
+      }
+      
+      this.selectedReceipts = files
+      this.error = null
+    },
+    
+    removeReceipt(index) {
+      this.selectedReceipts.splice(index, 1)
+      if (this.selectedReceipts.length === 0 && this.$refs.receiptInput) {
+        this.$refs.receiptInput.value = ''
+      }
+    },
+    
+    async uploadReceipts(reportId) {
+      const formData = new FormData()
+      
+      this.selectedReceipts.forEach(file => {
+        formData.append('files', file)
+      })
+      
+      await api.post(`/api/expense-reports/my-reports/${reportId}/upload-receipts/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+    },
+    
+    getFileIcon(filename) {
+      const ext = filename.split('.').pop().toLowerCase()
+      if (ext === 'pdf') return 'bi bi-file-earmark-pdf text-danger'
+      if (['jpg', 'jpeg', 'png'].includes(ext)) return 'bi bi-file-earmark-image text-primary'
+      return 'bi bi-file-earmark'
+    },
+    
+    formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes'
+      const k = 1024
+      const sizes = ['Bytes', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
     },
     
     async viewReport(reportId) {
