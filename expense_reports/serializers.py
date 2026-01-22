@@ -1,7 +1,41 @@
 import bleach
 from rest_framework import serializers
 from .models import ExpenseReportType, ExpenseReport, ExpenseReportDetail
-from accounts.models import Member
+from accounts.models import Member, Address
+
+
+class AddressSerializer(serializers.ModelSerializer):
+    """
+    Serializer for member addresses.
+    Used when displaying address information in expense reports.
+    """
+    display_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Address
+        fields = [
+            'id',
+            'add_line1',
+            'add_line2',
+            'add_city',
+            'add_state',
+            'add_zip',
+            'add_country',
+            'add_type',
+            'is_primary',
+            'display_name',
+        ]
+        read_only_fields = ['id']
+    
+    def get_display_name(self, obj):
+        """Return a formatted address string"""
+        parts = [obj.add_line1]
+        if obj.add_line2:
+            parts.append(obj.add_line2)
+        parts.append(f"{obj.add_city}, {obj.add_state} {obj.add_zip}" if obj.add_state else obj.add_city)
+        if obj.add_country and obj.add_country != 'United States':
+            parts.append(obj.add_country)
+        return ', '.join(parts)
 
 
 class ExpenseReportTypeSerializer(serializers.ModelSerializer):
@@ -105,6 +139,7 @@ class ExpenseReportDetailedSerializer(serializers.ModelSerializer):
     report_type_detail = ExpenseReportTypeSerializer(source='report_type', read_only=True)
     report_type_code = serializers.CharField(source='report_type.report_code', read_only=True)
     report_type_name = serializers.CharField(source='report_type.report_name', read_only=True)
+    mailing_address = AddressSerializer(read_only=True)
     details = ExpenseReportDetailSerializer(read_only=True)
     reviewer_name = serializers.SerializerMethodField()
     approver_name = serializers.SerializerMethodField()
@@ -122,6 +157,7 @@ class ExpenseReportDetailedSerializer(serializers.ModelSerializer):
             'report_type_code',
             'report_type_name',
             'chapter',
+            'mailing_address',
             'report_date',
             'status',
             'status_display',
@@ -190,9 +226,20 @@ class ExpenseReportCreateSerializer(serializers.ModelSerializer):
         model = ExpenseReport
         fields = [
             'report_type',
+            'mailing_address',
             'report_date',
             'details',
         ]
+    
+    def validate_mailing_address(self, value):
+        """Validate that the address belongs to the member"""
+        request = self.context.get('request')
+        if request and hasattr(request.user, 'member'):
+            if value.member != request.user.member:
+                raise serializers.ValidationError(
+                    'You can only select addresses that belong to you.'
+                )
+        return value
     
     def create(self, validated_data):
         details_data = validated_data.pop('details')

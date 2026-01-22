@@ -217,6 +217,21 @@
                     <td>{{ formatDate(selectedReport.report_date) }}</td>
                   </tr>
                   <tr>
+                    <th>Mailing Address:</th>
+                    <td v-if="selectedReport.mailing_address">
+                      <div class="small">
+                        <strong>{{ selectedReport.mailing_address.add_type }}</strong>
+                        <span v-if="selectedReport.mailing_address.is_primary" class="badge bg-primary ms-1">Primary</span>
+                      </div>
+                      <div class="text-muted small">
+                        {{ selectedReport.mailing_address.display_name }}
+                      </div>
+                    </td>
+                    <td v-else class="text-danger">
+                      <i class="bi bi-exclamation-triangle me-1"></i>Not specified
+                    </td>
+                  </tr>
+                  <tr>
                     <th>Submitted:</th>
                     <td>{{ formatDateTime(selectedReport.created_at) }}</td>
                   </tr>
@@ -481,20 +496,20 @@
             <!-- Receipt -->
             <div class="card mt-3">
               <div class="card-header bg-light">
-                <i class="bi bi-receipt me-2"></i>Receipts
+                <i class="bi bi-receipt me-2"></i>Receipt
               </div>
               <div class="card-body">
                 <div v-if="selectedReport.receipt_url">
                   <a :href="selectedReport.receipt_url" target="_blank" class="btn btn-primary">
-                    <i class="bi bi-file-earmark-pdf me-2"></i>View Receipts PDF
+                    <i class="bi bi-file-earmark-pdf me-2"></i>View Receipt PDF
                   </a>
                   <p class="text-muted mt-2 mb-0">
-                    <small>Click to open the combined receipts PDF in a new tab for review</small>
+                    <small>Click to open the combined receipt PDF in a new tab for review</small>
                   </p>
                 </div>
                 <div v-else class="text-danger">
                   <i class="bi bi-exclamation-triangle me-2"></i>
-                  <strong>Warning:</strong> No receipts uploaded for this expense report
+                  <strong>Warning:</strong> No receipt uploaded for this expense report
                 </div>
               </div>
             </div>

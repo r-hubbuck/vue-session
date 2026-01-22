@@ -93,6 +93,35 @@
             </div>
           </div>
 
+          <!-- Mailing Address Selection -->
+          <div class="form-section mt-4">
+            <h6 class="form-section-title">
+              <i class="bi bi-mailbox me-2"></i>Mailing Address
+            </h6>
+            <div class="info-alert mb-3">
+              <i class="bi bi-info-circle-fill"></i>
+              <div class="info-alert-content">
+                Select the address where you would like your reimbursement check to be mailed.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Select Address *</label>
+              <select v-model="newReport.mailing_address" class="form-select" required>
+                <option value="">Choose an address...</option>
+                <option v-for="address in userAddresses" :key="address.id" :value="address.id">
+                  {{ address.add_type }}{{ address.is_primary ? ' (Primary)' : '' }} - {{ address.display_name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="mt-2">
+              <router-link to="/account" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-pencil me-1"></i>Manage Addresses
+              </router-link>
+            </div>
+          </div>
+
           <h6 class="mt-5 mb-3" style="font-weight: 600; color: #1a202c;">Expense Details</h6>
 
           <!-- Automobile Expenses -->
@@ -414,6 +443,19 @@
                     <td>{{ formatDate(selectedReport.report_date) }}</td>
                   </tr>
                   <tr>
+                    <th>Mailing Address:</th>
+                    <td v-if="selectedReport.mailing_address">
+                      <div class="small">
+                        <strong>{{ selectedReport.mailing_address.add_type }}</strong>
+                        <span v-if="selectedReport.mailing_address.is_primary" class="badge bg-primary ms-1">Primary</span>
+                      </div>
+                      <div class="text-muted small">
+                        {{ selectedReport.mailing_address.display_name }}
+                      </div>
+                    </td>
+                    <td v-else class="text-muted">Not specified</td>
+                  </tr>
+                  <tr>
                     <th>Submitted:</th>
                     <td>{{ formatDateTime(selectedReport.created_at) }}</td>
                   </tr>
@@ -602,19 +644,19 @@
             <!-- Receipt -->
             <div class="card mb-3">
               <div class="card-header bg-light">
-                <i class="bi bi-receipt me-2"></i>Receipts
+                <i class="bi bi-receipt me-2"></i>Receipt
               </div>
               <div class="card-body">
                 <div v-if="selectedReport.receipt_url">
                   <a :href="selectedReport.receipt_url" target="_blank" class="btn btn-primary">
-                    <i class="bi bi-file-earmark-pdf me-2"></i>View Receipts PDF
+                    <i class="bi bi-file-earmark-pdf me-2"></i>View Receipt PDF
                   </a>
                   <p class="text-muted mt-2 mb-0">
-                    <small>Click to open the combined receipts PDF in a new tab</small>
+                    <small>Click to open the combined receipt PDF in a new tab</small>
                   </p>
                 </div>
                 <div v-else class="text-muted">
-                  <i class="bi bi-exclamation-triangle me-2"></i>No receipts uploaded
+                  <i class="bi bi-exclamation-triangle me-2"></i>No receipt uploaded
                 </div>
               </div>
             </div>
@@ -639,6 +681,7 @@ export default {
     return {
       expenseReports: [],
       reportTypes: [],
+      userAddresses: [],
       showCreateForm: false,
       loading: false,
       error: null,
@@ -648,6 +691,7 @@ export default {
       selectedReceipts: [],
       newReport: {
         report_type: '',
+        mailing_address: '',
         report_date: '',
         details: {
           automobile_miles: 0,
@@ -697,6 +741,10 @@ export default {
         const typesResponse = await api.get('/api/expense-reports/types/')
         this.reportTypes = typesResponse.data
         
+        // Load user's addresses
+        const addressesResponse = await api.get('/api/expense-reports/my-addresses/')
+        this.userAddresses = addressesResponse.data
+        
         // Load user's reports
         const reportsResponse = await api.get('/api/expense-reports/my-reports/')
         this.expenseReports = reportsResponse.data
@@ -715,6 +763,13 @@ export default {
       this.loading = true
       this.error = null
       this.success = null
+      
+      // Validate mailing address
+      if (!this.newReport.mailing_address) {
+        this.error = 'Please select a mailing address.'
+        this.loading = false
+        return
+      }
       
       // Validate receipts
       if (this.selectedReceipts.length === 0) {
@@ -736,7 +791,7 @@ export default {
           const updatedResponse = await api.get(`/api/expense-reports/my-reports/${newReport.id}/`)
           this.expenseReports.unshift(updatedResponse.data)
           
-          this.success = 'Expense report created successfully!'
+          this.success = 'Expense report created successfully with receipts!'
           this.resetForm()
           this.showCreateForm = false
           
@@ -768,6 +823,7 @@ export default {
     resetForm() {
       this.newReport = {
         report_type: '',
+        mailing_address: '',
         report_date: '',
         details: {
           automobile_miles: 0,

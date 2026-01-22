@@ -126,6 +126,12 @@ class ExpenseReport(models.Model):
         max_length=100,
         help_text="Chapter name or code"
     )
+    mailing_address = models.ForeignKey(
+        'accounts.Address',
+        on_delete=models.PROTECT,
+        related_name='expense_reports',
+        help_text="Address where check should be mailed"
+    )
     report_date = models.DateField(help_text="Date of the event/trip")
     
     # Status tracking

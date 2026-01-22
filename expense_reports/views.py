@@ -14,8 +14,10 @@ from .serializers import (
     ExpenseReportUpdateSerializer,
     ExpenseReportStaffUpdateSerializer,
     ReceiptUploadSerializer,
+    AddressSerializer,
 )
 from .utils import combine_receipts_to_pdf, create_receipt_filename
+from accounts.models import Address
 from django.core.files.base import ContentFile
 import logging
 
@@ -31,6 +33,36 @@ def expense_report_types_list(request):
     """
     report_types = ExpenseReportType.objects.filter(is_active=True)
     serializer = ExpenseReportTypeSerializer(report_types, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_addresses(request):
+    """
+    Get list of addresses for the current user's member.
+    Used for selecting mailing address in expense reports.
+    """
+    member = request.user.member
+    
+    if not member:
+        return Response(
+            {'error': 'User does not have an associated member record'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    addresses = Address.objects.filter(member=member).order_by('-is_primary', 'add_type')
+    serializer = AddressSerializer(addresses, many=True)
+    
+    logger.info(
+        f"User {request.user.email} retrieved their addresses for expense report",
+        extra={
+            'user_id': request.user.id,
+            'member_id': member.id,
+            'address_count': addresses.count()
+        }
+    )
+    
     return Response(serializer.data)
 
 
@@ -54,7 +86,8 @@ def my_expense_reports(request):
         reports = ExpenseReport.objects.filter(member=member).select_related(
             'report_type',
             'reviewer',
-            'approver'
+            'approver',
+            'mailing_address'
         ).prefetch_related('details')
         
         serializer = ExpenseReportListSerializer(reports, many=True)
@@ -72,7 +105,7 @@ def my_expense_reports(request):
     
     elif request.method == 'POST':
         # Create new expense report
-        serializer = ExpenseReportCreateSerializer(data=request.data)
+        serializer = ExpenseReportCreateSerializer(data=request.data, context={'request': request})
         
         if serializer.is_valid():
             # Save with current member

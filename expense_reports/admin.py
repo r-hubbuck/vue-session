@@ -168,6 +168,7 @@ class ExpenseReportAdmin(admin.ModelAdmin):
             'fields': (
                 'report_type',
                 'chapter',
+                'mailing_address',
                 'report_date',
             )
         }),
