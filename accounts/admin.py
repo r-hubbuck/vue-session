@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Member, Address, PhoneNumbers, StateProvince
+from .models import User, Member, Address, PhoneNumber, StateProvince
 
 
 @admin.register(User)
@@ -142,8 +142,8 @@ class AddressAdmin(admin.ModelAdmin):
     get_member_name.admin_order_field = 'member__last_name'
 
 
-@admin.register(PhoneNumbers)
-class PhoneNumbersAdmin(admin.ModelAdmin):
+@admin.register(PhoneNumber)
+class PhoneNumberAdmin(admin.ModelAdmin):
     list_display = (
         'get_member_name',
         'phone_type',

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Code, User, Address, PhoneNumbers, StateProvince, UsedToken
+from .models import Code, User, Address, PhoneNumber, StateProvince, UsedToken
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -281,7 +281,7 @@ class PhoneNumberSerializer(serializers.ModelSerializer):
     formatted_number = serializers.SerializerMethodField()
     
     class Meta:
-        model = PhoneNumbers
+        model = PhoneNumber
         fields = ['id', 'country_code', 'phone_number', 'formatted_number', 'phone_type', 'is_primary']
     
     def get_formatted_number(self, obj):
@@ -313,12 +313,12 @@ class PhoneNumberSerializer(serializers.ModelSerializer):
             phone_type = data['phone_type']
             
             if self.instance:
-                existing_type = PhoneNumbers.objects.filter(
+                existing_type = PhoneNumber.objects.filter(
                     member=member, 
                     phone_type=phone_type
                 ).exclude(id=self.instance.id)
             else:
-                existing_type = PhoneNumbers.objects.filter(member=member, phone_type=phone_type)
+                existing_type = PhoneNumber.objects.filter(member=member, phone_type=phone_type)
             
             if existing_type.exists():
                 raise serializers.ValidationError({

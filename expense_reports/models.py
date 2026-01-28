@@ -81,6 +81,7 @@ class ExpenseReportType(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
+        db_table = 'expense_report_type'
         ordering = ['report_code']
         indexes = [
             models.Index(fields=['report_code']),
@@ -200,6 +201,7 @@ class ExpenseReport(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
+        db_table = 'expense_report'
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['member', 'status']),
@@ -388,6 +390,9 @@ class ExpenseReportDetail(models.Model):
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'expense_report_detail'
     
     def __str__(self):
         return f"Details for {self.expense_report}"

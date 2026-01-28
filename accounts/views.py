@@ -24,7 +24,7 @@ from django.shortcuts import get_object_or_404
 from .throttles import LoginThrottle, RegisterThrottle, PasswordResetThrottle
 
 from .tokens import account_activation_token, password_reset_token
-from .models import User, Member, Address, PhoneNumbers, StateProvince
+from .models import User, Member, Address, PhoneNumber, StateProvince
 from .serializers import (
     CodeValidationSerializer,
     LoginSerializer,
@@ -311,7 +311,7 @@ def register(request):
                     if is_primary and has_primary:
                         is_primary = False
                     
-                    PhoneNumbers.objects.create(
+                    PhoneNumber.objects.create(
                         member=member,
                         country_code='+1',  # Default to US country code
                         phone_number=clean_number,
@@ -1078,15 +1078,15 @@ class PhoneNumberViewSet(viewsets.ModelViewSet):
         # Only return phone numbers for the authenticated user's member
         user = self.request.user
         if hasattr(user, 'member'):
-            return PhoneNumbers.objects.filter(member=user.member).select_related('member')
-        return PhoneNumbers.objects.none()
+            return PhoneNumber.objects.filter(member=user.member).select_related('member')
+        return PhoneNumber.objects.none()
     
     def perform_create(self, serializer):
         # Automatically set the member to the authenticated user's member
         if hasattr(self.request.user, 'member'):
             # If this is the first phone number, make it primary by default
             member = self.request.user.member
-            existing_phones = PhoneNumbers.objects.filter(member=member)
+            existing_phones = PhoneNumber.objects.filter(member=member)
             if not existing_phones.exists():
                 phone = serializer.save(member=member, is_primary=True)
             else:
@@ -1109,7 +1109,7 @@ class PhoneNumberViewSet(viewsets.ModelViewSet):
             
             # If this phone is being set as primary, unset all other primary phones
             if serializer.validated_data.get('is_primary', False):
-                PhoneNumbers.objects.filter(member=member, is_primary=True).exclude(
+                PhoneNumber.objects.filter(member=member, is_primary=True).exclude(
                     id=old_phone.id
                 ).update(is_primary=False)
             
@@ -1135,7 +1135,7 @@ class PhoneNumberViewSet(viewsets.ModelViewSet):
         phone_type = phone_number.phone_type
         
         # Get remaining phones (excluding the one being deleted)
-        remaining_phones = PhoneNumbers.objects.filter(member=member).exclude(id=phone_number.id)
+        remaining_phones = PhoneNumber.objects.filter(member=member).exclude(id=phone_number.id)
         
         # Delete the phone first to avoid constraint violations
         response = super().destroy(request, *args, **kwargs)

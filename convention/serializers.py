@@ -9,7 +9,7 @@ from .models import (
     ConventionAccommodation,
     Airport,
 )
-from accounts.models import Member, Address, PhoneNumbers
+from accounts.models import Member, Address, PhoneNumber
 
 
 class ConventionSerializer(serializers.ModelSerializer):
@@ -68,7 +68,7 @@ class PhoneNumberSerializer(serializers.ModelSerializer):
     formatted_number = serializers.SerializerMethodField()
     
     class Meta:
-        model = PhoneNumbers
+        model = PhoneNumber
         fields = [
             'id', 
             'country_code', 
@@ -412,7 +412,7 @@ class ConventionRegistrationDetailSerializer(serializers.ModelSerializer):
     
     def get_member_phones(self, obj):
         """Get all phone numbers for the member"""
-        phones = PhoneNumbers.objects.filter(member=obj.member)
+        phones = PhoneNumber.objects.filter(member=obj.member)
         return PhoneNumberSerializer(phones, many=True).data
 
 
@@ -680,3 +680,162 @@ class AdminConventionTravelUpdateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError('Confirmation number cannot exceed 50 characters.')
         return value
 
+
+class CheckInListSerializer(serializers.ModelSerializer):
+    """
+    Serializer for check-in list view showing all registrations
+    """
+    member_id = serializers.IntegerField(source='member.id', read_only=True)
+    member_number = serializers.IntegerField(source='member.member_id', read_only=True)
+    first_name = serializers.CharField(source='member.first_name', read_only=True)
+    last_name = serializers.CharField(source='member.last_name', read_only=True)
+    preferred_first_name = serializers.CharField(source='member.preferred_first_name', read_only=True)
+    chapter = serializers.CharField(source='member.chapter', read_only=True)
+    primary_address = serializers.SerializerMethodField()
+    has_guest = serializers.SerializerMethodField()
+    guest_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ConventionRegistration
+        fields = [
+            'id',
+            'member_id',
+            'member_number',
+            'first_name',
+            'last_name',
+            'preferred_first_name',
+            'chapter',
+            'status_code',
+            'checked_in_at',
+            'at_convention',
+            'primary_address',
+            'has_guest',
+            'guest_count',
+            'is_guest',
+        ]
+    
+    def get_primary_address(self, obj):
+        """Get primary address for member"""
+        try:
+            primary_address = obj.member.addresses.filter(is_primary=True).first()
+            if primary_address:
+                return AddressSerializer(primary_address).data
+        except:
+            pass
+        return None
+    
+    def get_has_guest(self, obj):
+        """Check if member is bringing a guest"""
+        return obj.guest_details.exists()
+    
+    def get_guest_count(self, obj):
+        """Count number of guests"""
+        return obj.guest_details.count()
+
+
+class AddressUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for updating member addresses during check-in
+    """
+    class Meta:
+        model = Address
+        fields = [
+            'id',
+            'add_line1',
+            'add_line2',
+            'add_city',
+            'add_state',
+            'add_zip',
+            'add_country',
+            'add_type',
+            'is_primary'
+        ]
+    
+    def validate_add_line1(self, value):
+        """Validate and sanitize address line 1"""
+        if not value or not value.strip():
+            raise serializers.ValidationError('Address line 1 is required.')
+        # Remove any potentially malicious content
+        cleaned = bleach.clean(value.strip(), tags=[], strip=True)
+        if len(cleaned) > 255:
+            raise serializers.ValidationError('Address line 1 cannot exceed 255 characters.')
+        return cleaned
+    
+    def validate_add_line2(self, value):
+        """Validate and sanitize address line 2"""
+        if value:
+            cleaned = bleach.clean(value.strip(), tags=[], strip=True)
+            if len(cleaned) > 255:
+                raise serializers.ValidationError('Address line 2 cannot exceed 255 characters.')
+            return cleaned
+        return value
+    
+    def validate_add_city(self, value):
+        """Validate and sanitize city"""
+        if not value or not value.strip():
+            raise serializers.ValidationError('City is required.')
+        cleaned = bleach.clean(value.strip(), tags=[], strip=True)
+        if len(cleaned) > 100:
+            raise serializers.ValidationError('City cannot exceed 100 characters.')
+        return cleaned
+    
+    def validate_add_state(self, value):
+        """Validate and sanitize state"""
+        if value:
+            cleaned = bleach.clean(value.strip(), tags=[], strip=True)
+            if len(cleaned) > 100:
+                raise serializers.ValidationError('State cannot exceed 100 characters.')
+            return cleaned
+        return value
+    
+    def validate_add_zip(self, value):
+        """Validate and sanitize zip code"""
+        if value:
+            cleaned = bleach.clean(value.strip(), tags=[], strip=True)
+            if len(cleaned) > 20:
+                raise serializers.ValidationError('Zip code cannot exceed 20 characters.')
+            return cleaned
+        return value
+    
+    def validate_add_country(self, value):
+        """Validate and sanitize country"""
+        if not value or not value.strip():
+            raise serializers.ValidationError('Country is required.')
+        cleaned = bleach.clean(value.strip(), tags=[], strip=True)
+        if len(cleaned) > 100:
+            raise serializers.ValidationError('Country cannot exceed 100 characters.')
+        return cleaned
+
+
+class RegistrationStatusUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for updating registration status during check-in
+    """
+    class Meta:
+        model = ConventionRegistration
+        fields = ['status_code', 'checked_in_at', 'at_convention']
+        read_only_fields = ['checked_in_at']
+    
+    def validate_status_code(self, value):
+        """Validate status code is a valid choice"""
+        valid_statuses = ['registered', 'confirmed', 'cancelled', 'checked_in', 'waitlisted']
+        if value not in valid_statuses:
+            raise serializers.ValidationError(f'Invalid status code. Must be one of: {", ".join(valid_statuses)}')
+        return value
+    
+    def update(self, instance, validated_data):
+        """Update status and set checked_in_at if checking in"""
+        from django.utils import timezone
+        
+        status_code = validated_data.get('status_code', instance.status_code)
+        
+        # If checking in, set the checked_in_at timestamp and at_convention flag
+        if status_code == 'checked_in' and instance.status_code != 'checked_in':
+            validated_data['checked_in_at'] = timezone.now()
+            validated_data['at_convention'] = True
+        
+        # If cancelling, set at_convention to False
+        if status_code == 'cancelled':
+            validated_data['at_convention'] = False
+        
+        return super().update(instance, validated_data)

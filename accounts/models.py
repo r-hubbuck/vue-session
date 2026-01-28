@@ -42,6 +42,9 @@ class User(AbstractUser):
 
     objects = CustomUserManager()
 
+    class Meta:
+        db_table = 'user'
+
 class Member(models.Model):
     member_id = models.IntegerField(unique=True, null=True, blank=True)
     first_name = models.CharField(max_length=100)
@@ -50,6 +53,9 @@ class Member(models.Model):
     last_name = models.CharField(max_length=100)
     chapter = models.CharField(max_length=100)
     # phone = PhoneNumberField()
+
+    class Meta:
+        db_table = 'member'
 
     def get_badge_name(self):
         first = self.preferred_first_name or self.first_name
@@ -76,6 +82,7 @@ class Address(models.Model):
     add_type = models.CharField(max_length=10, choices=ADD_TYPE_CHOICES, blank=False)
     
     class Meta:
+        db_table = 'address'
         constraints = [
             models.UniqueConstraint(
                 fields=['member', 'add_type'],
@@ -94,7 +101,7 @@ class Address(models.Model):
         parts.append(self.add_country)
         return ', '.join(parts)
 
-class PhoneNumbers(models.Model):
+class PhoneNumber(models.Model):
     member = models.ForeignKey('Member', on_delete=models.CASCADE, related_name='phone_numbers')
     country_code = models.CharField(max_length=5, default='+1', blank=False)
     phone_number = models.CharField(max_length=20, blank=False)  # Store without formatting
@@ -107,6 +114,7 @@ class PhoneNumbers(models.Model):
     is_primary = models.BooleanField(default=False)
 
     class Meta:
+        db_table = 'phone_number'
         constraints = [
             models.UniqueConstraint(
                 fields=['member', 'phone_type'],
@@ -134,6 +142,9 @@ class Code(models.Model):
     number = models.CharField(max_length=5, blank=False)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, blank=False)
 
+    class Meta:
+            db_table = 'two_factor_code'
+
     def __str__(self):
         return str(self.number)
     
@@ -151,6 +162,7 @@ class UsedToken(models.Model):
     used_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
+        db_table = 'used_token'
         unique_together = ['user', 'token_hash', 'token_type']
     
     def __str__(self):

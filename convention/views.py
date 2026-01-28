@@ -31,8 +31,11 @@ from .serializers import (
     AirportSerializer,
     AdminConventionTravelListSerializer,
     AdminConventionTravelUpdateSerializer,
+    CheckInListSerializer,
+    AddressUpdateSerializer,
+    RegistrationStatusUpdateSerializer,
 )
-from accounts.models import Member, Address, PhoneNumbers
+from accounts.models import Member, Address, PhoneNumber
 import logging
 
 # Set up logging for audit trail
@@ -216,7 +219,7 @@ def update_mobile_phone(request):
         )
     
     # Get or create mobile phone
-    mobile_phone, created = PhoneNumbers.objects.get_or_create(
+    mobile_phone, created = PhoneNumber.objects.get_or_create(
         member=member,
         phone_type='Mobile',
         defaults={'phone_number': phone_number, 'is_primary': True}
@@ -290,13 +293,13 @@ def set_primary_phone(request, phone_id):
     
     # Verify phone belongs to this member
     phone = get_object_or_404(
-        PhoneNumbers,
+        PhoneNumber,
         id=phone_id,
         member=request.user.member
     )
     
     # Unset all other primary phones
-    PhoneNumbers.objects.filter(member=request.user.member).update(is_primary=False)
+    PhoneNumber.objects.filter(member=request.user.member).update(is_primary=False)
     
     # Set this one as primary
     phone.is_primary = True
@@ -769,3 +772,113 @@ def admin_travel_detail(request, travel_id):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_in_list(request):
+    """
+    Get all registrations for the active convention for check-in.
+    Staff only - requires appropriate permissions.
+    """
+    # Check if user has staff permissions
+    if not request.user.is_staff:
+        raise PermissionDenied('You do not have permission to access check-in.')
+    
+    try:
+        convention = Convention.objects.filter(is_active=True).latest('year')
+    except Convention.DoesNotExist:
+        return Response(
+            {'message': 'No active convention found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Get all registrations for the current convention, excluding guests
+    registrations = ConventionRegistration.objects.filter(
+        convention=convention,
+        is_guest=False
+    ).select_related('member').prefetch_related('guest_details', 'member__addresses')
+    
+    serializer = CheckInListSerializer(registrations, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def update_registration_status(request, registration_id):
+    """
+    Update registration status for check-in or cancellation.
+    Staff only.
+    """
+    # Check if user has staff permissions
+    if not request.user.is_staff:
+        raise PermissionDenied('You do not have permission to update registration status.')
+    
+    registration = get_object_or_404(ConventionRegistration, id=registration_id)
+    
+    serializer = RegistrationStatusUpdateSerializer(
+        registration,
+        data=request.data,
+        partial=True
+    )
+    
+    if serializer.is_valid():
+        serializer.save()
+        
+        # Log the status change
+        logger.info(
+            f"Registration status updated for {registration.member}",
+            extra={
+                'registration_id': registration.id,
+                'member_id': registration.member.id,
+                'new_status': serializer.validated_data.get('status_code'),
+                'updated_by': request.user.email,
+            }
+        )
+        
+        # Return updated registration with full details
+        updated_registration = ConventionRegistration.objects.select_related(
+            'member'
+        ).prefetch_related('guest_details', 'member__addresses').get(id=registration_id)
+        
+        response_serializer = CheckInListSerializer(updated_registration)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def update_member_address_checkin(request, address_id):
+    """
+    Update a member's address during check-in.
+    Staff only - allows updating any member's address.
+    """
+    # Check if user has staff permissions
+    if not request.user.is_staff:
+        raise PermissionDenied('You do not have permission to update member addresses.')
+    
+    address = get_object_or_404(Address, id=address_id)
+    
+    serializer = AddressUpdateSerializer(
+        address,
+        data=request.data,
+        partial=True
+    )
+    
+    if serializer.is_valid():
+        serializer.save()
+        
+        # Log the address update
+        logger.info(
+            f"Address updated during check-in for member {address.member}",
+            extra={
+                'address_id': address.id,
+                'member_id': address.member.id,
+                'updated_by': request.user.email,
+            }
+        )
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

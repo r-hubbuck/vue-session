@@ -12,6 +12,7 @@ import { useAuthStore } from './store/auth'
 import UserAccount from './pages/UserAccount.vue'
 import ConventionHome from './pages/convention/ConventionHome.vue'
 import ConventionTravel from './pages/convention/ConventionTravel.vue'
+import ConventionCheckIn from './pages/convention/ConventionCheckIn.vue'
 import ExpenseReport from './pages/ExpenseReport.vue'
 import ExpenseReportAdmin from './pages/ExpenseReportAdmin.vue'
 
@@ -95,6 +96,12 @@ const routes = [
       requiresAuth: true,
       requiresRoles: ['collegiate', 'official', 'non-member', 'alumni']
     }
+  },
+  {
+    path: '/convention-check-in',
+    name: 'ConventionCheckIn',
+    component: ConventionCheckIn,
+    meta: { requiresAuth: true, requiresStaff: true }
   },
   {
   path: '/convention-travel',

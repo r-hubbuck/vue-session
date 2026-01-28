@@ -12,6 +12,7 @@ class Airport(models.Model):
     description = models.CharField(max_length=200)
     
     class Meta:
+        db_table = 'airport'
         ordering = ['state', 'description']
         indexes = [
             models.Index(fields=['state']),
@@ -37,6 +38,7 @@ class Convention(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        db_table = 'convention'
         ordering = ['-year', '-start_date']
         indexes = [
             models.Index(fields=['year']),
@@ -93,6 +95,7 @@ class ConventionRegistration(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        db_table = 'convention_registration'
         constraints = [
             models.UniqueConstraint(
                 fields=['convention', 'member'],
@@ -143,6 +146,9 @@ class ConventionCommitteePreference(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+            db_table = 'convention_committee_preference'
+
     def __str__(self):
         return f"Committee Preferences for {self.registration}"
 
@@ -164,6 +170,9 @@ class ConventionGuest(models.Model):
     guest_special_requests = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'convention_guest'
 
     def __str__(self):
         return f"{self.guest_first_name} {self.guest_last_name} (Guest of {self.registration.member})"
@@ -243,6 +252,9 @@ class ConventionTravel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        db_table = 'convention_travel_plan'
+
     def __str__(self):
         return f"Travel for {self.registration}"
 
@@ -301,6 +313,9 @@ class ConventionAccommodation(models.Model):
     special_requests = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'convention_accomodation'
 
     def __str__(self):
         return f"Accommodation for {self.registration}"
