@@ -8,7 +8,6 @@ urlpatterns = [
     path('types/', views.expense_report_types_list, name='report-types'),
     
     # User endpoints
-    path('my-addresses/', views.my_addresses, name='my-addresses'),
     path('my-reports/', views.my_expense_reports, name='my-reports'),
     path('my-reports/<int:report_id>/', views.expense_report_detail, name='report-detail'),
     path('my-reports/<int:report_id>/upload-receipts/', views.upload_receipts, name='upload-receipts'),

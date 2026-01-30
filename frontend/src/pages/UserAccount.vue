@@ -244,12 +244,13 @@
             <table class="table table-custom">
               <thead>
                 <tr>
-                  <th style="width: 15%;">Type</th>
-                  <th style="width: 30%;">Address</th>
-                  <th style="width: 20%;">City</th>
-                  <th style="width: 15%;">State/Province</th>
+                  <th style="width: 12%;">Type</th>
+                  <th style="width: 28%;">Address</th>
+                  <th style="width: 15%;">City</th>
+                  <th style="width: 12%;">State/Province</th>
                   <th style="width: 10%;">Zip/Postal</th>
-                  <th style="width: 15%;">Country</th>
+                  <th style="width: 13%;">Country</th>
+                  <th style="width: 8%;">Primary</th>
                   <th style="width: 10%;">Actions</th>
                 </tr>
               </thead>
@@ -344,6 +345,22 @@
                       <option value="Other">Other</option>
                     </select>
                   </td>
+                  <td class="text-center">
+                    <div class="form-check d-inline-block">
+                      <input 
+                        :checked="index === primaryAddressIndex"
+                        @change="primaryAddressIndex = index"
+                        class="form-check-input" 
+                        type="radio"
+                        :id="`primary-address-${index}`" 
+                        name="primaryAddress"
+                        style="width: 1.25rem; height: 1.25rem; cursor: pointer;"
+                      />
+                      <label class="form-check-label ms-2" :for="`primary-address-${index}`">
+                        <span v-if="primaryAddressIndex === index" class="badge" style="background: #10b981; color: white;">Primary</span>
+                      </label>
+                    </div>
+                  </td>
                   <td>
                     <button 
                       type="button" 
@@ -426,6 +443,7 @@ export default {
       // Addresses
       addresses: [],
       originalAddresses: [],
+      primaryAddressIndex: 0,
       showAddAddressRow: false,
       addressError: null,
       addressSuccess: null,
@@ -468,6 +486,15 @@ export default {
         }
         
         return true
+      })
+    }
+  },
+  
+  watch: {
+    primaryAddressIndex(newIndex) {
+      // When user selects a different primary address, update the is_primary flags
+      this.addresses.forEach((address, index) => {
+        address.is_primary = index === newIndex
       })
     }
   },
@@ -812,10 +839,24 @@ export default {
           add_city: address.add_city,
           add_state: address.add_state || '',
           add_zip: address.add_zip,
-          add_country: address.add_country || 'United States'
+          add_country: address.add_country || 'United States',
+          is_primary: address.is_primary
         }))
         
+        // Set primaryAddressIndex based on is_primary
+        const primaryIndex = this.addresses.findIndex(address => address.is_primary)
+        this.primaryAddressIndex = primaryIndex >= 0 ? primaryIndex : 0
+        
+        // If no primary address is set and we have addresses, mark the first as primary
+        if (this.addresses.length > 0 && primaryIndex < 0) {
+          this.addresses[0].is_primary = true
+          this.primaryAddressIndex = 0
+        }
+        
         this.originalAddresses = JSON.parse(JSON.stringify(this.addresses))
+        
+        // Force Vue to update the UI after addresses change
+        await this.$nextTick()
       } catch (error) {
         console.error('Error fetching addresses:', error)
       }
@@ -842,7 +883,8 @@ export default {
         add_city: '',
         add_state: '',
         add_zip: '',
-        add_country: 'United States'
+        add_country: 'United States',
+        is_primary: this.addresses.length === 0
       })
       
       this.showAddAddressRow = true
@@ -859,6 +901,13 @@ export default {
       } else {
         this.addresses.splice(index, 1)
         this.showAddAddressRow = false
+        
+        // Adjust primaryAddressIndex if needed
+        if (this.primaryAddressIndex === index) {
+          this.primaryAddressIndex = 0
+        } else if (this.primaryAddressIndex > index) {
+          this.primaryAddressIndex--
+        }
       }
     },
     
@@ -869,7 +918,9 @@ export default {
       try {
         await api.delete(`/api/accounts/addresses/${addressId}/`)
         
-        this.addresses.splice(index, 1)
+        // Refresh addresses to ensure primary state is correct
+        await this.fetchAddresses()
+        
         this.addressSuccess = 'Address deleted successfully!'
         setTimeout(() => {
           this.addressSuccess = null
@@ -894,7 +945,9 @@ export default {
       this.addressSuccess = null
       
       try {
-        const promises = this.addresses.map(async (address) => {
+        // First, save all addresses
+        const savedAddresses = []
+        for (const address of this.addresses) {
           // Sanitize and validate data
           const add_line1 = address.add_line1?.trim().substring(0, 255)
           const add_line2 = address.add_line2?.trim().substring(0, 255)
@@ -919,14 +972,22 @@ export default {
             add_country: address.add_country
           }
           
+          let response
           if (address.id) {
-            return api.put(`/api/accounts/addresses/${address.id}/`, payload)
+            response = await api.put(`/api/accounts/addresses/${address.id}/`, payload)
           } else {
-            return api.post('/api/accounts/addresses/', payload)
+            response = await api.post('/api/accounts/addresses/', payload)
+            address.id = response.data.id
           }
-        })
+          savedAddresses.push(response.data)
+        }
         
-        await Promise.all(promises)
+        // Then set the primary address using the set_primary endpoint
+        const primaryAddress = this.addresses[this.primaryAddressIndex]
+        
+        if (primaryAddress && primaryAddress.id) {
+          await api.post(`/api/accounts/addresses/${primaryAddress.id}/set_primary/`)
+        }
         
         await this.fetchAddresses()
         this.showAddAddressRow = false
@@ -943,7 +1004,7 @@ export default {
         } else if (errorData?.add_state) {
           this.addressError = errorData.add_state[0] || errorData.add_state
         } else {
-          this.addressError = errorData?.detail || 'Failed to save addresses'
+          this.addressError = errorData?.detail || error.message || 'Failed to save addresses'
         }
       } finally {
         this.addressSaving = false

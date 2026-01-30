@@ -1154,7 +1154,8 @@ const saveMobilePhone = async () => {
 const setPrimaryAddress = async (addressId) => {
   saving.value = true
   try {
-    await api.put(`/api/convention/member/address/${addressId}/set-primary/`)
+    // Updated to use accounts app endpoint which includes database sync
+    await api.post(`/api/accounts/addresses/${addressId}/set_primary/`)
     toast.success('Primary address updated!')
     
     memberAddresses.value.forEach(addr => {
@@ -1171,7 +1172,8 @@ const setPrimaryAddress = async (addressId) => {
 const setPrimaryPhone = async (phoneId) => {
   saving.value = true
   try {
-    await api.put(`/api/convention/member/phone/${phoneId}/set-primary/`)
+    // Updated to use accounts app endpoint
+    await api.post(`/api/accounts/phone-numbers/${phoneId}/set_primary/`)
     toast.success('Primary phone updated!')
     
     memberPhones.value.forEach(phone => {

@@ -12,7 +12,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, get_user_model
 
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework import status, generics, viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -832,6 +832,12 @@ class AddressViewSet(viewsets.ModelViewSet):
                 'add_type': old_address.add_type
             }
             
+            # If this address is being set as primary, unset all other primary addresses
+            if serializer.validated_data.get('is_primary', False):
+                Address.objects.filter(member=member, is_primary=True).exclude(
+                    id=old_address.id
+                ).update(is_primary=False)
+            
             # Save the updated address
             address = serializer.save(member=member)
             
@@ -871,6 +877,35 @@ class AddressViewSet(viewsets.ModelViewSet):
             self._sync_to_sql_server('delete', member.member_id, address_data)
         
         return response
+    
+    @action(detail=True, methods=['post'])
+    def set_primary(self, request, pk=None):
+        """
+        Custom action to set an address as primary.
+        POST /api/accounts/addresses/{id}/set_primary/
+        Unsets all other primary addresses for this member.
+        """
+        address = self.get_object()
+        member = address.member
+        
+        # Verify the address belongs to the requesting user's member
+        if request.user.member != member:
+            return Response(
+                {'error': 'You do not have permission to modify this address.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Unset all other primary addresses for this member
+        Address.objects.filter(member=member).update(is_primary=False)
+        
+        # Set this address as primary
+        address.is_primary = True
+        address.save()
+        
+        # Note: No SQL Server sync needed as is_primary is not stored in legacy database
+        
+        serializer = self.get_serializer(address)
+        return Response(serializer.data)
 
 def _sync_emails_to_sql_server(member_id, email, alt_email):
     """
@@ -1150,6 +1185,35 @@ class PhoneNumberViewSet(viewsets.ModelViewSet):
             self._sync_phone_to_sql_server('delete', member.member_id, phone_type)
         
         return response
+    
+    @action(detail=True, methods=['post'])
+    def set_primary(self, request, pk=None):
+        """
+        Custom action to set a phone number as primary.
+        POST /api/accounts/phone-numbers/{id}/set_primary/
+        Unsets all other primary phone numbers for this member.
+        """
+        phone = self.get_object()
+        member = phone.member
+        
+        # Verify the phone belongs to the requesting user's member
+        if request.user.member != member:
+            return Response(
+                {'error': 'You do not have permission to modify this phone number.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Unset all other primary phones for this member
+        PhoneNumber.objects.filter(member=member).update(is_primary=False)
+        
+        # Set this phone as primary
+        phone.is_primary = True
+        phone.save()
+        
+        # Note: No SQL Server sync needed as is_primary is not stored in legacy database
+        
+        serializer = self.get_serializer(phone)
+        return Response(serializer.data)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

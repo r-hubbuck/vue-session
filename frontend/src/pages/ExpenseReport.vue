@@ -741,8 +741,8 @@ export default {
         const typesResponse = await api.get('/api/expense-reports/types/')
         this.reportTypes = typesResponse.data
         
-        // Load user's addresses
-        const addressesResponse = await api.get('/api/expense-reports/my-addresses/')
+        // Load user's addresses from accounts app
+        const addressesResponse = await api.get('/api/accounts/addresses/')
         this.userAddresses = addressesResponse.data
         
         // Load user's reports

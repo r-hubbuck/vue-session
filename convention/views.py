@@ -1,3 +1,15 @@
+"""
+Convention app views.
+
+NOTE: Address and phone number management has been consolidated in the accounts app.
+The following functions have been REMOVED from this file:
+- set_primary_address: Use POST /api/accounts/addresses/{id}/set_primary/ instead
+- set_primary_phone: Use POST /api/accounts/phone-numbers/{id}/set_primary/ instead  
+- update_member_address_checkin: Use PUT /api/accounts/addresses/{id}/ instead
+
+All address CRUD operations should go through the accounts.AddressViewSet which
+includes the database sync logic to keep the older database in sync.
+"""
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
@@ -32,7 +44,6 @@ from .serializers import (
     AdminConventionTravelListSerializer,
     AdminConventionTravelUpdateSerializer,
     CheckInListSerializer,
-    AddressUpdateSerializer,
     RegistrationStatusUpdateSerializer,
 )
 from accounts.models import Member, Address, PhoneNumber
@@ -243,74 +254,6 @@ def update_mobile_phone(request):
         },
         status=status.HTTP_200_OK
     )
-
-
-@api_view(['PUT'])
-@permission_classes([IsAuthenticated])
-def set_primary_address(request, address_id):
-    """
-    Set an address as primary for convention correspondence.
-    Unsets any other primary address for this member.
-    """
-    if not hasattr(request.user, 'member'):
-        return Response(
-            {'message': 'User must have an associated member record'},
-            status=status.HTTP_403_FORBIDDEN
-        )
-    
-    # Verify address belongs to this member
-    address = get_object_or_404(
-        Address,
-        id=address_id,
-        member=request.user.member
-    )
-    
-    # Unset all other primary addresses
-    Address.objects.filter(member=request.user.member).update(is_primary=False)
-    
-    # Set this one as primary
-    address.is_primary = True
-    address.save()
-    
-    return Response(
-        {'message': 'Primary address updated', 'address_id': address_id},
-        status=status.HTTP_200_OK
-    )
-
-
-@api_view(['PUT'])
-@permission_classes([IsAuthenticated])
-def set_primary_phone(request, phone_id):
-    """
-    Set a phone number as primary.
-    Unsets any other primary phone for this member.
-    """
-    if not hasattr(request.user, 'member'):
-        return Response(
-            {'message': 'User must have an associated member record'},
-            status=status.HTTP_403_FORBIDDEN
-        )
-    
-    # Verify phone belongs to this member
-    phone = get_object_or_404(
-        PhoneNumber,
-        id=phone_id,
-        member=request.user.member
-    )
-    
-    # Unset all other primary phones
-    PhoneNumber.objects.filter(member=request.user.member).update(is_primary=False)
-    
-    # Set this one as primary
-    phone.is_primary = True
-    phone.save()
-    
-    return Response(
-        {'message': 'Primary phone updated', 'phone_id': phone_id},
-        status=status.HTTP_200_OK
-    )
-
-
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 def update_committee_preferences(request, registration_id):
@@ -842,43 +785,5 @@ def update_registration_status(request, registration_id):
         
         response_serializer = CheckInListSerializer(updated_registration)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(['PUT'])
-@permission_classes([IsAuthenticated])
-@throttle_classes([AdminRateThrottle])
-def update_member_address_checkin(request, address_id):
-    """
-    Update a member's address during check-in.
-    Staff only - allows updating any member's address.
-    """
-    # Check if user has staff permissions
-    if not request.user.is_staff:
-        raise PermissionDenied('You do not have permission to update member addresses.')
-    
-    address = get_object_or_404(Address, id=address_id)
-    
-    serializer = AddressUpdateSerializer(
-        address,
-        data=request.data,
-        partial=True
-    )
-    
-    if serializer.is_valid():
-        serializer.save()
-        
-        # Log the address update
-        logger.info(
-            f"Address updated during check-in for member {address.member}",
-            extra={
-                'address_id': address.id,
-                'member_id': address.member.id,
-                'updated_by': request.user.email,
-            }
-        )
-        
-        return Response(serializer.data, status=status.HTTP_200_OK)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -47,7 +47,12 @@ class ConventionSerializer(serializers.ModelSerializer):
 
 
 class AddressSerializer(serializers.ModelSerializer):
-    """Serializer for member addresses"""
+    """
+    Serializer for displaying member addresses in convention contexts.
+    NOTE: This is for READ-ONLY display in nested serializers.
+    For address CRUD operations, use the accounts app's AddressViewSet which
+    includes database sync logic.
+    """
     class Meta:
         model = Address
         fields = [
@@ -64,7 +69,11 @@ class AddressSerializer(serializers.ModelSerializer):
 
 
 class PhoneNumberSerializer(serializers.ModelSerializer):
-    """Serializer for member phone numbers"""
+    """
+    Serializer for displaying member phone numbers in convention contexts.
+    NOTE: This is for READ-ONLY display in nested serializers.
+    For phone CRUD operations, use the accounts app's PhoneNumberViewSet.
+    """
     formatted_number = serializers.SerializerMethodField()
     
     class Meta:
@@ -733,79 +742,10 @@ class CheckInListSerializer(serializers.ModelSerializer):
         return obj.guest_details.count()
 
 
-class AddressUpdateSerializer(serializers.ModelSerializer):
-    """
-    Serializer for updating member addresses during check-in
-    """
-    class Meta:
-        model = Address
-        fields = [
-            'id',
-            'add_line1',
-            'add_line2',
-            'add_city',
-            'add_state',
-            'add_zip',
-            'add_country',
-            'add_type',
-            'is_primary'
-        ]
-    
-    def validate_add_line1(self, value):
-        """Validate and sanitize address line 1"""
-        if not value or not value.strip():
-            raise serializers.ValidationError('Address line 1 is required.')
-        # Remove any potentially malicious content
-        cleaned = bleach.clean(value.strip(), tags=[], strip=True)
-        if len(cleaned) > 255:
-            raise serializers.ValidationError('Address line 1 cannot exceed 255 characters.')
-        return cleaned
-    
-    def validate_add_line2(self, value):
-        """Validate and sanitize address line 2"""
-        if value:
-            cleaned = bleach.clean(value.strip(), tags=[], strip=True)
-            if len(cleaned) > 255:
-                raise serializers.ValidationError('Address line 2 cannot exceed 255 characters.')
-            return cleaned
-        return value
-    
-    def validate_add_city(self, value):
-        """Validate and sanitize city"""
-        if not value or not value.strip():
-            raise serializers.ValidationError('City is required.')
-        cleaned = bleach.clean(value.strip(), tags=[], strip=True)
-        if len(cleaned) > 100:
-            raise serializers.ValidationError('City cannot exceed 100 characters.')
-        return cleaned
-    
-    def validate_add_state(self, value):
-        """Validate and sanitize state"""
-        if value:
-            cleaned = bleach.clean(value.strip(), tags=[], strip=True)
-            if len(cleaned) > 100:
-                raise serializers.ValidationError('State cannot exceed 100 characters.')
-            return cleaned
-        return value
-    
-    def validate_add_zip(self, value):
-        """Validate and sanitize zip code"""
-        if value:
-            cleaned = bleach.clean(value.strip(), tags=[], strip=True)
-            if len(cleaned) > 20:
-                raise serializers.ValidationError('Zip code cannot exceed 20 characters.')
-            return cleaned
-        return value
-    
-    def validate_add_country(self, value):
-        """Validate and sanitize country"""
-        if not value or not value.strip():
-            raise serializers.ValidationError('Country is required.')
-        cleaned = bleach.clean(value.strip(), tags=[], strip=True)
-        if len(cleaned) > 100:
-            raise serializers.ValidationError('Country cannot exceed 100 characters.')
-        return cleaned
 
+# NOTE: AddressUpdateSerializer has been removed.
+# Address management is now handled entirely by the accounts app.
+# Use accounts.serializers.AddressSerializer for all address operations.
 
 class RegistrationStatusUpdateSerializer(serializers.ModelSerializer):
     """

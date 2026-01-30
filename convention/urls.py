@@ -15,8 +15,6 @@ urlpatterns = [
     # Member info (updates Member model directly - no duplication)
     path('member/update-info/', views.update_member_info, name='update-member-info'),
     path('member/update-mobile-phone/', views.update_mobile_phone, name='update-mobile-phone'),
-    path('member/address/<int:address_id>/set-primary/', views.set_primary_address, name='set-primary-address'),
-    path('member/phone/<int:phone_id>/set-primary/', views.set_primary_phone, name='set-primary-phone'),
     
     # Committee preferences
     path('registration/<int:registration_id>/committee-preferences/', views.update_committee_preferences, name='update-committee-preferences'),
@@ -38,7 +36,6 @@ urlpatterns = [
     # Check-in endpoints (staff only)
     path('check-in/list/', views.check_in_list, name='check-in-list'),
     path('check-in/registration/<int:registration_id>/status/', views.update_registration_status, name='update-registration-status'),
-    path('check-in/address/<int:address_id>/', views.update_member_address_checkin, name='update-member-address-checkin'),
 
 ]
 
@@ -49,10 +46,26 @@ urlpatterns = [
 # GET    /api/convention/my-registration/                                  - Get user's registration
 # POST   /api/convention/my-registration/                                  - Create new registration
 # 
-# Member Info (updates Member, Address, PhoneNumbers models directly):
+# Member Info (updates Member model directly):
 # PUT    /api/convention/member/update-info/                               - Update preferred_first_name
-# PUT    /api/convention/member/address/{id}/set-primary/                  - Set primary address
-# PUT    /api/convention/member/phone/{id}/set-primary/                    - Set primary phone
+# PUT    /api/convention/member/update-mobile-phone/                       - Update mobile phone number
+# 
+# Address and Phone Management (use accounts app endpoints):
+# GET    /api/accounts/addresses/                                          - List user's addresses
+# POST   /api/accounts/addresses/                                          - Create new address
+# GET    /api/accounts/addresses/{id}/                                     - Get address details
+# PUT    /api/accounts/addresses/{id}/                                     - Update address (includes database sync)
+# PATCH  /api/accounts/addresses/{id}/                                     - Partial update address
+# DELETE /api/accounts/addresses/{id}/                                     - Delete address
+# POST   /api/accounts/addresses/{id}/set_primary/                         - Set address as primary
+# 
+# GET    /api/accounts/phone-numbers/                                      - List user's phone numbers
+# POST   /api/accounts/phone-numbers/                                      - Create new phone number
+# GET    /api/accounts/phone-numbers/{id}/                                 - Get phone details
+# PUT    /api/accounts/phone-numbers/{id}/                                 - Update phone number
+# PATCH  /api/accounts/phone-numbers/{id}/                                 - Partial update phone
+# DELETE /api/accounts/phone-numbers/{id}/                                 - Delete phone number
+# POST   /api/accounts/phone-numbers/{id}/set_primary/                     - Set phone as primary
 # 
 # Convention-specific data:
 # PUT    /api/convention/registration/{id}/committee-preferences/          - Update committee preferences

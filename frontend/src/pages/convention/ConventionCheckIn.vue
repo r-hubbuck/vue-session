@@ -555,8 +555,9 @@ export default {
       this.addressSaveError = null;
 
       try {
+        // Updated to use accounts app endpoint which includes database sync
         await api.put(
-          `/api/convention/check-in/address/${this.selectedRegistration.primary_address.id}/`,
+          `/api/accounts/addresses/${this.selectedRegistration.primary_address.id}/`,
           this.addressForm
         );
 

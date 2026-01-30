@@ -1,41 +1,8 @@
 import bleach
 from rest_framework import serializers
 from .models import ExpenseReportType, ExpenseReport, ExpenseReportDetail
-from accounts.models import Member, Address
-
-
-class AddressSerializer(serializers.ModelSerializer):
-    """
-    Serializer for member addresses.
-    Used when displaying address information in expense reports.
-    """
-    display_name = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Address
-        fields = [
-            'id',
-            'add_line1',
-            'add_line2',
-            'add_city',
-            'add_state',
-            'add_zip',
-            'add_country',
-            'add_type',
-            'is_primary',
-            'display_name',
-        ]
-        read_only_fields = ['id']
-    
-    def get_display_name(self, obj):
-        """Return a formatted address string"""
-        parts = [obj.add_line1]
-        if obj.add_line2:
-            parts.append(obj.add_line2)
-        parts.append(f"{obj.add_city}, {obj.add_state} {obj.add_zip}" if obj.add_state else obj.add_city)
-        if obj.add_country and obj.add_country != 'United States':
-            parts.append(obj.add_country)
-        return ', '.join(parts)
+from accounts.models import Member
+from accounts.serializers import AddressSerializer
 
 
 class ExpenseReportTypeSerializer(serializers.ModelSerializer):

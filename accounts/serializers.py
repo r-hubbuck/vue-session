@@ -173,9 +173,21 @@ class VerifyMemberSerializer(serializers.Serializer):
         return value
 
 class AddressSerializer(serializers.ModelSerializer):
+    display_name = serializers.SerializerMethodField()
+    
     class Meta:
         model = Address
-        fields = ['id', 'add_line1', 'add_line2', 'add_city', 'add_state', 'add_zip', 'add_country', 'add_type']
+        fields = ['id', 'add_line1', 'add_line2', 'add_city', 'add_state', 'add_zip', 'add_country', 'add_type', 'is_primary', 'display_name']
+        
+    def get_display_name(self, obj):
+        """Return a formatted address string for display in dropdowns"""
+        parts = [obj.add_line1]
+        if obj.add_line2:
+            parts.append(obj.add_line2)
+        parts.append(f"{obj.add_city}, {obj.add_state} {obj.add_zip}" if obj.add_state else obj.add_city)
+        if obj.add_country and obj.add_country != 'United States':
+            parts.append(obj.add_country)
+        return ', '.join(parts)
         
     def validate(self, data):
         """
