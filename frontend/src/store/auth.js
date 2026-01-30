@@ -25,30 +25,61 @@ export const useAuthStore = defineStore('auth', {
     currentUser: (state) => state.user,
     isLoggedIn: (state) => state.isAuthenticated,
     
-    // Get user role
-    userRole: (state) => state.user?.role || 'non-member',
+    // Get user roles as an array
+    userRoles: (state) => state.user?.roles || [],
+    
+    // Helper to check if user has a specific role
+    hasRole: (state) => (roleName) => {
+      return state.user?.roles?.includes(roleName) || false
+    },
     
     // Role checking getters
-    isNonMember: (state) => state.user?.role === 'non-member',
-    isCollegiate: (state) => state.user?.role === 'collegiate',
-    isAlumni: (state) => state.user?.role === 'alumni',
-    isOfficial: (state) => state.user?.role === 'official',
+    isMember: (state) => state.user?.roles?.includes('member') || false,
+    isAlumni: (state) => state.user?.roles?.includes('alumni') || false,
+    isCollegiateOfficer: (state) => state.user?.roles?.includes('collegiate_officer') || false,
+    isAlumniOfficer: (state) => state.user?.roles?.includes('alumni_officer') || false,
+    
+    // National officials
+    isDistrictDirector: (state) => state.user?.roles?.includes('district_director') || false,
+    isExecutiveCouncil: (state) => state.user?.roles?.includes('executive_council') || false,
+    
+    // HQ Staff
+    isHQStaff: (state) => state.user?.roles?.includes('hq_staff') || false,
+    isHQIT: (state) => state.user?.roles?.includes('hq_it') || false,
+    isHQFinance: (state) => state.user?.roles?.includes('hq_finance') || false,
     
     // Convenience getters for permission checks
-    isMember: (state) => {
-      const role = state.user?.role
-      return role === 'collegiate' || role === 'alumni' || role === 'official'
+    isAnyMember: (state) => {
+      // Check if user has member OR alumni role
+      const roles = state.user?.roles || []
+      return roles.includes('member') || roles.includes('alumni')
+    },
+    
+    isAnyOfficer: (state) => {
+      // Check if user is any type of officer
+      const roles = state.user?.roles || []
+      return roles.includes('collegiate_officer') || 
+             roles.includes('alumni_officer') ||
+             roles.includes('district_director') ||
+             roles.includes('executive_council')
     },
     
     canAccessConvention: (state) => {
-      // Example: only collegiate and officials can access convention
-      const role = state.user?.role
-      return role === 'collegiate' || role === 'official'
+      // Members and alumni can access convention
+      const roles = state.user?.roles || []
+      return roles.includes('member') || roles.includes('alumni')
+    },
+    
+    canManageFinances: (state) => {
+      // HQ finance staff and executive council can manage finances
+      const roles = state.user?.roles || []
+      return roles.includes('hq_finance') || roles.includes('executive_council')
     },
     
     canManageChapter: (state) => {
-      // Example: only officials can manage chapter
-      return state.user?.role === 'official'
+      // Chapter officers can manage their chapter
+      const roles = state.user?.roles || []
+      return roles.includes('collegiate_officer') || roles.includes('alumni_officer')
     },
     
     // Check if verification is still valid (expires after 15 minutes)

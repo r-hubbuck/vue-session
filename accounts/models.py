@@ -4,6 +4,55 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from phonenumber_field.modelfields import PhoneNumberField
 import secrets
 
+# Role name constants
+ROLE_MEMBER = 'member'
+ROLE_ALUMNI = 'alumni'
+ROLE_COLLEGIATE_OFFICER = 'collegiate_officer'
+ROLE_ALUMNI_OFFICER = 'alumni_officer'
+ROLE_DISTRICT_DIRECTOR = 'district_director'
+ROLE_ENGINEERING_FUTURES_FACILITATOR = 'engineering_futures_facilitator'
+ROLE_EXECUTIVE_COUNCIL = 'executive_council'
+ROLE_TRUST_ADVISORY_COMMITTEE = 'trust_advisory_committee'
+ROLE_CHAPTER_DEVELOPMENT_COMMITTEE = 'chapter_development_committee'
+ROLE_FELLOWSHIP_BOARD = 'fellowship_board'
+ROLE_EDITORIAL_BOARD = 'editorial_board'
+ROLE_DIRECTOR_ALUMNI_AFFAIRS = 'director_alumni_affairs'
+ROLE_DIRECTOR_DISTRICT_PROGRAM = 'director_district_program'
+ROLE_DIRECTOR_ENGINEERING_FUTURES = 'director_engineering_futures'
+ROLE_DIRECTOR_FELLOWSHIPS = 'director_fellowships'
+ROLE_DIRECTOR_RITUALS = 'director_rituals'
+ROLE_NEST_PROGRAM_LEAD = 'nest_program_lead'
+ROLE_HQ_STAFF = 'hq_staff'
+ROLE_HQ_IT = 'hq_it'
+ROLE_HQ_FINANCE = 'hq_finance'
+ROLE_HQ_CHAPTER_SERVICES = 'hq_chapter_services'
+ROLE_HQ_ADMIN = 'hq_admin'
+
+ALL_ROLES = [
+    ROLE_MEMBER,
+    ROLE_ALUMNI,
+    ROLE_COLLEGIATE_OFFICER,
+    ROLE_ALUMNI_OFFICER,
+    ROLE_DISTRICT_DIRECTOR,
+    ROLE_ENGINEERING_FUTURES_FACILITATOR,
+    ROLE_EXECUTIVE_COUNCIL,
+    ROLE_TRUST_ADVISORY_COMMITTEE,
+    ROLE_CHAPTER_DEVELOPMENT_COMMITTEE,
+    ROLE_FELLOWSHIP_BOARD,
+    ROLE_EDITORIAL_BOARD,
+    ROLE_DIRECTOR_ALUMNI_AFFAIRS,
+    ROLE_DIRECTOR_DISTRICT_PROGRAM,
+    ROLE_DIRECTOR_ENGINEERING_FUTURES,
+    ROLE_DIRECTOR_FELLOWSHIPS,
+    ROLE_DIRECTOR_RITUALS,
+    ROLE_NEST_PROGRAM_LEAD,
+    ROLE_HQ_STAFF,
+    ROLE_HQ_IT,
+    ROLE_HQ_FINANCE,
+    ROLE_HQ_CHAPTER_SERVICES,
+    ROLE_HQ_ADMIN,
+]
+
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -24,18 +73,9 @@ class User(AbstractUser):
     first_name = None
     last_name = None
     username = None
-    # phone = PhoneNumberField()
     email = models.EmailField(max_length=254, unique=True)
     alt_email = models.EmailField(max_length=254, blank=True)
     member = models.OneToOneField('Member', on_delete=models.CASCADE, null=True, blank=True, related_name='user')
-
-    ROLE_CHOICES = [
-    ('non-member', 'Non-Member'),
-    ('collegiate', 'Collegiate'),
-    ('alumni', 'Alumni'),
-    ('official', 'Official'),
-    ]
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='non-member', blank=False)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
@@ -44,6 +84,24 @@ class User(AbstractUser):
 
     class Meta:
         db_table = 'user'
+    
+    def has_role(self, role_name):
+        """Check if user has a specific role"""
+        return self.groups.filter(name=role_name).exists()
+    
+    def add_role(self, role_name):
+        """Add a role to user"""
+        from django.contrib.auth.models import Group
+        group, _ = Group.objects.get_or_create(name=role_name)
+        self.groups.add(group)
+    
+    def remove_role(self, role_name):
+        """Remove a role from user"""
+        self.groups.filter(name=role_name).delete()
+    
+    def get_roles(self):
+        """Get list of role names for this user"""
+        return list(self.groups.values_list('name', flat=True))
 
 class Member(models.Model):
     member_id = models.IntegerField(unique=True, null=True, blank=True)
@@ -52,7 +110,7 @@ class Member(models.Model):
     middle_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100)
     chapter = models.CharField(max_length=100)
-    # phone = PhoneNumberField()
+    district = models.IntegerField(null=True, blank=True)  # For district directors
 
     class Meta:
         db_table = 'member'
@@ -69,8 +127,8 @@ class Address(models.Model):
     add_line1 = models.CharField(max_length=255, blank=False)
     add_line2 = models.CharField(max_length=255, blank=True)
     add_city = models.CharField(max_length=100, blank=False)
-    add_state = models.CharField(max_length=100, blank=True, null=True)  # Optional for non-US addresses
-    add_zip = models.CharField(max_length=20, blank=True)  # Optional for all addresses
+    add_state = models.CharField(max_length=100, blank=True, null=True)
+    add_zip = models.CharField(max_length=20, blank=True)
     add_country = models.CharField(max_length=100, default='United States', blank=False)  
     is_primary = models.BooleanField(default=False)
     
@@ -104,7 +162,7 @@ class Address(models.Model):
 class PhoneNumber(models.Model):
     member = models.ForeignKey('Member', on_delete=models.CASCADE, related_name='phone_numbers')
     country_code = models.CharField(max_length=5, default='+1', blank=False)
-    phone_number = models.CharField(max_length=20, blank=False)  # Store without formatting
+    phone_number = models.CharField(max_length=20, blank=False)
     PHONE_TYPE_CHOICES = [
         ('Mobile', 'Mobile'),
         ('Home', 'Home'),
@@ -120,11 +178,6 @@ class PhoneNumber(models.Model):
                 fields=['member', 'phone_type'],
                 name='unique_member_phone_type'
             ),
-            # models.UniqueConstraint(
-            #     fields=['member'],
-            #     condition=models.Q(is_primary=True),
-            #     name='unique_member_primary_phone'
-            # )
         ]
     
     def __str__(self):
@@ -133,10 +186,8 @@ class PhoneNumber(models.Model):
     def get_formatted_number(self):
         """Return formatted phone number based on country code"""
         if self.country_code == '+1' and len(self.phone_number) == 10:
-            # US/Canada format: (XXX) XXX-XXXX
             return f"({self.phone_number[:3]}) {self.phone_number[3:6]}-{self.phone_number[6:]}"
         return self.phone_number
-    
 
 class Code(models.Model):
     number = models.CharField(max_length=5, blank=False)
@@ -175,9 +226,9 @@ class StateProvince(models.Model):
     st_strtzip = models.CharField(max_length=5, blank=True)
     st_endzip = models.CharField(max_length=5, blank=True)
     st_region = models.CharField(max_length=50, blank=True)
-    st_conus = models.BooleanField(default=False)  # Continental US
-    st_foreign = models.BooleanField(default=False)  # Foreign territory
-    st_ctrid = models.IntegerField(null=True, blank=True)  # Country ID
+    st_conus = models.BooleanField(default=False)
+    st_foreign = models.BooleanField(default=False)
+    st_ctrid = models.IntegerField(null=True, blank=True)
     
     class Meta:
         db_table = 'state_province'

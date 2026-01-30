@@ -340,6 +340,31 @@ class UserAccountSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('This email is already in use as a primary email.')
         return value
 
+class UserSerializer(serializers.ModelSerializer):
+    member = serializers.SerializerMethodField()
+    roles = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'alt_email', 'roles', 'member']
+    
+    def get_member(self, obj):
+        if obj.member:
+            return {
+                'member_id': obj.member.member_id,
+                'first_name': obj.member.first_name,
+                'preferred_first_name': obj.member.preferred_first_name,
+                'middle_name': obj.member.middle_name,
+                'last_name': obj.member.last_name,
+                'chapter': obj.member.chapter,
+                'district': obj.member.district,
+            }
+        return None
+    
+    def get_roles(self, obj):
+        """Return list of all role names (groups) for the user"""
+        return list(obj.groups.values_list('name', flat=True))
+
 class StateProvinceSerializer(serializers.ModelSerializer):
     country_name = serializers.ReadOnlyField()
     

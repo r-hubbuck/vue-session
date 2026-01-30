@@ -24,7 +24,7 @@ from django.shortcuts import get_object_or_404
 from .throttles import LoginThrottle, RegisterThrottle, PasswordResetThrottle
 
 from .tokens import account_activation_token, password_reset_token
-from .models import User, Member, Address, PhoneNumber, StateProvince
+from .models import User, Member, Address, PhoneNumber, StateProvince, ROLE_MEMBER, ROLE_ALUMNI
 from .serializers import (
     CodeValidationSerializer,
     LoginSerializer,
@@ -189,10 +189,9 @@ def user_view(request):
     Check if user is authenticated and return user info.
     """
     if request.user.is_authenticated:
-        return Response({
-            'email': request.user.email,
-            'role': request.user.role
-        }, status=status.HTTP_200_OK)
+        from .serializers import UserSerializer
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
     return Response(
         {'message': 'Not logged in'}, 
@@ -232,15 +231,15 @@ def register(request):
                 try:
                     class_year = int(member_class_year)
                     if class_year < current_year:
-                        user.role = 'alumni'
+                        user.add_role(ROLE_ALUMNI)
                     else:
-                        user.role = 'collegiate'
+                        user.add_role(ROLE_MEMBER)
                 except ValueError:
-                    # If class year isn't a valid integer, default to non-member
-                    user.role = 'non-member'
+                    # If class year isn't a valid integer, don't assign a role yet
+                    pass
             else:
-                # If no class year provided, default to non-member
-                user.role = 'non-member'
+                # If no class year provided, assign member role by default
+                user.add_role(ROLE_MEMBER)
 
             user.save()
 

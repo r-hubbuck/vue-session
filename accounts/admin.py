@@ -5,17 +5,15 @@ from .models import User, Member, Address, PhoneNumber, StateProvince
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ('email', 'role', 'is_active', 'is_staff', 'get_member_name')
-    list_filter = ('role', 'is_active', 'is_staff', 'is_superuser')
+    list_display = ('email', 'get_roles', 'is_active', 'is_staff', 'get_member_name')
+    list_filter = ('is_active', 'is_staff', 'is_superuser', 'groups')
     search_fields = ('email', 'alt_email')
     ordering = ('email',)
     
-    # Add role field to the admin
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
         ('Contact Information', {'fields': ('alt_email',)}),
         ('Member Link', {'fields': ('member',)}),
-        ('TBP Role', {'fields': ('role',)}),
         ('Permissions', {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
         }),
@@ -25,15 +23,25 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'password1', 'password2', 'role'),
+            'fields': ('email', 'password1', 'password2'),
         }),
     )
+    
+    filter_horizontal = ('groups', 'user_permissions')
     
     def get_member_name(self, obj):
         if obj.member:
             return f"{obj.member.first_name} {obj.member.last_name}"
         return "No member linked"
     get_member_name.short_description = 'Member Name'
+    
+    def get_roles(self, obj):
+        """Display all roles (groups) for the user"""
+        roles = obj.groups.values_list('name', flat=True)
+        if roles:
+            return ", ".join(roles)
+        return "No roles"
+    get_roles.short_description = 'Roles'
 
 
 @admin.register(Member)
@@ -43,10 +51,11 @@ class MemberAdmin(admin.ModelAdmin):
         'first_name',
         'last_name',
         'chapter',
+        'district',
         'get_user_email',
-        'get_user_role'
+        'get_user_roles'
     )
-    list_filter = ('chapter',)
+    list_filter = ('chapter', 'district')
     search_fields = (
         'member_id',
         'first_name',
@@ -54,42 +63,45 @@ class MemberAdmin(admin.ModelAdmin):
         'preferred_first_name',
         'chapter'
     )
-    # No raw_id_fields - user relationship is on User model, not Member
     
     fieldsets = (
         ('Member Information', {
             'fields': ('member_id', 'first_name', 'preferred_first_name', 'middle_name', 'last_name')
         }),
-        ('Chapter', {
-            'fields': ('chapter',)
+        ('Chapter & District', {
+            'fields': ('chapter', 'district')
         }),
-        # Removed User Account section - relationship is defined on User model
     )
     
     readonly_fields = ('get_user_info',)
     
     def get_user_email(self, obj):
         try:
-            # Access via reverse relation (User.member points here)
             user = User.objects.get(member=obj)
             return user.email
         except User.DoesNotExist:
             return 'No user linked'
     get_user_email.short_description = 'Email'
     
-    def get_user_role(self, obj):
+    def get_user_roles(self, obj):
+        """Display all roles for the user linked to this member"""
         try:
             user = User.objects.get(member=obj)
-            return user.role
+            roles = user.groups.values_list('name', flat=True)
+            if roles:
+                return ", ".join(roles)
+            return "No roles"
         except User.DoesNotExist:
             return 'No user'
-    get_user_role.short_description = 'Role'
+    get_user_roles.short_description = 'Roles'
     
     def get_user_info(self, obj):
         """Display linked user information"""
         try:
             user = User.objects.get(member=obj)
-            return f"{user.email} ({user.role})"
+            roles = user.groups.values_list('name', flat=True)
+            roles_str = ", ".join(roles) if roles else "No roles"
+            return f"{user.email} ({roles_str})"
         except User.DoesNotExist:
             return "No user account linked to this member"
     get_user_info.short_description = 'Linked User Account'

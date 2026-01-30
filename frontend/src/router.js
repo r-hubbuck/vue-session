@@ -76,7 +76,7 @@ const routes = [
     component: ConventionHome,
     meta: { 
       requiresAuth: true,
-      requiresRoles: ['collegiate', 'official', 'non-member', 'alumni'] // Example: only collegiate and officials can access
+      requiresRoles: ['member', 'alumni']
     }
   },
   {
@@ -85,7 +85,7 @@ const routes = [
     component: ExpenseReport,
     meta: { 
       requiresAuth: true,
-      requiresRoles: ['collegiate', 'official', 'non-member', 'alumni']
+      requiresRoles: ['member', 'alumni', 'collegiate_officer', 'alumni_officer']
     }
   },
   {
@@ -94,14 +94,17 @@ const routes = [
     component: ExpenseReportAdmin,
     meta: { 
       requiresAuth: true,
-      requiresRoles: ['collegiate', 'official', 'non-member', 'alumni']
+      requiresRoles: ['hq_staff', 'hq_finance', 'member']
     }
   },
   {
     path: '/convention-check-in',
     name: 'ConventionCheckIn',
     component: ConventionCheckIn,
-    meta: { requiresAuth: true, requiresStaff: true }
+    meta: { 
+      requiresAuth: true,
+      requiresRoles: ['hq_staff', 'member']
+    }
   },
   {
   path: '/convention-travel',
@@ -109,8 +112,7 @@ const routes = [
   component: ConventionTravel,
   meta: { 
     requiresAuth: true,
-    // Optional: Add role restriction if you want only certain users
-    // requiresRoles: ['official'] // Only officials can access
+    requiresRoles: ['hq_staff', 'member']
   }
 },
   // Example: Route only for officials
@@ -159,12 +161,14 @@ router.beforeEach((to, from, next) => {
 
   // Check if route requires specific roles
   if (to.meta.requiresRoles) {
-    const userRole = authStore.userRole
+    const userRoles = authStore.userRoles
     const requiredRoles = to.meta.requiresRoles
     
-    if (!requiredRoles.includes(userRole)) {
-      // User doesn't have the required role, redirect to home with message
-      console.warn(`Access denied: User role '${userRole}' not in required roles ${requiredRoles}`)
+    // Check if user has ANY of the required roles
+    const hasRequiredRole = requiredRoles.some(role => userRoles.includes(role))
+    
+    if (!hasRequiredRole) {
+      console.warn(`Access denied: User roles [${userRoles.join(', ')}] don't include any of [${requiredRoles.join(', ')}]`)
       return next({ 
         name: 'home', 
         query: { 
