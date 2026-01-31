@@ -5,3 +5,4 @@ CLAUDE.md
 *.doc
 *.docx
 .claudeignore
+.claude/
