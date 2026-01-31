@@ -22,7 +22,7 @@ from rest_framework.decorators import throttle_classes
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 
-from .throttles import LoginThrottle, RegisterThrottle, PasswordResetThrottle
+from .throttles import LoginThrottle, RegisterThrottle, PasswordResetThrottle, CodeCheckThrottle
 
 from .tokens import account_activation_token, password_reset_token
 from .models import User, Member, Address, PhoneNumber, StateProvince, Code, ROLE_MEMBER, ROLE_ALUMNI
@@ -56,9 +56,10 @@ def set_csrf_token(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([CodeCheckThrottle])
 def code_check(request):
     """
-    Verify the SMS code and login user
+    Verify the 2FA code and login user
     """
     
     pk = request.session.get('pk')

@@ -14,3 +14,8 @@ class PasswordResetThrottle(AnonRateThrottle):
     """Limit password reset requests"""
     scope = 'sensitive'
     rate = '3/hour'
+
+class CodeCheckThrottle(AnonRateThrottle):
+    """Limit 2FA code attempts to prevent brute force"""
+    scope = 'code_check'
+    rate = '5/minute'

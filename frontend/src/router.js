@@ -142,7 +142,7 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
   // Check if route requires authentication
@@ -159,20 +159,26 @@ router.beforeEach((to, from, next) => {
     }
   }
 
-  // Check if route requires specific roles
-  if (to.meta.requiresRoles) {
+  // For role-protected routes, verify roles with the backend first
+  if (to.meta.requiresRoles && authStore.isAuthenticated) {
+    await authStore.fetchUser()
+
+    if (!authStore.isAuthenticated) {
+      return next({ name: 'login' })
+    }
+
     const userRoles = authStore.userRoles
     const requiredRoles = to.meta.requiresRoles
-    
+
     // Check if user has ANY of the required roles
     const hasRequiredRole = requiredRoles.some(role => userRoles.includes(role))
-    
+
     if (!hasRequiredRole) {
       console.warn(`Access denied: User roles [${userRoles.join(', ')}] don't include any of [${requiredRoles.join(', ')}]`)
-      return next({ 
-        name: 'home', 
-        query: { 
-          error: 'You do not have permission to access that page.' 
+      return next({
+        name: 'home',
+        query: {
+          error: 'You do not have permission to access that page.'
         }
       })
     }
@@ -182,10 +188,10 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresMember) {
     if (!authStore.isMember) {
       console.warn('Access denied: User is not a member')
-      return next({ 
-        name: 'home', 
-        query: { 
-          error: 'This page is only available to TBP members.' 
+      return next({
+        name: 'home',
+        query: {
+          error: 'This page is only available to TBP members.'
         }
       })
     }
