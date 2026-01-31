@@ -458,18 +458,28 @@ def get_states(request):
 
 
 # Admin views
+
+STAFF_ADMIN_ROLES = ['hq_staff', 'hq_finance', 'executive_council']
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 @throttle_classes([AdminRateThrottle])
 def admin_travel_list(request):
     """
     Admin view to list all travel registrations with member information.
+    Restricted to hq_staff, hq_finance, and executive_council roles.
     Rate limited to 100 requests per hour per user.
     Query params:
       - convention_id: Filter by convention (optional, defaults to active convention)
       - travel_method: Filter by travel method (optional)
       - booked: Filter by booking status ('true' for booked flights, 'false' for pending)
     """
+    if not any(request.user.has_role(role) for role in STAFF_ADMIN_ROLES):
+        return Response(
+            {'message': 'You do not have permission to access admin travel data.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
     # Audit log
     logger.info(
         f"Admin travel list accessed by user {request.user.email or request.user.username}",
@@ -544,6 +554,12 @@ def admin_travel_detail(request, travel_id):
     GET: Get full travel details including member info
     PUT: Update booked flight information
     """
+    if not any(request.user.has_role(role) for role in STAFF_ADMIN_ROLES):
+        return Response(
+            {'message': 'You do not have permission to access admin travel data.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
     travel = get_object_or_404(
         ConventionTravel.objects.select_related('registration__member'),
         id=travel_id

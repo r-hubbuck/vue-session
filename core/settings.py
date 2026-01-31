@@ -29,7 +29,7 @@ ENVIRONMENT = os.getenv('ENVIRONMENT', 'local')  # default to 'local'
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = ['dev-portal.tbp.org', 'portal.localhost', 'localhost', '127.0.0.1']
 
@@ -169,29 +169,39 @@ REST_FRAMEWORK = {
 }
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "https://dev-portal.tbp.org"
-    
-]  # Frontend URLs
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
-    "https://dev-portal.tbp.org"
-]  # Frontend URLs
+
+if ENVIRONMENT == 'local':
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:5173",
+    ]
+    CSRF_TRUSTED_ORIGINS = [
+        "http://localhost:5173",
+    ]
+else:
+    CORS_ALLOWED_ORIGINS = [
+        "https://dev-portal.tbp.org",
+    ]
+    CSRF_TRUSTED_ORIGINS = [
+        "https://dev-portal.tbp.org",
+    ]
 
 # SECURE_SSL_REDIRECT = True # Redirect any HTTP request to HTTPS
 # CSRF_COOKIE_SECURE = True # Only sends via HTTPS
  # (can set later to improve security) CSRF_COOKIE_DOMAIN = 'tbp.org' 
 X_FRAME_OPTIONS = 'DENY' # Ensures that the page cannot be displayed in a frame
 
-#CSRF_COOKIE_SAMESITE = 'Strict'
-#SESSION_COOKIE_SAMESITE = 'Strict'
-#CSRF_COOKIE_HTTPONLY = False  # False since we will grab it via universal-cookies
-#SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_HTTPONLY = False  # False since frontend reads CSRF token via JavaScript
+SESSION_COOKIE_HTTPONLY = True
 
-# PROD ONLY
-# CSRF_COOKIE_SECURE = True
-# SESSION_COOKIE_SECURE = True
+# Secure cookies only in production (requires HTTPS)
+if ENVIRONMENT != 'local':
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+
+SESSION_COOKIE_AGE = 3600  # 1 hour
+SESSION_SAVE_EVERY_REQUEST = True  # Reset expiry on each request
 
 AUTH_USER_MODEL = 'accounts.User'
 

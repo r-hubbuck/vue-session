@@ -37,4 +37,9 @@ app.use(Toast, {
 const authStore = useAuthStore()
 authStore.setCsrfToken()
 
+// Verify session with backend on startup before trusting localStorage
+if (authStore.isAuthenticated) {
+  authStore.fetchUser()
+}
+
 app.mount('#app')

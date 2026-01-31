@@ -243,12 +243,13 @@
                   <form @submit.prevent="saveAddressAndCheckIn">
                     <div class="mb-3">
                       <label class="form-label">Address Line 1 <span class="text-danger">*</span></label>
-                      <input 
-                        v-model="addressForm.add_line1" 
-                        type="text" 
+                      <input
+                        v-model="addressForm.add_line1"
+                        type="text"
                         class="form-control"
                         :class="{ 'is-invalid': addressErrors.add_line1 }"
                         required
+                        maxlength="255"
                       >
                       <div v-if="addressErrors.add_line1" class="invalid-feedback">
                         {{ addressErrors.add_line1 }}
@@ -257,11 +258,12 @@
 
                     <div class="mb-3">
                       <label class="form-label">Address Line 2</label>
-                      <input 
-                        v-model="addressForm.add_line2" 
-                        type="text" 
+                      <input
+                        v-model="addressForm.add_line2"
+                        type="text"
                         class="form-control"
                         :class="{ 'is-invalid': addressErrors.add_line2 }"
+                        maxlength="255"
                       >
                       <div v-if="addressErrors.add_line2" class="invalid-feedback">
                         {{ addressErrors.add_line2 }}
@@ -271,12 +273,13 @@
                     <div class="row">
                       <div class="col-md-6 mb-3">
                         <label class="form-label">City <span class="text-danger">*</span></label>
-                        <input 
-                          v-model="addressForm.add_city" 
-                          type="text" 
+                        <input
+                          v-model="addressForm.add_city"
+                          type="text"
                           class="form-control"
                           :class="{ 'is-invalid': addressErrors.add_city }"
                           required
+                          maxlength="100"
                         >
                         <div v-if="addressErrors.add_city" class="invalid-feedback">
                           {{ addressErrors.add_city }}
@@ -286,10 +289,11 @@
                       <div class="col-md-3 mb-3">
                         <label class="form-label">State/Province</label>
                         <input 
-                          v-model="addressForm.add_state" 
-                          type="text" 
+                          v-model="addressForm.add_state"
+                          type="text"
                           class="form-control"
                           :class="{ 'is-invalid': addressErrors.add_state }"
+                          maxlength="100"
                         >
                         <div v-if="addressErrors.add_state" class="invalid-feedback">
                           {{ addressErrors.add_state }}
@@ -299,10 +303,11 @@
                       <div class="col-md-3 mb-3">
                         <label class="form-label">Zip/Postal Code</label>
                         <input 
-                          v-model="addressForm.add_zip" 
-                          type="text" 
+                          v-model="addressForm.add_zip"
+                          type="text"
                           class="form-control"
                           :class="{ 'is-invalid': addressErrors.add_zip }"
+                          maxlength="20"
                         >
                         <div v-if="addressErrors.add_zip" class="invalid-feedback">
                           {{ addressErrors.add_zip }}
@@ -312,12 +317,13 @@
 
                     <div class="mb-3">
                       <label class="form-label">Country <span class="text-danger">*</span></label>
-                      <input 
-                        v-model="addressForm.add_country" 
-                        type="text" 
+                      <input
+                        v-model="addressForm.add_country"
+                        type="text"
                         class="form-control"
                         :class="{ 'is-invalid': addressErrors.add_country }"
                         required
+                        maxlength="100"
                       >
                       <div v-if="addressErrors.add_country" class="invalid-feedback">
                         {{ addressErrors.add_country }}

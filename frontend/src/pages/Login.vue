@@ -61,6 +61,7 @@
 
 <script>
 import { useAuthStore } from "../store/auth";
+import { isValidEmail } from "../utils/validation";
 
 export default {
   setup() {
@@ -86,8 +87,7 @@ export default {
   },
   methods: {
     validateEmail() {
-      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      this.emailError = re.test(this.email)
+      this.emailError = isValidEmail(this.email)
         ? ""
         : "Please enter a valid email address.";
     },

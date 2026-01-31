@@ -20,11 +20,12 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.decorators import throttle_classes
 from django.shortcuts import get_object_or_404
+from django.db import transaction
 
 from .throttles import LoginThrottle, RegisterThrottle, PasswordResetThrottle
 
 from .tokens import account_activation_token, password_reset_token
-from .models import User, Member, Address, PhoneNumber, StateProvince, ROLE_MEMBER, ROLE_ALUMNI
+from .models import User, Member, Address, PhoneNumber, StateProvince, Code, ROLE_MEMBER, ROLE_ALUMNI
 from .serializers import (
     CodeValidationSerializer,
     LoginSerializer,
@@ -70,32 +71,33 @@ def code_check(request):
         )
     
     try:
-        user = User.objects.get(pk=pk)
-        code = user.code
-        
-        serializer = CodeValidationSerializer(data=request.data)
-        if serializer.is_valid():
-            num = serializer.validated_data['code']
-            if str(code) == num:
-                code.save()
-                login(request, user)
-                return Response(
-                    {'success': True, 'message': 'logged in'}, 
-                    status=status.HTTP_200_OK
-                )
+        with transaction.atomic():
+            user = User.objects.get(pk=pk)
+            code = Code.objects.select_for_update().get(user=user)
+
+            serializer = CodeValidationSerializer(data=request.data)
+            if serializer.is_valid():
+                num = serializer.validated_data['code']
+                if str(code) == num:
+                    code.save()  # Regenerates the code, preventing reuse
+                    login(request, user)
+                    return Response(
+                        {'success': True, 'message': 'logged in'},
+                        status=status.HTTP_200_OK
+                    )
+                else:
+                    return Response(
+                        {'success': False, 'message': 'Invalid code'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             else:
                 return Response(
-                    {'success': False, 'message': 'Invalid code'}, 
+                    {'success': False, 'errors': serializer.errors},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-        else:
-            return Response(
-                {'success': False, 'errors': serializer.errors}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
     except User.DoesNotExist:
         return Response(
-            {'success': False, 'message': 'User not found'}, 
+            {'success': False, 'message': 'User not found'},
             status=status.HTTP_404_NOT_FOUND
         )
 
@@ -153,16 +155,10 @@ def login_view(request):
                 status=status.HTTP_200_OK
             )
         else:
-            if not User.objects.filter(email=email).exists():
-                return Response(
-                    {'success': False, 'message': 'There is no account registered for the provided email.'}, 
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-            else:
-                return Response(
-                    {'success': False, 'message': 'Incorrect password.'}, 
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
+            return Response(
+                {'success': False, 'message': 'Invalid email or password.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
     else:
         return Response(
             {'success': False, 'errors': serializer.errors}, 
@@ -362,7 +358,7 @@ SQL_PROD_HOST = os.getenv('SQL_PROD_HOST')
 SQL_USER = os.getenv('SQL_USER')
 
 class ChapterListAPIView(APIView):
-    permission_classes = []
+    permission_classes = [AllowAny]
 
     def get(self, request):
         print('connecting...')
@@ -398,7 +394,7 @@ class VerifyMemberAPIView(APIView):
     API view to verify a member by email, chapter, and year using SQL Server.
     Returns success if a matching record is found, otherwise returns an error message.
     """
-    permission_classes = []
+    permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = VerifyMemberSerializer(data=request.data)
@@ -1033,11 +1029,14 @@ class PhoneNumberViewSet(viewsets.ModelViewSet):
         # For other lengths, return as-is (international numbers, etc.)
         return digits_only
     
+    # Allowed SQL column names for phone sync — used to prevent SQL injection
+    ALLOWED_SQL_COLUMNS = set(PHONE_TYPE_TO_COLUMN.values())
+
     def _sync_phone_to_sql_server(self, action, member_id, phone_type, phone_number=None):
         """
         Sync phone number changes to SQL Server database.
         Phone numbers are stored in the Address table where add_type='Home'.
-        
+
         Args:
             action: 'create', 'update', or 'delete'
             member_id: The member_id to sync
@@ -1045,7 +1044,7 @@ class PhoneNumberViewSet(viewsets.ModelViewSet):
             phone_number: The phone number (digits only) or None for delete
         """
         column_name = self._get_sql_column_for_type(phone_type)
-        if not column_name:
+        if not column_name or column_name not in self.ALLOWED_SQL_COLUMNS:
             print(f"Warning: Unknown phone type '{phone_type}', skipping SQL Server sync")
             return
         

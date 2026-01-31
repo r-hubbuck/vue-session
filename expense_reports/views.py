@@ -229,15 +229,22 @@ def upload_receipts(request, report_id):
 
 
 
-# Staff/Admin endpoints (no authorization yet, but structured for future)
+# Staff/Admin endpoints
+
+STAFF_EXPENSE_ROLES = ['hq_staff', 'hq_finance', 'executive_council']
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def all_expense_reports(request):
     """
     Get all expense reports (for staff review).
-    In the future, this should be restricted to staff only.
+    Restricted to hq_staff, hq_finance, and executive_council roles.
     """
+    if not any(request.user.has_role(role) for role in STAFF_EXPENSE_ROLES):
+        return Response(
+            {'message': 'You do not have permission to view all expense reports.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
     # Filter by status if provided
     status_filter = request.query_params.get('status')
     
@@ -260,9 +267,15 @@ def all_expense_reports(request):
 def staff_expense_report_detail(request, report_id):
     """
     Staff view/update of expense report.
+    Restricted to hq_staff, hq_finance, and executive_council roles.
     GET: View any expense report.
     PUT: Update status, review, payment information.
     """
+    if not any(request.user.has_role(role) for role in STAFF_EXPENSE_ROLES):
+        return Response(
+            {'message': 'You do not have permission to access this expense report.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
     expense_report = get_object_or_404(
         ExpenseReport.objects.select_related(
             'member',

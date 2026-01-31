@@ -22,7 +22,7 @@
     <div v-else-if="error" class="section-card">
       <div class="alert alert-danger" style="border-left: 4px solid #ef4444;">
         <i class="bi bi-exclamation-triangle me-2"></i>
-        {{ sanitizeText(error) }}
+        {{ error }}
       </div>
     </div>
 
@@ -43,7 +43,7 @@
           <div class="row g-4">
             <div class="col-md-6">
               <label for="email" class="form-label">Primary Email</label>
-              <input type="email" class="form-control" id="email" :value="sanitizeText(accountData.email)" disabled />
+              <input type="email" class="form-control" id="email" :value="accountData.email" disabled />
               <small class="form-text">Primary email cannot be changed</small>
             </div>
             <div class="col-md-6">
@@ -61,20 +61,20 @@
               />
               <small class="form-text">Used for notifications and recovery</small>
               <div v-if="emailValidationError" class="text-danger mt-2">
-                <i class="bi bi-exclamation-circle me-1"></i>{{ sanitizeText(emailValidationError) }}
+                <i class="bi bi-exclamation-circle me-1"></i>{{ emailValidationError }}
               </div>
               <div v-if="accountErrors.alt_email" class="text-danger mt-2">
-                <i class="bi bi-exclamation-circle me-1"></i>{{ sanitizeText(accountErrors.alt_email[0]) }}
+                <i class="bi bi-exclamation-circle me-1"></i>{{ accountErrors.alt_email[0] }}
               </div>
             </div>
           </div>
 
           <div v-if="accountError" class="alert alert-danger mt-4" style="border-left: 4px solid #ef4444;">
-            <i class="bi bi-exclamation-triangle me-2"></i>{{ sanitizeText(accountError) }}
+            <i class="bi bi-exclamation-triangle me-2"></i>{{ accountError }}
           </div>
 
           <div v-if="accountSuccess" class="alert-success-custom mt-4">
-            <i class="bi bi-check-circle-fill me-2"></i>{{ sanitizeText(accountSuccess) }}
+            <i class="bi bi-check-circle-fill me-2"></i>{{ accountSuccess }}
           </div>
 
           <button type="submit" class="btn btn-primary mt-4" :disabled="accountSaving || emailValidationError">
@@ -109,11 +109,11 @@
 
         <form @submit.prevent="saveAllPhones" v-else>
           <div v-if="phoneSuccess" class="alert-success-custom mb-3">
-            <i class="bi bi-check-circle-fill me-2"></i>{{ sanitizeText(phoneSuccess) }}
+            <i class="bi bi-check-circle-fill me-2"></i>{{ phoneSuccess }}
           </div>
 
           <div v-if="phoneError" class="alert alert-danger mb-3" style="border-left: 4px solid #ef4444;">
-            <i class="bi bi-exclamation-triangle me-2"></i>{{ sanitizeText(phoneError) }}
+            <i class="bi bi-exclamation-triangle me-2"></i>{{ phoneError }}
           </div>
 
           <div class="table-responsive">
@@ -145,7 +145,7 @@
                       @change="formatPhoneNumber(phone, index)"
                     >
                       <option v-for="country in countryCodes" :key="country.code" :value="country.code">
-                        {{ country.flag }} {{ country.code }} - {{ sanitizeText(country.name) }}
+                        {{ country.flag }} {{ country.code }} - {{ country.name }}
                       </option>
                     </select>
                   </td>
@@ -161,7 +161,7 @@
                       :class="{'is-invalid': phone.validationError}"
                     />
                     <div v-if="phone.validationError" class="text-danger small mt-1">
-                      {{ sanitizeText(phone.validationError) }}
+                      {{ phone.validationError }}
                     </div>
                   </td>
                   <td class="text-center">
@@ -233,11 +233,11 @@
 
         <form @submit.prevent="saveAllAddresses" v-else>
           <div v-if="addressSuccess" class="alert-success-custom mb-3">
-            <i class="bi bi-check-circle-fill me-2"></i>{{ sanitizeText(addressSuccess) }}
+            <i class="bi bi-check-circle-fill me-2"></i>{{ addressSuccess }}
           </div>
 
           <div v-if="addressError" class="alert alert-danger mb-3" style="border-left: 4px solid #ef4444;">
-            <i class="bi bi-exclamation-triangle me-2"></i>{{ sanitizeText(addressError) }}
+            <i class="bi bi-exclamation-triangle me-2"></i>{{ addressError }}
           </div>
 
           <div class="table-responsive">
@@ -310,7 +310,7 @@
                           :key="state.id" 
                           :value="state.abbrev"
                         >
-                          {{ sanitizeText(state.name) }}
+                          {{ state.name }}
                         </option>
                       </optgroup>
                     </select>
@@ -399,6 +399,7 @@
 
 <script>
 import api from '../api'
+import { isValidEmail, validatePhone, isValidAddressField } from '../utils/validation'
 
 export default {
   name: 'UserAccount',
@@ -508,20 +509,7 @@ export default {
   },
   
   methods: {
-    // Security: Sanitize text output to prevent XSS
-    sanitizeText(text) {
-      if (!text) return ''
-      const div = document.createElement('div')
-      div.textContent = text
-      return div.innerHTML
-    },
-    
-    // Validate email format
-    isValidEmail(email) {
-      if (!email) return true // Optional field
-      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
-      return emailRegex.test(email) && email.length <= 100
-    },
+    isValidEmail,
     
     validateAltEmail() {
       this.emailValidationError = null
@@ -530,35 +518,11 @@ export default {
       }
     },
     
-    // Validate and sanitize phone number input
+    // Validate phone number using libphonenumber-js
     validatePhoneNumber(phone) {
-      const cleanNumber = this.getCleanPhoneNumber(phone.phone_number)
-      
-      if (!cleanNumber) {
-        phone.validationError = 'Phone number is required'
-        return false
-      }
-      
-      // Check for valid characters (digits, spaces, dashes, parentheses, plus)
-      if (!/^[\d\s\-\(\)\+]+$/.test(phone.phone_number)) {
-        phone.validationError = 'Phone number contains invalid characters'
-        return false
-      }
-      
-      if (phone.country_code === '+1') {
-        if (cleanNumber.length !== 10) {
-          phone.validationError = 'US/Canada numbers must be 10 digits'
-          return false
-        }
-      } else {
-        if (cleanNumber.length < 6 || cleanNumber.length > 15) {
-          phone.validationError = 'Phone number must be 6-15 digits'
-          return false
-        }
-      }
-      
-      phone.validationError = null
-      return true
+      const result = validatePhone(phone.phone_number, phone.country_code)
+      phone.validationError = result.error
+      return result.valid
     },
     
     handlePhoneInput(phone, index) {
@@ -956,6 +920,10 @@ export default {
           
           if (!add_line1 || !add_city) {
             throw new Error('Address line 1 and city are required')
+          }
+
+          if (!isValidAddressField(add_line1) || !isValidAddressField(add_line2) || !isValidAddressField(add_city)) {
+            throw new Error('Address fields contain invalid characters')
           }
           
           const stateValue = ['United States', 'Canada', 'Australia'].includes(address.add_country)

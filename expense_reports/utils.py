@@ -23,14 +23,36 @@ ALLOWED_IMAGE_TYPES = {'image/png', 'image/jpeg', 'image/jpg'}
 ALLOWED_PDF_TYPE = 'application/pdf'
 ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.pdf'}
 
+# Magic bytes for file type verification
+FILE_SIGNATURES = {
+    b'%PDF': 'pdf',
+    b'\x89PNG': 'png',
+    b'\xff\xd8\xff': 'jpeg',
+}
+
+
+def _verify_magic_bytes(uploaded_file):
+    """
+    Verify the actual file type by reading magic bytes from the file header.
+    Returns the detected type ('pdf', 'png', 'jpeg') or None if unrecognized.
+    """
+    pos = uploaded_file.tell()
+    header = uploaded_file.read(8)
+    uploaded_file.seek(pos)
+
+    for signature, file_type in FILE_SIGNATURES.items():
+        if header.startswith(signature):
+            return file_type
+    return None
+
 
 def validate_receipt_file(uploaded_file):
     """
     Validate an uploaded receipt file.
-    
+
     Args:
         uploaded_file: Django UploadedFile object
-        
+
     Raises:
         ValidationError: If file is invalid
     """
@@ -39,21 +61,41 @@ def validate_receipt_file(uploaded_file):
         raise ValidationError(
             f'File {uploaded_file.name} is too large. Maximum size is {MAX_FILE_SIZE / (1024*1024):.0f}MB.'
         )
-    
+
     # Check file extension
     ext = os.path.splitext(uploaded_file.name)[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise ValidationError(
             f'File type {ext} is not allowed. Allowed types: {", ".join(ALLOWED_EXTENSIONS)}'
         )
-    
+
     # Check content type
     content_type = uploaded_file.content_type
     if content_type not in ALLOWED_IMAGE_TYPES and content_type != ALLOWED_PDF_TYPE:
         raise ValidationError(
             f'Invalid file type: {content_type}. Only PNG, JPEG, and PDF files are allowed.'
         )
-    
+
+    # Verify actual file contents match claimed type
+    detected_type = _verify_magic_bytes(uploaded_file)
+    if detected_type is None:
+        raise ValidationError(
+            f'File {uploaded_file.name} does not appear to be a valid PNG, JPEG, or PDF file.'
+        )
+
+    # Cross-check detected type against claimed content type
+    expected_types = {
+        'application/pdf': 'pdf',
+        'image/png': 'png',
+        'image/jpeg': 'jpeg',
+        'image/jpg': 'jpeg',
+    }
+    expected = expected_types.get(content_type)
+    if expected and detected_type != expected:
+        raise ValidationError(
+            f'File {uploaded_file.name} content does not match its declared type.'
+        )
+
     return True
 
 

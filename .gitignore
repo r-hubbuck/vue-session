@@ -1,2 +1,7 @@
 .env
 venv/
+CLAUDE.md
+*.pdf
+*.doc
+*.docx
+.claudeignore

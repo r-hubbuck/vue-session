@@ -684,6 +684,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import api from '../../api'
 import { useToast } from 'vue-toastification'
+import { isValidEmail } from '../../utils/validation'
 
 const toast = useToast()
 
@@ -912,12 +913,7 @@ const isValidAccommodationDates = computed(() => {
   return new Date(accommodation.value.check_out_date) >= new Date(accommodation.value.check_in_date)
 })
 
-// Email validation helper
-const isValidEmail = (email) => {
-  if (!email) return true // Optional field
-  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return re.test(email)
-}
+// Email validation uses shared utility from utils/validation.js
 
 const formatDateTime = (dateTimeString) => {
   if (!dateTimeString) return ''
