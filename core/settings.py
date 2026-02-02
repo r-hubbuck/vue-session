@@ -145,6 +145,9 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = '/portal/vue-session/staticfiles'  # ADD THIS LINE
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = '/portal/vue-session/media'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
