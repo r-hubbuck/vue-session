@@ -408,7 +408,7 @@ class VerifyMemberAPIView(APIView):
             print('connecting...')
             conn = pymssql.connect(
                 server=SQL_PROD_HOST,
-                tds_version=r'7.0', 
+                tds_version=r'7.0',
                 user=SQL_USER,
                 password=SQL_PASSWORD,
                 database='Member'

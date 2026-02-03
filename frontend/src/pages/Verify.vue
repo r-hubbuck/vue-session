@@ -109,7 +109,6 @@ export default {
     
     async mounted() {
         this.authStore.clearMessage()
-        await this.authStore.fetchUser()
         await this.fetchChapters()
         
         // Show message if redirected from register page
