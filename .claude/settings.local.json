@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(xargs:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(python manage.py:*)",
+      "Bash(ls:*)",
+      "Bash(source:*)",
+      "Bash(npm run build:*)",
+      "Bash(python -c:*)",
+      "Bash(DJANGO_SETTINGS_MODULE=core.settings python:*)"
     ]
   }
 }

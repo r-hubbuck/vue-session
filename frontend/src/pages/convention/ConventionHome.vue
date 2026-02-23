@@ -135,6 +135,50 @@
 
         <hr class="my-4" style="border-color: #e2e8f0;">
 
+        <!-- Recruiter Visibility -->
+        <div class="form-check mb-3" style="padding: 1rem; background: #fafbfc; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <input
+            v-model="visibleToRecruiters"
+            class="form-check-input"
+            type="checkbox"
+            id="visibleToRecruiters"
+            @change="saveRecruiterVisibility"
+          >
+          <label class="form-check-label" for="visibleToRecruiters" style="font-weight: 500;">
+            Visible to recruiters
+          </label>
+          <small class="d-block text-muted mt-1">
+            Allow business and graduate school recruiters to see your name, chapter, and resume (if uploaded) during the convention.
+          </small>
+        </div>
+
+        <!-- Resume Upload -->
+        <div class="mb-3 p-3" style="background: #fafbfc; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <h6 style="font-weight: 600; margin-bottom: 0.5rem; color: #1a202c;">Resume (PDF)</h6>
+          <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 0.75rem;">
+            Upload your resume for recruiters attending the convention. PDF only, max 5MB.
+          </p>
+          <div v-if="resumeUrl" class="mb-2">
+            <a :href="resumeUrl" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-custom me-2">
+              <i class="bi bi-file-earmark-pdf me-1"></i>View Current Resume
+            </a>
+            <button @click="deleteResume" class="btn btn-sm btn-outline-danger" :disabled="saving">
+              <i class="bi bi-trash me-1"></i>Remove
+            </button>
+            <small v-if="resumeUploadedAt" class="text-muted ms-2">Uploaded: {{ resumeUploadedAt }}</small>
+          </div>
+          <input
+            type="file"
+            accept=".pdf"
+            class="form-control form-control-sm"
+            style="max-width: 400px;"
+            @change="uploadResume"
+            :disabled="saving"
+          >
+        </div>
+
+        <hr class="my-4" style="border-color: #e2e8f0;">
+
         <!-- Mobile Phone for Convention Contact -->
         <h6 style="font-weight: 600; margin-bottom: 0.5rem; color: #1a202c;">Mobile Phone Number</h6>
         <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">
@@ -709,6 +753,11 @@ const mobilePhone = ref({
   formatted_number: ''
 })
 
+// Recruiter visibility & resume
+const visibleToRecruiters = ref(true)
+const resumeUrl = ref(null)
+const resumeUploadedAt = ref(null)
+
 // Clean phone number - remove all non-digits
 const getCleanPhoneNumber = (phoneNumber) => {
   if (!phoneNumber) return ''
@@ -1006,6 +1055,19 @@ const fetchRegistration = async () => {
 }
 
 const loadRegistrationData = async (data) => {
+  // Load recruiter visibility
+  if (data.visible_to_recruiters !== undefined) {
+    visibleToRecruiters.value = data.visible_to_recruiters
+  }
+
+  // Load resume info
+  if (data.member_info?.resume_url) {
+    resumeUrl.value = data.member_info.resume_url
+  }
+  if (data.member_info?.resume_uploaded_at) {
+    resumeUploadedAt.value = new Date(data.member_info.resume_uploaded_at).toLocaleDateString()
+  }
+
   // Load member info
   if (data.member_info) {
     memberInfo.value = { ...data.member_info }
@@ -1142,6 +1204,63 @@ const saveMobilePhone = async () => {
   } catch (error) {
     console.error('Error saving mobile phone:', error)
     toast.error('Failed to save mobile phone')
+  } finally {
+    saving.value = false
+  }
+}
+
+const saveRecruiterVisibility = async () => {
+  try {
+    await api.put(`/api/convention/registration/${registration.value.id}/visibility/`, {
+      visible_to_recruiters: visibleToRecruiters.value
+    })
+    toast.success('Recruiter visibility updated!')
+  } catch (error) {
+    console.error('Error saving recruiter visibility:', error)
+    toast.error('Failed to update visibility setting')
+  }
+}
+
+const uploadResume = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  if (!file.name.toLowerCase().endsWith('.pdf') || file.type !== 'application/pdf') {
+    toast.error('Only PDF files are accepted')
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    toast.error('File size must be under 5MB')
+    return
+  }
+
+  saving.value = true
+  try {
+    const formData = new FormData()
+    formData.append('resume', file)
+    const res = await api.post('/api/recruiters/member/resume/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    resumeUrl.value = res.data.resume_url
+    resumeUploadedAt.value = new Date(res.data.uploaded_at).toLocaleDateString()
+    toast.success('Resume uploaded!')
+  } catch (error) {
+    toast.error(error.response?.data?.error || 'Failed to upload resume')
+  } finally {
+    saving.value = false
+  }
+}
+
+const deleteResume = async () => {
+  if (!confirm('Remove your resume?')) return
+  saving.value = true
+  try {
+    await api.delete('/api/recruiters/member/resume/')
+    resumeUrl.value = null
+    resumeUploadedAt.value = null
+    toast.success('Resume removed')
+  } catch (error) {
+    toast.error('Failed to remove resume')
   } finally {
     saving.value = false
   }

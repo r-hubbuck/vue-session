@@ -15,6 +15,13 @@ import ConventionTravel from './pages/convention/ConventionTravel.vue'
 import ConventionCheckIn from './pages/convention/ConventionCheckIn.vue'
 import ExpenseReport from './pages/ExpenseReport.vue'
 import ExpenseReportAdmin from './pages/ExpenseReportAdmin.vue'
+import RecruiterRegister from './pages/recruiter/RecruiterRegister.vue'
+import RecruiterDashboard from './pages/recruiter/RecruiterDashboard.vue'
+import RecruiterConvention from './pages/recruiter/RecruiterConvention.vue'
+import RecruiterAttendees from './pages/recruiter/RecruiterAttendees.vue'
+import RecruiterInvoices from './pages/recruiter/RecruiterInvoices.vue'
+import RecruiterAdmin from './pages/recruiter/RecruiterAdmin.vue'
+import InvoiceAdmin from './pages/recruiter/InvoiceAdmin.vue'
 
 const routes = [
   {
@@ -115,6 +122,66 @@ const routes = [
     requiresRoles: ['hq_staff', 'member']
   }
 },
+  // Recruiter routes
+  {
+    path: '/recruiter/register',
+    name: 'recruiter-register',
+    component: RecruiterRegister,
+  },
+  {
+    path: '/recruiter/dashboard',
+    name: 'recruiter-dashboard',
+    component: RecruiterDashboard,
+    meta: {
+      requiresAuth: true,
+      requiresRoles: ['recruiter']
+    }
+  },
+  {
+    path: '/recruiter/convention',
+    name: 'recruiter-convention',
+    component: RecruiterConvention,
+    meta: {
+      requiresAuth: true,
+      requiresRoles: ['recruiter']
+    }
+  },
+  {
+    path: '/recruiter/attendees',
+    name: 'recruiter-attendees',
+    component: RecruiterAttendees,
+    meta: {
+      requiresAuth: true,
+      requiresRoles: ['recruiter']
+    }
+  },
+  {
+    path: '/recruiter/invoices',
+    name: 'recruiter-invoices',
+    component: RecruiterInvoices,
+    meta: {
+      requiresAuth: true,
+      requiresRoles: ['recruiter']
+    }
+  },
+  {
+    path: '/recruiter-admin',
+    name: 'recruiter-admin',
+    component: RecruiterAdmin,
+    meta: {
+      requiresAuth: true,
+      requiresRoles: ['hq_staff', 'hq_admin']
+    }
+  },
+  {
+    path: '/invoice-admin',
+    name: 'invoice-admin',
+    component: InvoiceAdmin,
+    meta: {
+      requiresAuth: true,
+      requiresRoles: ['hq_staff', 'hq_finance', 'hq_admin']
+    }
+  },
   // Example: Route only for officials
   // {
   //   path: '/admin',

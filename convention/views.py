@@ -21,6 +21,8 @@ from django.shortcuts import get_object_or_404
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
+from django.db import transaction, IntegrityError
+import re
 
 from .models import (
     Convention,
@@ -118,7 +120,7 @@ def my_registration(request):
             )
     
     elif request.method == 'POST':
-        # Check if registration already exists
+        # Check if registration already exists (pre-check before acquiring lock)
         if ConventionRegistration.objects.filter(
             convention=convention,
             member=request.user.member
@@ -127,13 +129,31 @@ def my_registration(request):
                 {'message': 'You are already registered for this convention'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Create registration
         serializer = ConventionRegistrationCreateSerializer(
             data={'convention': convention.id}
         )
         if serializer.is_valid():
-            registration = serializer.save(member=request.user.member)
+            try:
+                with transaction.atomic():
+                    # Re-check inside lock to prevent race conditions
+                    member = request.user.member.__class__.objects.select_for_update().get(
+                        pk=request.user.member.pk
+                    )
+                    if ConventionRegistration.objects.filter(
+                        convention=convention, member=member
+                    ).exists():
+                        return Response(
+                            {'message': 'You are already registered for this convention'},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    registration = serializer.save(member=member)
+            except IntegrityError:
+                return Response(
+                    {'message': 'You are already registered for this convention'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             
             # Send confirmation email (inline - matches account activation pattern)
             try:
@@ -148,7 +168,9 @@ def my_registration(request):
                     'domain': DOMAIN,
                 })
                 
-                to_email = member.user.email  # Email is on User, not Member
+                if not member.user:
+                    raise Exception("Member has no associated user account")
+                to_email = member.user.email
                 email_msg = EmailMultiAlternatives(
                     subject=mail_subject,
                     body='',
@@ -156,7 +178,7 @@ def my_registration(request):
                 )
                 email_msg.attach_alternative(message, "text/html")
                 email_msg.send()
-                
+
                 logger.info(
                     f"Registration confirmation email sent to {to_email}",
                     extra={
@@ -171,7 +193,7 @@ def my_registration(request):
                     f"Failed to send registration confirmation email: {str(e)}",
                     extra={
                         'registration_id': registration.id,
-                        'member_id': request.user.member.id,
+                        'member_id': registration.member.id,
                         'error': str(e)
                     }
                 )
@@ -222,13 +244,37 @@ def update_mobile_phone(request):
     
     member = request.user.member
     phone_number = request.data.get('phone_number', '').strip()
-    
+
     if not phone_number:
         return Response(
             {'message': 'Phone number is required'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+
+    # Clean and validate phone number
+    clean_number = re.sub(r'\D', '', phone_number)
+    if not clean_number:
+        return Response(
+            {'message': 'Phone number must contain digits.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if len(clean_number) < 10 or len(clean_number) > 15:
+        return Response(
+            {'message': 'Phone number must be between 10 and 15 digits.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if len(set(clean_number)) == 1:
+        return Response(
+            {'message': 'Please enter a valid phone number.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if len(clean_number) == 10 and (clean_number[0] in ('0', '1') or clean_number[3] in ('0', '1')):
+        return Response(
+            {'message': 'Please enter a valid phone number.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    phone_number = clean_number
+
     # Get or create mobile phone
     mobile_phone, created = PhoneNumber.objects.get_or_create(
         member=member,
@@ -685,7 +731,9 @@ def admin_travel_detail(request, travel_id):
                         'domain': DOMAIN,
                     })
                     
-                    to_email = member.user.email  # Email is on User, not Member
+                    if not member.user:
+                        raise Exception("Member has no associated user account")
+                    to_email = member.user.email
                     email_msg = EmailMultiAlternatives(
                         subject=mail_subject,
                         body='',
@@ -801,5 +849,31 @@ def update_registration_status(request, registration_id):
         
         response_serializer = CheckInListSerializer(updated_registration)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
-    
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_recruiter_visibility(request, registration_id):
+    """
+    Update visible_to_recruiters for a registration.
+    """
+    if not hasattr(request.user, 'member'):
+        return Response(
+            {'error': 'No member profile.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    registration = get_object_or_404(
+        ConventionRegistration,
+        id=registration_id,
+        member=request.user.member
+    )
+
+    visible = request.data.get('visible_to_recruiters')
+    if visible is not None:
+        registration.visible_to_recruiters = bool(visible)
+        registration.save(update_fields=['visible_to_recruiters'])
+
+    return Response({'visible_to_recruiters': registration.visible_to_recruiters})

@@ -47,6 +47,10 @@ export const useAuthStore = defineStore('auth', {
     isHQStaff: (state) => state.user?.roles?.includes('hq_staff') || false,
     isHQIT: (state) => state.user?.roles?.includes('hq_it') || false,
     isHQFinance: (state) => state.user?.roles?.includes('hq_finance') || false,
+
+    // Recruiter
+    isRecruiter: (state) => state.user?.user_type === 'recruiter',
+    userType: (state) => state.user?.user_type || 'member',
     
     // Convenience getters for permission checks
     isAnyMember: (state) => {
@@ -148,15 +152,20 @@ export const useAuthStore = defineStore('auth', {
     async verify(code, router = null) {
       try {
         const response = await api.post('/api/accounts/code-check', { code })
-        
+
         if (response.data.success) {
           this.isAuthenticated = true
-          
+
           // Fetch user data after successful verification to get role
           await this.fetchUser()
-          
+
           if (router) {
-            await router.push({ name: 'home' })
+            // Route recruiters to their dashboard
+            if (this.user?.user_type === 'recruiter') {
+              await router.push({ name: 'recruiter-dashboard' })
+            } else {
+              await router.push({ name: 'home' })
+            }
           }
         }
       } catch (error) {

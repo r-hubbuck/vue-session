@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid mt-4">
+  <div v-if="hasAccess" class="container-fluid mt-4">
     <h1>Expense Reports Administration</h1>
     
     <!-- Summary Stats -->
@@ -500,7 +500,7 @@
               </div>
               <div class="card-body">
                 <div v-if="selectedReport.receipt_url">
-                  <a :href="selectedReport.receipt_url" target="_blank" class="btn btn-primary">
+                  <a :href="selectedReport.receipt_url" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
                     <i class="bi bi-file-earmark-pdf me-2"></i>View Receipt PDF
                   </a>
                   <p class="text-muted mt-2 mb-0">
@@ -529,13 +529,21 @@
       <button type="button" class="btn-close" @click="success = null"></button>
     </div>
   </div>
+  <div v-else class="container-fluid mt-4">
+    <div class="alert alert-danger">You do not have permission to view this page.</div>
+  </div>
 </template>
 
 <script>
 import api from '../api'
+import { useAuthStore } from '../store/auth'
 
 export default {
   name: 'ExpenseReportAdmin',
+  setup() {
+    const authStore = useAuthStore()
+    return { authStore }
+  },
   data() {
     return {
       expenseReports: [],
@@ -560,6 +568,9 @@ export default {
     }
   },
   computed: {
+    hasAccess() {
+      return this.authStore.hasRole('hq_staff') || this.authStore.hasRole('hq_finance') || this.authStore.hasRole('member')
+    },
     totalAmount() {
       return this.expenseReports
         .reduce((sum, r) => sum + parseFloat(r.total_amount), 0)
@@ -581,7 +592,7 @@ export default {
         }
         
         const response = await api.get(url)
-        this.expenseReports = response.data
+        this.expenseReports = response.data.results ?? response.data
         this.filterReports()
       } catch (err) {
         console.error('Error loading expense reports:', err)
@@ -638,6 +649,7 @@ export default {
     },
     
     async updateReportStatus() {
+      if (this.updateLoading) return
       this.updateLoading = true
       this.error = null
       this.success = null
@@ -710,17 +722,20 @@ export default {
         }, 1500)
       } catch (err) {
         console.error('Error updating report:', err)
-        this.error = err.response?.data?.error || 'Failed to update report. Please try again.'
+        this.error = (err.response?.data && typeof err.response.data === 'object'
+          ? Object.values(err.response.data).flat().join(' ')
+          : null) || 'Failed to update report. Please try again.'
       } finally {
         this.updateLoading = false
       }
     },
     
     async quickMarkAsPaid(report) {
+      if (this.loading) return
       if (!confirm(`Mark expense report #${report.id} as paid?`)) {
         return
       }
-      
+
       this.loading = true
       this.error = null
       this.success = null

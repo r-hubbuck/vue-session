@@ -1,3 +1,4 @@
+import bleach
 from rest_framework import serializers
 from .models import Code, User, Address, PhoneNumber, StateProvince, UsedToken
 from django.core.validators import validate_email
@@ -76,9 +77,10 @@ class CreateUserSerializer(serializers.ModelSerializer):
                 self.existing_inactive_user = existing_user
                 return value
             else:
-                # User exists and IS active - block registration
+                # User exists and IS active - use generic message to avoid confirming
+                # whether a specific email is registered in the system
                 raise serializers.ValidationError(
-                    'An account with this email already exists and is active. Please login instead.'
+                    'This email address cannot be used for registration.'
                 )
         
         # Email doesn't exist - normal registration flow
@@ -167,6 +169,11 @@ class VerifyMemberSerializer(serializers.Serializer):
             raise serializers.ValidationError("Please enter a valid email address.")
         return value
 
+    def validate_chapter(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
     def validate_year(self, value):
         if not value.isdigit() or len(value) != 4:
             raise serializers.ValidationError("Year must be a 4-digit number.")
@@ -174,11 +181,31 @@ class VerifyMemberSerializer(serializers.Serializer):
 
 class AddressSerializer(serializers.ModelSerializer):
     display_name = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Address
         fields = ['id', 'add_line1', 'add_line2', 'add_city', 'add_state', 'add_zip', 'add_country', 'add_type', 'is_primary', 'display_name']
-        
+
+    def validate_add_line1(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_add_line2(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_add_city(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_add_state(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
     def get_display_name(self, obj):
         """Return a formatted address string for display in dropdowns"""
         parts = [obj.add_line1]
@@ -242,11 +269,8 @@ class PasswordResetRequestSerializer(serializers.Serializer):
             validate_email(value)
         except ValidationError:
             raise serializers.ValidationError("Please enter a valid email address.")
-        
-        # Check if user exists and is active
-        if not User.objects.filter(email=value, is_active=True).exists():
-            raise serializers.ValidationError("No active account found with this email address.")
-        
+        # Do NOT check if the user exists here — the view returns a generic response
+        # regardless of whether the email is registered, preventing email enumeration.
         return value
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
@@ -302,12 +326,22 @@ class PhoneNumberSerializer(serializers.ModelSerializer):
     
     def validate_phone_number(self, value):
         """Strip all formatting and validate digits only"""
-        # Remove all non-digit characters
         clean_number = re.sub(r'\D', '', value)
-        
+
         if not clean_number:
             raise serializers.ValidationError("Phone number must contain digits.")
-        
+
+        if len(clean_number) < 10 or len(clean_number) > 15:
+            raise serializers.ValidationError("Phone number must be between 10 and 15 digits.")
+
+        if len(set(clean_number)) == 1:
+            raise serializers.ValidationError("Please enter a valid phone number.")
+
+        # US 10-digit: area code and exchange cannot start with 0 or 1
+        if len(clean_number) == 10:
+            if clean_number[0] in ('0', '1') or clean_number[3] in ('0', '1'):
+                raise serializers.ValidationError("Please enter a valid phone number.")
+
         return clean_number
     
     def validate(self, data):
@@ -355,11 +389,12 @@ class UserAccountSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     member = serializers.SerializerMethodField()
     roles = serializers.SerializerMethodField()
-    
+    recruiter_profile = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'email', 'alt_email', 'roles', 'member']
-    
+        fields = ['id', 'email', 'alt_email', 'user_type', 'roles', 'member', 'recruiter_profile']
+
     def get_member(self, obj):
         if obj.member:
             return {
@@ -372,10 +407,22 @@ class UserSerializer(serializers.ModelSerializer):
                 'district': obj.member.district,
             }
         return None
-    
+
     def get_roles(self, obj):
         """Return list of all role names (groups) for the user"""
         return list(obj.groups.values_list('name', flat=True))
+
+    def get_recruiter_profile(self, obj):
+        if obj.user_type == 'recruiter' and hasattr(obj, 'recruiter_profile'):
+            profile = obj.recruiter_profile
+            return {
+                'id': profile.id,
+                'first_name': profile.first_name,
+                'last_name': profile.last_name,
+                'organization_name': profile.organization.name,
+                'is_approved': profile.is_approved,
+            }
+        return None
 
 class StateProvinceSerializer(serializers.ModelSerializer):
     country_name = serializers.ReadOnlyField()

@@ -648,7 +648,7 @@
               </div>
               <div class="card-body">
                 <div v-if="selectedReport.receipt_url">
-                  <a :href="selectedReport.receipt_url" target="_blank" class="btn btn-primary">
+                  <a :href="selectedReport.receipt_url" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
                     <i class="bi bi-file-earmark-pdf me-2"></i>View Receipt PDF
                   </a>
                   <p class="text-muted mt-2 mb-0">
@@ -747,7 +747,7 @@ export default {
         
         // Load user's reports
         const reportsResponse = await api.get('/api/expense-reports/my-reports/')
-        this.expenseReports = reportsResponse.data
+        this.expenseReports = reportsResponse.data.results ?? reportsResponse.data
       } catch (err) {
         console.error('Error loading expense reports:', err)
         this.error = 'Failed to load expense reports. Please try again.'
@@ -760,6 +760,7 @@ export default {
     },
     
     async createReport() {
+      if (this.loading) return
       this.loading = true
       this.error = null
       this.success = null
@@ -808,7 +809,12 @@ export default {
         }
       } catch (err) {
         console.error('Error creating expense report:', err)
-        this.error = err.response?.data?.error || 'Failed to create expense report. Please try again.'
+        const data = err.response?.data
+        if (data && typeof data === 'object') {
+          this.error = data.error || Object.values(data).flat().join(' ') || 'Failed to create expense report. Please try again.'
+        } else {
+          this.error = 'Failed to create expense report. Please try again.'
+        }
       } finally {
         this.loading = false
       }

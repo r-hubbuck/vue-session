@@ -764,25 +764,10 @@ export default {
         console.error('Error saving phones:', error)
         const errorData = error.response?.data
         
-        // Extract error message from Django serializer
-        if (errorData) {
-          if (errorData.phone_type) {
-            this.phoneError = Array.isArray(errorData.phone_type) ? errorData.phone_type[0] : errorData.phone_type
-          } else if (errorData.is_primary) {
-            this.phoneError = Array.isArray(errorData.is_primary) ? errorData.is_primary[0] : errorData.is_primary
-          } else if (errorData.phone_number) {
-            this.phoneError = Array.isArray(errorData.phone_number) ? errorData.phone_number[0] : errorData.phone_number
-          } else if (errorData.country_code) {
-            this.phoneError = Array.isArray(errorData.country_code) ? errorData.country_code[0] : errorData.country_code
-          } else if (errorData.non_field_errors) {
-            this.phoneError = Array.isArray(errorData.non_field_errors) ? errorData.non_field_errors[0] : errorData.non_field_errors
-          } else if (errorData.detail) {
-            this.phoneError = errorData.detail
-          } else if (typeof errorData === 'string') {
-            this.phoneError = errorData
-          } else {
-            this.phoneError = 'Failed to save phone numbers'
-          }
+        if (errorData && typeof errorData === 'object') {
+          this.phoneError = Object.values(errorData).flat().join(' ') || 'Failed to save phone numbers'
+        } else if (typeof errorData === 'string') {
+          this.phoneError = errorData
         } else {
           this.phoneError = 'Failed to save phone numbers'
         }

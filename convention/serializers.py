@@ -106,7 +106,9 @@ class MemberPersonalInfoSerializer(serializers.ModelSerializer):
     badge_name = serializers.SerializerMethodField()
     primary_phone = serializers.SerializerMethodField()
     primary_address = serializers.SerializerMethodField()
-    
+    resume_url = serializers.SerializerMethodField()
+    resume_uploaded_at = serializers.DateTimeField(read_only=True)
+
     class Meta:
         model = Member
         fields = [
@@ -118,8 +120,18 @@ class MemberPersonalInfoSerializer(serializers.ModelSerializer):
             'chapter',
             'primary_phone',
             'primary_address',
+            'resume_url',
+            'resume_uploaded_at',
         ]
-        read_only_fields = ['first_name', 'last_name', 'chapter', 'badge_name', 'primary_phone', 'primary_address']
+        read_only_fields = ['first_name', 'last_name', 'chapter', 'badge_name', 'primary_phone', 'primary_address', 'resume_url', 'resume_uploaded_at']
+
+    def get_resume_url(self, obj):
+        if obj.resume:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.resume.url)
+            return obj.resume.url
+        return None
     
     def get_badge_name(self, obj):
         """Compute badge name from preferred_first_name + last_name"""
@@ -178,14 +190,36 @@ class ConventionGuestSerializer(serializers.ModelSerializer):
             'guest_special_requests',
         ]
 
+    def validate_guest_first_name(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_guest_last_name(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_guest_phone(self, value):
+        if value:
+            import re
+            digits = re.sub(r'\D', '', value.strip())
+            if digits:
+                if len(digits) < 10 or len(digits) > 15:
+                    raise serializers.ValidationError('Phone number must be between 10 and 15 digits.')
+                if len(set(digits)) == 1:
+                    raise serializers.ValidationError('Please enter a valid phone number.')
+                if len(digits) == 10 and (digits[0] in ('0', '1') or digits[3] in ('0', '1')):
+                    raise serializers.ValidationError('Please enter a valid phone number.')
+                return digits
+        return value
+
     def validate_guest_dietary_restrictions(self, value):
-        """Strip HTML tags from guest dietary restrictions"""
         if value:
             return bleach.clean(value, tags=[], strip=True)
         return value
-    
+
     def validate_guest_special_requests(self, value):
-        """Strip HTML tags from guest special requests"""
         if value:
             return bleach.clean(value, tags=[], strip=True)
         return value
@@ -412,6 +446,7 @@ class ConventionRegistrationDetailSerializer(serializers.ModelSerializer):
             'guest_details',
             'travel',
             'accommodation',
+            'visible_to_recruiters',
         ]
     
     def get_member_addresses(self, obj):
@@ -757,10 +792,26 @@ class RegistrationStatusUpdateSerializer(serializers.ModelSerializer):
         read_only_fields = ['checked_in_at']
     
     def validate_status_code(self, value):
-        """Validate status code is a valid choice"""
+        """Validate status code is a valid choice and enforce state transitions"""
         valid_statuses = ['registered', 'confirmed', 'cancelled', 'checked_in', 'waitlisted']
         if value not in valid_statuses:
             raise serializers.ValidationError(f'Invalid status code. Must be one of: {", ".join(valid_statuses)}')
+
+        # Enforce valid state transitions on update
+        if self.instance:
+            current = self.instance.status_code
+            valid_transitions = {
+                'registered': ['confirmed', 'cancelled', 'waitlisted', 'checked_in'],
+                'confirmed': ['checked_in', 'cancelled', 'registered'],
+                'waitlisted': ['registered', 'confirmed', 'cancelled'],
+                'checked_in': ['cancelled', 'confirmed', 'registered'],
+                'cancelled': ['registered'],
+            }
+            if value != current and value not in valid_transitions.get(current, []):
+                raise serializers.ValidationError(
+                    f'Cannot transition registration from "{current}" to "{value}".'
+                )
+
         return value
     
     def update(self, instance, validated_data):

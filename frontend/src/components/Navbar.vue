@@ -43,28 +43,43 @@ const logout = async () => {
     <div class="nav-container">
       <!-- Brand Section -->
       <div class="brand-section">
-        <router-link to="/" class="brand">
-          <!-- <div class="brand-logo">ΤΒΠ</div> -->
+        <router-link :to="authStore.isRecruiter ? '/recruiter/dashboard' : '/'" class="brand">
           <img src="/logo_circle_blue.png" alt="Logo" width="60" height="60" class="d-inline-block align-text-top">
           <div class="brand-text">
             <h5>Tau Beta Pi</h5>
-            <p>Member Portal</p>
+            <p>{{ authStore.isRecruiter ? 'Recruiter Portal' : 'Member Portal' }}</p>
           </div>
         </router-link>
-        
+
         <!-- Mobile Menu Toggle -->
         <button class="mobile-nav-toggle" @click="toggleMobileMenu" aria-label="Toggle navigation">
           <i class="bi" :class="mobileMenuOpen ? 'bi-x-lg' : 'bi-list'"></i>
         </button>
-        
-        <!-- Main Navigation -->
-        <ul class="main-nav" :class="{ 'show': mobileMenuOpen }">
-          <!-- <li>
-            <router-link to="/" @click="closeMobileMenu">
-              <i class="bi bi-house-door"></i>
-              Dashboard
+
+        <!-- Recruiter Navigation -->
+        <ul v-if="authStore.isRecruiter" class="main-nav" :class="{ 'show': mobileMenuOpen }">
+          <li>
+            <router-link to="/recruiter/convention" @click="closeMobileMenu">
+              <i class="bi bi-building"></i>
+              Registration
             </router-link>
-          </li> -->
+          </li>
+          <li>
+            <router-link to="/recruiter/attendees" @click="closeMobileMenu">
+              <i class="bi bi-people"></i>
+              Attendees
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/recruiter/invoices" @click="closeMobileMenu">
+              <i class="bi bi-receipt"></i>
+              Invoices
+            </router-link>
+          </li>
+        </ul>
+
+        <!-- Member Navigation -->
+        <ul v-else class="main-nav" :class="{ 'show': mobileMenuOpen }">
           <li>
             <router-link to="/account" @click="closeMobileMenu">
               <i class="bi bi-person"></i>
@@ -83,13 +98,24 @@ const logout = async () => {
               Expense Reports
             </router-link>
           </li>
+          <li v-if="authStore.hasRole('hq_staff') || authStore.hasRole('hq_admin')">
+            <router-link to="/recruiter-admin" @click="closeMobileMenu">
+              <i class="bi bi-briefcase"></i>
+              Recruiter Admin
+            </router-link>
+          </li>
+          <li v-if="authStore.hasRole('hq_staff') || authStore.hasRole('hq_finance') || authStore.hasRole('hq_admin')">
+            <router-link to="/invoice-admin" @click="closeMobileMenu">
+              <i class="bi bi-file-earmark-text"></i>
+              Invoice Admin
+            </router-link>
+          </li>
         </ul>
       </div>
-      
+
       <!-- User Menu -->
       <div class="user-menu">
         <div class="user-info" @click="logout" role="button" tabindex="0" aria-label="Logout">
-          <!-- <div class="user-avatar">{{ userInitials }}</div> -->
           <div class="user-details">
             <span>{{ userEmail }}</span>
           </div>

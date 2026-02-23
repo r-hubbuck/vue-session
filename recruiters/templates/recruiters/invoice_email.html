@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <h2>Invoice from Tau Beta Pi</h2>
+    <p>Hello,</p>
+    <p>An invoice has been issued for <strong>{{ invoice.organization.name }}</strong>.</p>
+    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Invoice Number:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;">{{ invoice.invoice_number }}</td></tr>
+        <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Amount:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;">${{ invoice.amount }}</td></tr>
+        <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Due Date:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;">{{ invoice.due_date }}</td></tr>
+        <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Description:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;">{{ invoice.description }}</td></tr>
+    </table>
+    <p><a href="{{ frontend_url }}/recruiter/invoices" style="display: inline-block; padding: 12px 24px; background-color: #284080; color: white; text-decoration: none; border-radius: 6px;">View Invoice</a></p>
+    <p>Thank you,<br>Tau Beta Pi</p>
+</body>
+</html>

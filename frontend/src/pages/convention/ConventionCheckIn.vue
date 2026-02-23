@@ -70,6 +70,13 @@
         </div>
       </div>
 
+      <!-- Success State -->
+      <div v-if="success" class="section-card">
+        <div class="alert alert-success" style="border-left: 4px solid #22c55e;">
+          <i class="bi bi-check-circle me-2"></i>{{ success }}
+        </div>
+      </div>
+
       <!-- Registrations Table (no header) -->
       <div v-if="!loading && !error" class="section-card">
         <div class="table-responsive">
@@ -374,6 +381,7 @@ export default {
     return {
       loading: true,
       error: null,
+      success: null,
       registrations: [],
       selectedRegistration: null,
       searchQuery: '',
@@ -552,6 +560,7 @@ export default {
     },
 
     async confirmAddressAndCheckIn() {
+      if (this.savingCheckIn) return
       await this.performCheckIn();
     },
 
@@ -596,7 +605,7 @@ export default {
         }
 
         this.closeModal();
-        alert('Successfully checked in!');
+        this.success = 'Successfully checked in!';
       } catch (err) {
         console.error('Error checking in:', err);
         this.addressSaveError = err.response?.data?.message || 'Failed to check in. Please try again.';
@@ -631,9 +640,14 @@ export default {
     },
 
     async cancelRegistration(registration) {
+      if (this.savingCheckIn) return
       if (!confirm(`Are you sure you want to cancel the registration for ${registration.first_name} ${registration.last_name}?`)) {
         return;
       }
+
+      this.savingCheckIn = true;
+      this.error = null;
+      this.success = null;
 
       try {
         const response = await api.put(
@@ -649,17 +663,24 @@ export default {
           this.registrations.splice(index, 1, response.data);
         }
 
-        alert('Registration cancelled successfully.');
+        this.success = 'Registration cancelled successfully.';
       } catch (err) {
         console.error('Error cancelling registration:', err);
-        alert(err.response?.data?.message || 'Failed to cancel registration. Please try again.');
+        this.error = err.response?.data?.message || 'Failed to cancel registration. Please try again.';
+      } finally {
+        this.savingCheckIn = false;
       }
     },
 
     async reactivateRegistration(registration) {
+      if (this.savingCheckIn) return
       if (!confirm(`Reactivate the registration for ${registration.first_name} ${registration.last_name}?`)) {
         return;
       }
+
+      this.savingCheckIn = true;
+      this.error = null;
+      this.success = null;
 
       try {
         const response = await api.put(
@@ -675,10 +696,12 @@ export default {
           this.registrations.splice(index, 1, response.data);
         }
 
-        alert('Registration reactivated successfully.');
+        this.success = 'Registration reactivated successfully.';
       } catch (err) {
         console.error('Error reactivating registration:', err);
-        alert(err.response?.data?.message || 'Failed to reactivate registration. Please try again.');
+        this.error = err.response?.data?.message || 'Failed to reactivate registration. Please try again.';
+      } finally {
+        this.savingCheckIn = false;
       }
     },
 

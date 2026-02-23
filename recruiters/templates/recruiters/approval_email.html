@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <h2>Your Recruiter Account Has Been Approved</h2>
+    <p>Hello {{ profile.first_name }},</p>
+    <p>Your recruiter account for <strong>{{ profile.organization.name }}</strong> has been approved. You can now register for the convention and access recruiter features.</p>
+    <p><a href="{{ frontend_url }}/recruiter/dashboard" style="display: inline-block; padding: 12px 24px; background-color: #284080; color: white; text-decoration: none; border-radius: 6px;">Go to Dashboard</a></p>
+    <p>Thank you,<br>Tau Beta Pi</p>
+</body>
+</html>

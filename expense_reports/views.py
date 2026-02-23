@@ -2,8 +2,15 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+
+
+class ExpenseReportPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 200
 
 from .models import ExpenseReportType, ExpenseReport, ExpenseReportDetail
 from .serializers import (
@@ -57,9 +64,7 @@ def my_expense_reports(request):
             'approver',
             'mailing_address'
         ).prefetch_related('details')
-        
-        serializer = ExpenseReportListSerializer(reports, many=True)
-        
+
         logger.info(
             f"User {request.user.email} retrieved their expense reports",
             extra={
@@ -68,7 +73,14 @@ def my_expense_reports(request):
                 'report_count': reports.count()
             }
         )
-        
+
+        paginator = ExpenseReportPagination()
+        page = paginator.paginate_queryset(reports, request)
+        if page is not None:
+            serializer = ExpenseReportListSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = ExpenseReportListSerializer(reports, many=True)
         return Response(serializer.data)
     
     elif request.method == 'POST':
@@ -254,10 +266,16 @@ def all_expense_reports(request):
         'reviewer',
         'approver'
     ).prefetch_related('details')
-    
+
     if status_filter:
         reports = reports.filter(status=status_filter)
-    
+
+    paginator = ExpenseReportPagination()
+    page = paginator.paginate_queryset(reports, request)
+    if page is not None:
+        serializer = ExpenseReportListSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
     serializer = ExpenseReportListSerializer(reports, many=True)
     return Response(serializer.data)
 

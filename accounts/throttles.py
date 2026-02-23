@@ -1,4 +1,4 @@
-from rest_framework.throttling import AnonRateThrottle
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
 class LoginThrottle(AnonRateThrottle):
     """Limit login attempts to prevent brute force"""
@@ -19,3 +19,8 @@ class CodeCheckThrottle(AnonRateThrottle):
     """Limit 2FA code attempts to prevent brute force"""
     scope = 'code_check'
     rate = '5/minute'
+
+class RecruiterThrottle(UserRateThrottle):
+    """Limit authenticated recruiter requests to search/download endpoints"""
+    scope = 'recruiter'
+    rate = '60/minute'

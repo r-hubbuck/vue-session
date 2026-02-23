@@ -91,6 +91,7 @@ class ConventionRegistration(models.Model):
     credentials_received_date = models.DateTimeField(null=True, blank=True)
     checked_in_at = models.DateTimeField(null=True, blank=True)
     at_convention = models.BooleanField(default=False)
+    visible_to_recruiters = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

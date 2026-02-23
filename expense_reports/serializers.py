@@ -307,7 +307,32 @@ class ExpenseReportStaffUpdateSerializer(serializers.ModelSerializer):
             'notes',
             'rejection_reason',
         ]
-    
+        read_only_fields = []
+
+    def validate_status(self, value):
+        valid_statuses = ['submitted', 'reviewed', 'approved', 'paid', 'rejected']
+        if value not in valid_statuses:
+            raise serializers.ValidationError(
+                f'Invalid status. Must be one of: {", ".join(valid_statuses)}'
+            )
+
+        # Enforce valid state transitions on update
+        if self.instance:
+            current = self.instance.status
+            valid_transitions = {
+                'submitted': ['reviewed', 'approved', 'paid', 'rejected'],
+                'reviewed': ['submitted', 'approved', 'paid', 'rejected'],
+                'approved': ['reviewed', 'paid', 'rejected'],
+                'paid': ['approved'],
+                'rejected': ['submitted', 'reviewed', 'approved'],
+            }
+            if value != current and value not in valid_transitions.get(current, []):
+                raise serializers.ValidationError(
+                    f'Cannot transition expense report from "{current}" to "{value}".'
+                )
+
+        return value
+
     def validate_notes(self, value):
         """Strip HTML tags from notes to prevent XSS"""
         if value:

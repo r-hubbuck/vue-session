@@ -51,6 +51,11 @@
       <i class="bi bi-exclamation-triangle"></i> {{ error }}
     </div>
 
+    <!-- Success State -->
+    <div v-if="success" class="alert alert-success">
+      <i class="bi bi-check-circle"></i> {{ success }}
+    </div>
+
     <!-- Travel List -->
     <div v-if="!loading && !error" class="travel-list">
       <div class="card">
@@ -481,7 +486,8 @@ export default {
         flight_notes: ''
       },
       savingFlight: false,
-      validationErrors: {}
+      validationErrors: {},
+      success: null
     };
   },
   computed: {
@@ -586,25 +592,28 @@ export default {
           modal.show();
         });
       } catch (err) {
-        alert('Failed to load travel details: ' + (err.response?.data?.message || err.message));
+        this.error = 'Failed to load travel details. Please try again.';
         console.error('Error loading travel detail:', err);
       }
     },
-    
+
     async saveFlightBooking() {
+      if (this.savingFlight) return
       if (!this.selectedTravel) return;
-      
-      // Clear previous errors
+
+      // Clear previous state
       this.validationErrors = {};
-      
+      this.error = null;
+      this.success = null;
+
       // Validate before submitting
       if (!this.isFlightBookingValid) {
-        alert('Please correct validation errors before saving');
+        this.error = 'Please correct validation errors before saving.';
         return;
       }
-      
+
       this.savingFlight = true;
-      
+
       try {
         // Trim and normalize all fields
         const payload = {
@@ -637,24 +646,14 @@ export default {
         this.selectedTravel = null;
         
         // Show success message
-        alert('Flight booking saved successfully!');
+        this.success = 'Flight booking saved successfully!';
       } catch (err) {
         // Handle validation errors from backend
         if (err.response?.data && typeof err.response.data === 'object') {
           this.validationErrors = err.response.data;
-          
-          // Build error message
-          const errorMessages = Object.entries(err.response.data)
-            .map(([field, msgs]) => {
-              const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-              const messages = Array.isArray(msgs) ? msgs.join(', ') : msgs;
-              return `${fieldName}: ${messages}`;
-            })
-            .join('\n');
-          
-          alert('Validation errors:\n\n' + errorMessages);
+          this.error = Object.values(err.response.data).flat().join('. ') || 'Failed to save flight booking. Please try again.';
         } else {
-          alert('Failed to save flight booking: ' + (err.response?.data?.message || err.message));
+          this.error = 'Failed to save flight booking. Please try again.';
         }
         console.error('Error saving flight booking:', err);
       } finally {

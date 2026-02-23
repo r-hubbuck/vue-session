@@ -1,5 +1,5 @@
 from django.db import models
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
 from accounts.models import Member, User
 
@@ -295,84 +295,84 @@ class ExpenseReportDetail(models.Model):
         max_digits=8,
         decimal_places=2,
         default=Decimal('0.00'),
-        validators=[MinValueValidator(Decimal('0.00'))]
+        validators=[MinValueValidator(Decimal('0.00')), MaxValueValidator(Decimal('99999.99'))]
     )
     automobile_tolls = models.DecimalField(
         max_digits=7,
         decimal_places=2,
         default=Decimal('0.00'),
-        validators=[MinValueValidator(Decimal('0.00'))]
+        validators=[MinValueValidator(Decimal('0.00')), MaxValueValidator(Decimal('9999.99'))]
     )
     passengers = models.IntegerField(
         default=0,
-        validators=[MinValueValidator(0)],
+        validators=[MinValueValidator(0), MaxValueValidator(20)],
         help_text="Number of passengers (not including driver)"
     )
-    
+
     # Lodging
     lodging_nights = models.IntegerField(
         default=0,
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(0), MaxValueValidator(365)]
     )
     lodging_per_night = models.DecimalField(
         max_digits=7,
         decimal_places=2,
         default=Decimal('0.00'),
-        validators=[MinValueValidator(Decimal('0.00'))],
+        validators=[MinValueValidator(Decimal('0.00')), MaxValueValidator(Decimal('9999.99'))],
         help_text="Actual cost per night"
     )
-    
+
     # En route meals (number of meals)
     breakfast_enroute = models.IntegerField(
         default=0,
-        validators=[MinValueValidator(0)],
+        validators=[MinValueValidator(0), MaxValueValidator(365)],
         help_text="Number of breakfasts en route"
     )
     lunch_enroute = models.IntegerField(
         default=0,
-        validators=[MinValueValidator(0)],
+        validators=[MinValueValidator(0), MaxValueValidator(365)],
         help_text="Number of lunches en route"
     )
     dinner_enroute = models.IntegerField(
         default=0,
-        validators=[MinValueValidator(0)],
+        validators=[MinValueValidator(0), MaxValueValidator(365)],
         help_text="Number of dinners en route"
     )
-    
+
     # On-site meals (number of meals)
     breakfast_onsite = models.IntegerField(
         default=0,
-        validators=[MinValueValidator(0)],
+        validators=[MinValueValidator(0), MaxValueValidator(365)],
         help_text="Number of breakfasts at convention"
     )
     lunch_onsite = models.IntegerField(
         default=0,
-        validators=[MinValueValidator(0)],
+        validators=[MinValueValidator(0), MaxValueValidator(365)],
         help_text="Number of lunches at convention"
     )
-    
+
     # Other transportation costs
     terminal_cost = models.DecimalField(
         max_digits=7,
         decimal_places=2,
         default=Decimal('0.00'),
-        validators=[MinValueValidator(Decimal('0.00'))],
+        validators=[MinValueValidator(Decimal('0.00')), MaxValueValidator(Decimal('9999.99'))],
         help_text="Airport parking, etc."
     )
     public_carrier_cost = models.DecimalField(
         max_digits=7,
         decimal_places=2,
         default=Decimal('0.00'),
-        validators=[MinValueValidator(Decimal('0.00'))],
+        validators=[MinValueValidator(Decimal('0.00')), MaxValueValidator(Decimal('99999.99'))],
         help_text="Airline, train, bus, etc."
     )
-    
+
     # Other costs
     other_onsite_cost = models.DecimalField(
         max_digits=7,
         decimal_places=2,
         default=Decimal('0.00'),
-        validators=[MinValueValidator(Decimal('0.00'))],
+        validators=[MinValueValidator(Decimal('0.00')), MaxValueValidator(Decimal('9999.99'))],
         help_text="Other on-site expenses"
     )
     

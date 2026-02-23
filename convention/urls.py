@@ -28,6 +28,9 @@ urlpatterns = [
     
     # Accommodation
     path('registration/<int:registration_id>/accommodation/', views.update_accommodation, name='update-accommodation'),
+
+    # Recruiter visibility
+    path('registration/<int:registration_id>/visibility/', views.update_recruiter_visibility, name='update-recruiter-visibility'),
     
     # Admin endpoints
     path('admin/travel/', views.admin_travel_list, name='admin-travel-list'),

@@ -27,6 +27,7 @@ ROLE_HQ_IT = 'hq_it'
 ROLE_HQ_FINANCE = 'hq_finance'
 ROLE_HQ_CHAPTER_SERVICES = 'hq_chapter_services'
 ROLE_HQ_ADMIN = 'hq_admin'
+ROLE_RECRUITER = 'recruiter'
 
 ALL_ROLES = [
     ROLE_MEMBER,
@@ -51,6 +52,7 @@ ALL_ROLES = [
     ROLE_HQ_FINANCE,
     ROLE_HQ_CHAPTER_SERVICES,
     ROLE_HQ_ADMIN,
+    ROLE_RECRUITER,
 ]
 
 class CustomUserManager(BaseUserManager):
@@ -70,11 +72,17 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 class User(AbstractUser):
+    USER_TYPE_CHOICES = [
+        ('member', 'Member'),
+        ('recruiter', 'Recruiter'),
+    ]
+
     first_name = None
     last_name = None
     username = None
     email = models.EmailField(max_length=254, unique=True)
     alt_email = models.EmailField(max_length=254, blank=True)
+    user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES, default='member')
     member = models.OneToOneField('Member', on_delete=models.CASCADE, null=True, blank=True, related_name='user')
 
     USERNAME_FIELD = 'email'
@@ -111,6 +119,8 @@ class Member(models.Model):
     last_name = models.CharField(max_length=100)
     chapter = models.CharField(max_length=100)
     district = models.IntegerField(null=True, blank=True)  # For district directors
+    resume = models.FileField(upload_to='resumes/', blank=True, null=True)
+    resume_uploaded_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = 'member'
