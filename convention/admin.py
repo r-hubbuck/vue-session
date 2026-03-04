@@ -25,7 +25,7 @@ class ConventionAdmin(admin.ModelAdmin):
     search_fields = ('name', 'location')
     ordering = ('-year', '-start_date')
     date_hierarchy = 'start_date'
-    
+
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'year', 'location', 'is_active')
@@ -39,7 +39,7 @@ class ConventionAdmin(admin.ModelAdmin):
 @admin.register(ConventionRegistration)
 class ConventionRegistrationAdmin(admin.ModelAdmin):
     list_display = (
-        'get_member_name',
+        'get_person_name',
         'convention',
         'is_guest',
         'status_code',
@@ -49,19 +49,19 @@ class ConventionRegistrationAdmin(admin.ModelAdmin):
     )
     list_filter = ('convention', 'is_guest', 'status_code', 'at_convention', 'credentials_received')
     search_fields = (
-        'member__first_name',
-        'member__last_name',
-        'member__member_id',
-        'member__user__email'
+        'person__first_name',
+        'person__last_name',
+        'person__member__member_id',
+        'person__user__email'
     )
-    raw_id_fields = ('member', 'convention', 'host_registration')
+    raw_id_fields = ('person', 'convention', 'host_registration')
     date_hierarchy = 'registration_date'
-    
+
     readonly_fields = ('registration_date', 'created_at', 'updated_at')
-    
+
     fieldsets = (
         ('Registration Info', {
-            'fields': ('convention', 'member', 'status_code', 'registration_date')
+            'fields': ('convention', 'person', 'status_code', 'registration_date')
         }),
         ('Guest Information', {
             'fields': ('is_guest', 'host_registration')
@@ -74,17 +74,17 @@ class ConventionRegistrationAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
-    def get_member_name(self, obj):
-        return f"{obj.member.first_name} {obj.member.last_name}"
-    get_member_name.short_description = 'Member'
-    get_member_name.admin_order_field = 'member__last_name'
+
+    def get_person_name(self, obj):
+        return str(obj.person)
+    get_person_name.short_description = 'Person'
+    get_person_name.admin_order_field = 'person__last_name'
 
 
 @admin.register(ConventionTravel)
 class ConventionTravelAdmin(admin.ModelAdmin):
     list_display = (
-        'get_member_name',
+        'get_person_name',
         'get_convention',
         'travel_method',
         'departure_airport',
@@ -95,17 +95,17 @@ class ConventionTravelAdmin(admin.ModelAdmin):
     )
     list_filter = ('travel_method', 'needs_ground_transportation', 'seat_preference')
     search_fields = (
-        'registration__member__first_name',
-        'registration__member__last_name',
+        'registration__person__first_name',
+        'registration__person__last_name',
         'outbound_flight_number',
         'return_flight_number',
         'departure_airport',
         'return_airport'
     )
     raw_id_fields = ('registration',)
-    
+
     readonly_fields = ('created_at', 'updated_at')
-    
+
     fieldsets = (
         ('Registration', {
             'fields': ('registration',)
@@ -115,11 +115,11 @@ class ConventionTravelAdmin(admin.ModelAdmin):
         }),
         ('Departure Request', {
             'fields': ('departure_airport', 'departure_date', 'departure_time_preference'),
-            'description': 'Member\'s requested departure information'
+            'description': "Member's requested departure information"
         }),
         ('Return Request', {
             'fields': ('return_airport', 'return_date', 'return_time_preference'),
-            'description': 'Member\'s requested return information'
+            'description': "Member's requested return information"
         }),
         ('Outbound Flight - Booked', {
             'fields': (
@@ -149,48 +149,47 @@ class ConventionTravelAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
-    def get_member_name(self, obj):
-        return f"{obj.registration.member.first_name} {obj.registration.member.last_name}"
-    get_member_name.short_description = 'Member'
-    get_member_name.admin_order_field = 'registration__member__last_name'
-    
+
+    def get_person_name(self, obj):
+        return str(obj.registration.person)
+    get_person_name.short_description = 'Person'
+    get_person_name.admin_order_field = 'registration__person__last_name'
+
     def get_convention(self, obj):
         return obj.registration.convention.name
     get_convention.short_description = 'Convention'
     get_convention.admin_order_field = 'registration__convention__name'
-    
+
     actions = ['send_flight_confirmation_emails']
-    
+
     def send_flight_confirmation_emails(self, request, queryset):
         """Send flight confirmation emails to selected members"""
         from django.core.mail import EmailMultiAlternatives
         from django.template.loader import render_to_string
         from django.conf import settings
-        
+
         DOMAIN = getattr(settings, 'DOMAIN', 'localhost:8000')
         sent_count = 0
         failed_count = 0
-        
+
         for travel in queryset:
-            # Only send if both flights are booked
             if not (travel.outbound_flight_number and travel.return_flight_number):
                 continue
-                
+
             try:
-                member = travel.registration.member
+                person = travel.registration.person
                 convention = travel.registration.convention
                 mail_subject = f'{convention.name} - Your Flight Details'
-                
+
                 message = render_to_string('convention/flight_booking_confirmation_email.html', {
-                    'member': member,
+                    'person': person,
                     'convention': convention,
                     'travel': travel,
                     'registration': travel.registration,
                     'domain': DOMAIN,
                 })
-                
-                to_email = member.user.email
+
+                to_email = person.user.email
                 email_msg = EmailMultiAlternatives(
                     subject=mail_subject,
                     body='',
@@ -199,15 +198,15 @@ class ConventionTravelAdmin(admin.ModelAdmin):
                 email_msg.attach_alternative(message, "text/html")
                 email_msg.send()
                 sent_count += 1
-                
+
             except Exception as e:
                 failed_count += 1
                 self.message_user(
                     request,
-                    f"Failed to send email to {travel.registration.member}: {str(e)}",
+                    f"Failed to send email to {travel.registration.person}: {str(e)}",
                     level='ERROR'
                 )
-        
+
         if sent_count > 0:
             self.message_user(
                 request,
@@ -220,14 +219,14 @@ class ConventionTravelAdmin(admin.ModelAdmin):
                 f"Failed to send {failed_count} email(s)",
                 level='WARNING'
             )
-    
+
     send_flight_confirmation_emails.short_description = "Send flight confirmation emails"
 
 
 @admin.register(ConventionGuest)
 class ConventionGuestAdmin(admin.ModelAdmin):
     list_display = (
-        'get_member_name',
+        'get_person_name',
         'guest_first_name',
         'guest_last_name',
         'guest_email',
@@ -237,12 +236,12 @@ class ConventionGuestAdmin(admin.ModelAdmin):
         'guest_first_name',
         'guest_last_name',
         'guest_email',
-        'registration__member__first_name',
-        'registration__member__last_name'
+        'registration__person__first_name',
+        'registration__person__last_name'
     )
     raw_id_fields = ('registration',)
     readonly_fields = ('created_at', 'updated_at')
-    
+
     fieldsets = (
         ('Registration', {
             'fields': ('registration',)
@@ -258,17 +257,17 @@ class ConventionGuestAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
-    def get_member_name(self, obj):
-        return f"{obj.registration.member.first_name} {obj.registration.member.last_name}"
-    get_member_name.short_description = 'Host Member'
-    get_member_name.admin_order_field = 'registration__member__last_name'
+
+    def get_person_name(self, obj):
+        return str(obj.registration.person)
+    get_person_name.short_description = 'Host'
+    get_person_name.admin_order_field = 'registration__person__last_name'
 
 
 @admin.register(ConventionAccommodation)
 class ConventionAccommodationAdmin(admin.ModelAdmin):
     list_display = (
-        'get_member_name',
+        'get_person_name',
         'package_choice',
         'needs_hotel',
         'check_in_date',
@@ -278,14 +277,14 @@ class ConventionAccommodationAdmin(admin.ModelAdmin):
     )
     list_filter = ('package_choice', 'needs_hotel', 'roommate_preference')
     search_fields = (
-        'registration__member__first_name',
-        'registration__member__last_name',
+        'registration__person__first_name',
+        'registration__person__last_name',
         'specific_roommate_name',
         'room_number'
     )
     raw_id_fields = ('registration',)
     readonly_fields = ('created_at', 'updated_at')
-    
+
     fieldsets = (
         ('Registration', {
             'fields': ('registration',)
@@ -318,17 +317,17 @@ class ConventionAccommodationAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
-    def get_member_name(self, obj):
-        return f"{obj.registration.member.first_name} {obj.registration.member.last_name}"
-    get_member_name.short_description = 'Member'
-    get_member_name.admin_order_field = 'registration__member__last_name'
+
+    def get_person_name(self, obj):
+        return str(obj.registration.person)
+    get_person_name.short_description = 'Person'
+    get_person_name.admin_order_field = 'registration__person__last_name'
 
 
 @admin.register(ConventionCommitteePreference)
 class ConventionCommitteePreferenceAdmin(admin.ModelAdmin):
     list_display = (
-        'get_member_name',
+        'get_person_name',
         'alumni_affairs',
         'awards',
         'chapter_operations',
@@ -343,12 +342,12 @@ class ConventionCommitteePreferenceAdmin(admin.ModelAdmin):
         'collegiate_chapters'
     )
     search_fields = (
-        'registration__member__first_name',
-        'registration__member__last_name'
+        'registration__person__first_name',
+        'registration__person__last_name'
     )
     raw_id_fields = ('registration',)
     readonly_fields = ('created_at', 'updated_at')
-    
+
     fieldsets = (
         ('Registration', {
             'fields': ('registration',)
@@ -374,8 +373,8 @@ class ConventionCommitteePreferenceAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
-    def get_member_name(self, obj):
-        return f"{obj.registration.member.first_name} {obj.registration.member.last_name}"
-    get_member_name.short_description = 'Member'
-    get_member_name.admin_order_field = 'registration__member__last_name'
+
+    def get_person_name(self, obj):
+        return str(obj.registration.person)
+    get_person_name.short_description = 'Person'
+    get_person_name.admin_order_field = 'registration__person__last_name'

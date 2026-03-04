@@ -4,13 +4,9 @@ from .models import ExpenseReportType, ExpenseReport, ExpenseReportDetail
 
 
 class ExpenseReportDetailInline(admin.StackedInline):
-    """
-    Inline admin for expense report details.
-    Allows editing details directly within the expense report.
-    """
     model = ExpenseReportDetail
     can_delete = False
-    
+
     fieldsets = (
         ('Automobile Expenses', {
             'fields': (
@@ -66,7 +62,7 @@ class ExpenseReportTypeAdmin(admin.ModelAdmin):
     list_filter = ('is_active', 'update_board')
     search_fields = ('report_code', 'report_name', 'description')
     ordering = ('report_code',)
-    
+
     fieldsets = (
         ('Basic Information', {
             'fields': (
@@ -105,13 +101,11 @@ class ExpenseReportTypeAdmin(admin.ModelAdmin):
             'description': 'Set to 0 for no limit'
         }),
     )
-    
+
     readonly_fields = ('get_report_count',)
-    
+
     def get_report_count(self, obj):
-        """Display count of expense reports using this type"""
-        count = obj.expense_reports.count()
-        return count
+        return obj.expense_reports.count()
     get_report_count.short_description = 'Reports Using This Type'
 
 
@@ -119,7 +113,7 @@ class ExpenseReportTypeAdmin(admin.ModelAdmin):
 class ExpenseReportAdmin(admin.ModelAdmin):
     list_display = (
         'id',
-        'get_member_name',
+        'get_person_name',
         'report_type',
         'chapter',
         'report_date',
@@ -135,19 +129,19 @@ class ExpenseReportAdmin(admin.ModelAdmin):
         'verified_by_member',
     )
     search_fields = (
-        'member__first_name',
-        'member__last_name',
-        'member__member_id',
+        'person__first_name',
+        'person__last_name',
+        'person__member__member_id',
         'chapter',
         'validation_code',
     )
     date_hierarchy = 'report_date'
     ordering = ('-created_at',)
-    
-    raw_id_fields = ('member', 'reviewer', 'approver')
-    
+
+    raw_id_fields = ('person', 'reviewer', 'approver')
+
     readonly_fields = (
-        'get_member_info',
+        'get_person_info',
         'total_amount',
         'created_at',
         'updated_at',
@@ -156,12 +150,12 @@ class ExpenseReportAdmin(admin.ModelAdmin):
         'get_payment_info',
         'get_receipt_link',
     )
-    
+
     fieldsets = (
-        ('Member Information', {
+        ('Person Information', {
             'fields': (
-                'member',
-                'get_member_info',
+                'person',
+                'get_person_info',
             )
         }),
         ('Report Details', {
@@ -228,36 +222,32 @@ class ExpenseReportAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
+
     inlines = [ExpenseReportDetailInline]
-    
-    def get_member_name(self, obj):
-        return f"{obj.member.first_name} {obj.member.last_name}"
-    get_member_name.short_description = 'Member'
-    get_member_name.admin_order_field = 'member__last_name'
-    
-    def get_member_info(self, obj):
-        """Display member information"""
-        member = obj.member
+
+    def get_person_name(self, obj):
+        return str(obj.person)
+    get_person_name.short_description = 'Person'
+    get_person_name.admin_order_field = 'person__last_name'
+
+    def get_person_info(self, obj):
+        person = obj.person
         try:
-            from accounts.models import User
-            user = User.objects.get(member=member)
-            email = user.email
-        except:
+            email = person.user.email
+        except Exception:
             email = "No email"
-        
+        member_id = getattr(getattr(person, 'member', None), 'member_id', 'N/A')
         return format_html(
             '<strong>{} {}</strong><br>Member ID: {}<br>Chapter: {}<br>Email: {}',
-            member.first_name,
-            member.last_name,
-            member.member_id,
+            person.first_name,
+            person.last_name,
+            member_id,
             obj.chapter,
             email
         )
-    get_member_info.short_description = 'Member Details'
-    
+    get_person_info.short_description = 'Person Details'
+
     def get_status_badge(self, obj):
-        """Display status with colored badge"""
         colors = {
             'draft': 'gray',
             'submitted': 'blue',
@@ -274,18 +264,15 @@ class ExpenseReportAdmin(admin.ModelAdmin):
         )
     get_status_badge.short_description = 'Status'
     get_status_badge.admin_order_field = 'status'
-    
+
     def get_total_formatted(self, obj):
-        """Display total with currency formatting"""
         return format_html('${:,.2f}', obj.total_amount)
     get_total_formatted.short_description = 'Total Amount'
     get_total_formatted.admin_order_field = 'total_amount'
-    
+
     def get_review_info(self, obj):
-        """Display review information"""
         if not obj.reviewer:
             return "Not yet reviewed"
-        
         date_str = obj.review_date.strftime('%Y-%m-%d %H:%M') if obj.review_date else 'Date not set'
         return format_html(
             '<strong>Reviewer:</strong> {}<br><strong>Date:</strong> {}',
@@ -293,12 +280,10 @@ class ExpenseReportAdmin(admin.ModelAdmin):
             date_str
         )
     get_review_info.short_description = 'Review Information'
-    
+
     def get_approval_info(self, obj):
-        """Display approval information"""
         if not obj.approver:
             return "Not yet approved"
-        
         date_str = obj.approval_date.strftime('%Y-%m-%d %H:%M') if obj.approval_date else 'Date not set'
         return format_html(
             '<strong>Approver:</strong> {}<br><strong>Date:</strong> {}',
@@ -306,30 +291,23 @@ class ExpenseReportAdmin(admin.ModelAdmin):
             date_str
         )
     get_approval_info.short_description = 'Approval Information'
-    
+
     def get_payment_info(self, obj):
-        """Display payment information"""
         if not obj.payment_method:
             return "Payment method not set"
-        
         info = f"<strong>Method:</strong> {obj.get_payment_method_display()}<br>"
-        
         if obj.payment_check_number:
             info += f"<strong>Check #:</strong> {obj.payment_check_number}<br>"
-        
         if obj.payment_payer:
             info += f"<strong>Payer:</strong> {obj.payment_payer}<br>"
-        
         if obj.paid_date:
             info += f"<strong>Paid:</strong> {obj.paid_date.strftime('%Y-%m-%d')}"
         else:
             info += "<strong>Paid:</strong> Not yet paid"
-        
         return format_html(info)
     get_payment_info.short_description = 'Payment Information'
-    
+
     def get_receipt_link(self, obj):
-        """Display link to receipt PDF"""
         if obj.receipt:
             return format_html(
                 '<a href="{}" target="_blank" class="button">View Receipt PDF</a>',
@@ -337,35 +315,29 @@ class ExpenseReportAdmin(admin.ModelAdmin):
             )
         return "No receipt uploaded"
     get_receipt_link.short_description = 'Receipt'
-    
+
     def save_model(self, request, obj, form, change):
-        """Recalculate total when saving"""
         super().save_model(request, obj, form, change)
-        # Total will be recalculated automatically by the model's save method
 
 
 @admin.register(ExpenseReportDetail)
 class ExpenseReportDetailAdmin(admin.ModelAdmin):
-    """
-    Standalone admin for expense report details.
-    Usually these are edited via the ExpenseReport inline.
-    """
     list_display = (
         'get_report_id',
-        'get_member_name',
+        'get_person_name',
         'automobile_miles',
         'lodging_nights',
         'get_meal_count',
         'get_other_costs',
     )
     search_fields = (
-        'expense_report__member__first_name',
-        'expense_report__member__last_name',
+        'expense_report__person__first_name',
+        'expense_report__person__last_name',
         'expense_notes',
     )
-    
+
     raw_id_fields = ('expense_report',)
-    
+
     fieldsets = (
         ('Expense Report', {
             'fields': ('expense_report',)
@@ -407,29 +379,26 @@ class ExpenseReportDetailAdmin(admin.ModelAdmin):
             'fields': ('expense_notes',)
         }),
     )
-    
+
     def get_report_id(self, obj):
         return obj.expense_report.id
     get_report_id.short_description = 'Report ID'
     get_report_id.admin_order_field = 'expense_report__id'
-    
-    def get_member_name(self, obj):
-        member = obj.expense_report.member
-        return f"{member.first_name} {member.last_name}"
-    get_member_name.short_description = 'Member'
-    get_member_name.admin_order_field = 'expense_report__member__last_name'
-    
+
+    def get_person_name(self, obj):
+        return str(obj.expense_report.person)
+    get_person_name.short_description = 'Person'
+    get_person_name.admin_order_field = 'expense_report__person__last_name'
+
     def get_meal_count(self, obj):
-        """Total number of meals"""
         total = (
             obj.breakfast_enroute + obj.lunch_enroute + obj.dinner_enroute +
             obj.breakfast_onsite + obj.lunch_onsite
         )
         return total
     get_meal_count.short_description = 'Total Meals'
-    
+
     def get_other_costs(self, obj):
-        """Sum of other costs"""
         total = obj.terminal_cost + obj.public_carrier_cost + obj.other_onsite_cost
         return format_html('${:,.2f}', total)
     get_other_costs.short_description = 'Other Costs'

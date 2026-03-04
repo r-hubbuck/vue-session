@@ -248,7 +248,8 @@ def create_receipt_filename(expense_report):
     Returns:
         String filename
     """
-    member_id = expense_report.member.member_id
+    person = expense_report.person
+    member_id = person.member.member_id if hasattr(person, 'member') and person.member and person.member.member_id else person.id
     report_id = expense_report.id
     timestamp = expense_report.created_at.strftime('%Y%m%d')
     

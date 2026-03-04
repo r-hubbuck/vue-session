@@ -48,7 +48,7 @@ from .serializers import (
     CheckInListSerializer,
     RegistrationStatusUpdateSerializer,
 )
-from accounts.models import Member, Address, PhoneNumber
+from accounts.models import Person, Address, PhoneNumber
 import logging
 
 # Set up logging for audit trail
@@ -91,12 +91,12 @@ def my_registration(request):
     GET: Get the current user's registration for the active convention.
     POST: Create a new registration for the active convention.
     """
-    if not hasattr(request.user, 'member'):
+    if not (hasattr(request.user, 'person') and request.user.person is not None):
         return Response(
-            {'message': 'User must have an associated member record'},
+            {'message': 'User must have an associated person record'},
             status=status.HTTP_403_FORBIDDEN
         )
-    
+
     try:
         convention = Convention.objects.filter(is_active=True).latest('year')
     except Convention.DoesNotExist:
@@ -104,12 +104,12 @@ def my_registration(request):
             {'message': 'No active convention found'},
             status=status.HTTP_404_NOT_FOUND
         )
-    
+
     if request.method == 'GET':
         try:
             registration = ConventionRegistration.objects.get(
                 convention=convention,
-                member=request.user.member
+                person=request.user.person
             )
             serializer = ConventionRegistrationDetailSerializer(registration)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -118,12 +118,12 @@ def my_registration(request):
                 {'message': 'No registration found', 'has_registration': False},
                 status=status.HTTP_200_OK
             )
-    
+
     elif request.method == 'POST':
         # Check if registration already exists (pre-check before acquiring lock)
         if ConventionRegistration.objects.filter(
             convention=convention,
-            member=request.user.member
+            person=request.user.person
         ).exists():
             return Response(
                 {'message': 'You are already registered for this convention'},
@@ -138,66 +138,23 @@ def my_registration(request):
             try:
                 with transaction.atomic():
                     # Re-check inside lock to prevent race conditions
-                    member = request.user.member.__class__.objects.select_for_update().get(
-                        pk=request.user.member.pk
+                    person = Person.objects.select_for_update().get(
+                        pk=request.user.person.pk
                     )
                     if ConventionRegistration.objects.filter(
-                        convention=convention, member=member
+                        convention=convention, person=person
                     ).exists():
                         return Response(
                             {'message': 'You are already registered for this convention'},
                             status=status.HTTP_400_BAD_REQUEST
                         )
-                    registration = serializer.save(member=member)
+                    registration = serializer.save(person=person)
             except IntegrityError:
                 return Response(
                     {'message': 'You are already registered for this convention'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
-            # Send confirmation email (inline - matches account activation pattern)
-            try:
-                member = registration.member
-                convention = registration.convention
-                mail_subject = f'{convention.name} Registration Received'
-                
-                message = render_to_string('convention/registration_confirmation_email.html', {
-                    'member': member,
-                    'convention': convention,
-                    'registration': registration,
-                    'domain': DOMAIN,
-                })
-                
-                if not member.user:
-                    raise Exception("Member has no associated user account")
-                to_email = member.user.email
-                email_msg = EmailMultiAlternatives(
-                    subject=mail_subject,
-                    body='',
-                    to=[to_email]
-                )
-                email_msg.attach_alternative(message, "text/html")
-                email_msg.send()
 
-                logger.info(
-                    f"Registration confirmation email sent to {to_email}",
-                    extra={
-                        'member_id': member.id,
-                        'registration_id': registration.id,
-                        'convention_id': convention.id
-                    }
-                )
-            except Exception as e:
-                # Log error but don't fail the registration
-                logger.error(
-                    f"Failed to send registration confirmation email: {str(e)}",
-                    extra={
-                        'registration_id': registration.id,
-                        'member_id': registration.member.id,
-                        'error': str(e)
-                    }
-                )
-            
             detail_serializer = ConventionRegistrationDetailSerializer(registration)
             return Response(
                 detail_serializer.data,
@@ -206,27 +163,78 @@ def my_registration(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def send_registration_confirmation(request, registration_id):
+    """
+    Send the convention registration confirmation email.
+    Called by the frontend when all sections are complete.
+    Only sends once — guarded by confirmation_email_sent flag.
+    """
+    registration = get_object_or_404(
+        ConventionRegistration,
+        id=registration_id,
+        person=request.user.person
+    )
+
+    if registration.confirmation_email_sent:
+        return Response({'message': 'Confirmation email already sent.'}, status=status.HTTP_200_OK)
+
+    try:
+        person = registration.person
+        convention = registration.convention
+        mail_subject = f'{convention.name} Registration Received'
+        message = render_to_string('convention/registration_confirmation_email.html', {
+            'person': person,
+            'convention': convention,
+            'registration': registration,
+            'domain': DOMAIN,
+        })
+        if not hasattr(person, 'user') or not person.user:
+            raise Exception("Person has no associated user account")
+        email_msg = EmailMultiAlternatives(
+            subject=mail_subject,
+            body='',
+            to=[person.user.email]
+        )
+        email_msg.attach_alternative(message, "text/html")
+        email_msg.send()
+
+        registration.confirmation_email_sent = True
+        registration.save(update_fields=['confirmation_email_sent'])
+
+        logger.info(
+            f"Registration confirmation email sent to {person.user.email}",
+            extra={'person_id': person.id, 'registration_id': registration.id}
+        )
+        return Response({'message': 'Confirmation email sent.'}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"Failed to send registration confirmation email: {str(e)}")
+        return Response({'error': 'Failed to send confirmation email.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 def update_member_info(request):
     """
-    Update member's preferred_first_name (for badge name).
-    This updates the Member model directly - no duplication.
+    Update person's preferred_first_name (for badge name).
+    This updates the Person model directly - no duplication.
     """
-    if not hasattr(request.user, 'member'):
+    if not (hasattr(request.user, 'person') and request.user.person is not None):
         return Response(
-            {'message': 'User must have an associated member record'},
+            {'message': 'User must have an associated person record'},
             status=status.HTTP_403_FORBIDDEN
         )
-    
-    member = request.user.member
-    
+
+    person = request.user.person
+
     # Update preferred_first_name if provided
     if 'preferred_first_name' in request.data:
-        member.preferred_first_name = request.data['preferred_first_name']
-        member.save()
-    
-    serializer = MemberPersonalInfoSerializer(member)
+        person.preferred_first_name = request.data['preferred_first_name']
+        person.save()
+
+    serializer = MemberPersonalInfoSerializer(person)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -234,15 +242,15 @@ def update_member_info(request):
 @permission_classes([IsAuthenticated])
 def update_mobile_phone(request):
     """
-    Update or create mobile phone number for the member.
+    Update or create mobile phone number for the person.
     """
-    if not hasattr(request.user, 'member'):
+    if not (hasattr(request.user, 'person') and request.user.person is not None):
         return Response(
-            {'message': 'User must have an associated member record'},
+            {'message': 'User must have an associated person record'},
             status=status.HTTP_403_FORBIDDEN
         )
-    
-    member = request.user.member
+
+    person = request.user.person
     phone_number = request.data.get('phone_number', '').strip()
 
     if not phone_number:
@@ -277,7 +285,7 @@ def update_mobile_phone(request):
 
     # Get or create mobile phone
     mobile_phone, created = PhoneNumber.objects.get_or_create(
-        member=member,
+        person=person,
         phone_type='Mobile',
         defaults={'phone_number': phone_number, 'is_primary': True}
     )
@@ -309,7 +317,7 @@ def update_committee_preferences(request, registration_id):
     registration = get_object_or_404(
         ConventionRegistration,
         id=registration_id,
-        member=request.user.member
+        person=request.user.person
     )
     
     preferences, created = ConventionCommitteePreference.objects.get_or_create(
@@ -338,7 +346,7 @@ def guest_management(request, registration_id):
     registration = get_object_or_404(
         ConventionRegistration,
         id=registration_id,
-        member=request.user.member
+        person=request.user.person
     )
     
     if request.method == 'GET':
@@ -364,7 +372,7 @@ def guest_detail(request, registration_id, guest_id):
     registration = get_object_or_404(
         ConventionRegistration,
         id=registration_id,
-        member=request.user.member
+        person=request.user.person
     )
     
     guest = get_object_or_404(
@@ -397,7 +405,7 @@ def update_travel(request, registration_id):
     registration = get_object_or_404(
         ConventionRegistration,
         id=registration_id,
-        member=request.user.member
+        person=request.user.person
     )
     
     travel, created = ConventionTravel.objects.get_or_create(
@@ -430,7 +438,7 @@ def update_accommodation(request, registration_id):
     registration = get_object_or_404(
         ConventionRegistration,
         id=registration_id,
-        member=request.user.member
+        person=request.user.person
     )
     
     accommodation, created = ConventionAccommodation.objects.get_or_create(
@@ -557,8 +565,8 @@ def admin_travel_list(request):
     # Get all travel records for the convention
     travels = ConventionTravel.objects.filter(
         registration__convention=convention
-    ).select_related('registration__member')
-    
+    ).select_related('registration__person')
+
     # Filter by travel method if specified
     travel_method = request.query_params.get('travel_method', None)
     if travel_method:
@@ -577,8 +585,8 @@ def admin_travel_list(request):
             Q(outbound_flight_number__isnull=True) | Q(return_flight_number__isnull=True)
         )
     
-    # Order by member last name
-    travels = travels.order_by('registration__member__last_name', 'registration__member__first_name')
+    # Order by person last name
+    travels = travels.order_by('registration__person__last_name', 'registration__person__first_name')
     
     serializer = AdminConventionTravelListSerializer(travels, many=True)
     
@@ -607,10 +615,10 @@ def admin_travel_detail(request, travel_id):
         )
 
     travel = get_object_or_404(
-        ConventionTravel.objects.select_related('registration__member'),
+        ConventionTravel.objects.select_related('registration__person'),
         id=travel_id
     )
-    
+
     if request.method == 'GET':
         # Audit log
         logger.info(
@@ -619,12 +627,12 @@ def admin_travel_detail(request, travel_id):
                 'user_id': request.user.id,
                 'action': 'admin_travel_detail_view',
                 'travel_id': travel_id,
-                'member_id': travel.registration.member.id
+                'person_id': travel.registration.person.id
             }
         )
-        
-        # Return full travel details with member info
-        member = travel.registration.member
+
+        # Return full travel details with person info
+        person = travel.registration.person
         
         # Get airport descriptions
         departure_airport_info = None
@@ -655,15 +663,16 @@ def admin_travel_detail(request, travel_id):
         # Build response with all details
         travel_serializer = ConventionTravelSerializer(travel)
         
+        member = person.member if hasattr(person, 'member') else None
         response_data = {
             'id': travel.id,
             'registration_id': travel.registration.id,
             'member': {
-                'id': member.id,
-                'member_number': member.member_id,
-                'first_name': member.first_name,
-                'last_name': member.last_name,
-                'chapter': member.chapter,
+                'id': person.id,
+                'member_number': member.member_id if member else None,
+                'first_name': person.first_name,
+                'last_name': person.last_name,
+                'chapter': member.chapter if member else None,
             },
             'travel': travel_serializer.data,
             'departure_airport_info': departure_airport_info,
@@ -707,8 +716,8 @@ def admin_travel_detail(request, travel_id):
                     'user_email': request.user.email or request.user.username,
                     'action': 'admin_travel_update',
                     'travel_id': travel_id,
-                    'member_id': travel.registration.member.id,
-                    'member_name': f"{travel.registration.member.first_name} {travel.registration.member.last_name}",
+                    'person_id': travel.registration.person.id,
+                    'person_name': f"{travel.registration.person.first_name} {travel.registration.person.last_name}",
                     'changes': changes,
                 }
             )
@@ -719,21 +728,21 @@ def admin_travel_detail(request, travel_id):
             if updated_travel.outbound_flight_number and updated_travel.return_flight_number:
                 try:
                     # Send flight confirmation email (inline - matches existing pattern)
-                    member = updated_travel.registration.member
+                    person = updated_travel.registration.person
                     convention = updated_travel.registration.convention
                     mail_subject = f'{convention.name} - Your Flight Details'
-                    
+
                     message = render_to_string('convention/flight_booking_confirmation_email.html', {
-                        'member': member,
+                        'person': person,
                         'convention': convention,
                         'travel': updated_travel,
                         'registration': updated_travel.registration,
                         'domain': DOMAIN,
                     })
-                    
-                    if not member.user:
-                        raise Exception("Member has no associated user account")
-                    to_email = member.user.email
+
+                    if not hasattr(person, 'user') or not person.user:
+                        raise Exception("Person has no associated user account")
+                    to_email = person.user.email
                     email_msg = EmailMultiAlternatives(
                         subject=mail_subject,
                         body='',
@@ -745,7 +754,7 @@ def admin_travel_detail(request, travel_id):
                     logger.info(
                         f"Flight booking confirmation email sent to {to_email}",
                         extra={
-                            'member_id': member.id,
+                            'person_id': person.id,
                             'travel_id': updated_travel.id,
                             'convention_id': convention.id,
                             'outbound_flight': updated_travel.outbound_flight_number,
@@ -758,7 +767,7 @@ def admin_travel_detail(request, travel_id):
                         f"Failed to send flight booking confirmation email: {str(e)}",
                         extra={
                             'travel_id': travel_id,
-                            'member_id': travel.registration.member.id,
+                            'person_id': travel.registration.person.id,
                             'error': str(e)
                         }
                     )
@@ -802,7 +811,7 @@ def check_in_list(request):
     registrations = ConventionRegistration.objects.filter(
         convention=convention,
         is_guest=False
-    ).select_related('member').prefetch_related('guest_details', 'member__addresses')
+    ).select_related('person').prefetch_related('guest_details', 'person__addresses')
     
     serializer = CheckInListSerializer(registrations, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
@@ -833,19 +842,19 @@ def update_registration_status(request, registration_id):
         
         # Log the status change
         logger.info(
-            f"Registration status updated for {registration.member}",
+            f"Registration status updated for {registration.person}",
             extra={
                 'registration_id': registration.id,
-                'member_id': registration.member.id,
+                'person_id': registration.person.id,
                 'new_status': serializer.validated_data.get('status_code'),
                 'updated_by': request.user.email,
             }
         )
-        
+
         # Return updated registration with full details
         updated_registration = ConventionRegistration.objects.select_related(
-            'member'
-        ).prefetch_related('guest_details', 'member__addresses').get(id=registration_id)
+            'person'
+        ).prefetch_related('guest_details', 'person__addresses').get(id=registration_id)
         
         response_serializer = CheckInListSerializer(updated_registration)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
@@ -859,16 +868,16 @@ def update_recruiter_visibility(request, registration_id):
     """
     Update visible_to_recruiters for a registration.
     """
-    if not hasattr(request.user, 'member'):
+    if not (hasattr(request.user, 'person') and request.user.person is not None):
         return Response(
-            {'error': 'No member profile.'},
+            {'error': 'No person profile.'},
             status=status.HTTP_403_FORBIDDEN
         )
 
     registration = get_object_or_404(
         ConventionRegistration,
         id=registration_id,
-        member=request.user.member
+        person=request.user.person
     )
 
     visible = request.data.get('visible_to_recruiters')

@@ -8,7 +8,7 @@ class LoginThrottle(AnonRateThrottle):
 class RegisterThrottle(AnonRateThrottle):
     """Limit registration to prevent spam"""
     scope = 'sensitive'
-    rate = '3/hour'
+    rate = '20/hour'
 
 class PasswordResetThrottle(AnonRateThrottle):
     """Limit password reset requests"""

@@ -9,7 +9,7 @@ from .models import (
     ConventionAccommodation,
     Airport,
 )
-from accounts.models import Member, Address, PhoneNumber
+from accounts.models import Person, Address, PhoneNumber
 
 
 class ConventionSerializer(serializers.ModelSerializer):
@@ -101,16 +101,17 @@ class AirportSerializer(serializers.ModelSerializer):
 class MemberPersonalInfoSerializer(serializers.ModelSerializer):
     """
     Serializer for member personal info used in convention registration.
-    Pulls from Member model - no duplication.
+    Based on Person model; accesses Member sub-type for member-specific fields.
     """
     badge_name = serializers.SerializerMethodField()
     primary_phone = serializers.SerializerMethodField()
     primary_address = serializers.SerializerMethodField()
     resume_url = serializers.SerializerMethodField()
-    resume_uploaded_at = serializers.DateTimeField(read_only=True)
+    resume_uploaded_at = serializers.SerializerMethodField()
+    chapter = serializers.SerializerMethodField()
 
     class Meta:
-        model = Member
+        model = Person
         fields = [
             'id',
             'first_name',
@@ -126,17 +127,30 @@ class MemberPersonalInfoSerializer(serializers.ModelSerializer):
         read_only_fields = ['first_name', 'last_name', 'chapter', 'badge_name', 'primary_phone', 'primary_address', 'resume_url', 'resume_uploaded_at']
 
     def get_resume_url(self, obj):
-        if obj.resume:
+        if hasattr(obj, 'member') and obj.member.resume:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.resume.url)
-            return obj.resume.url
+                return request.build_absolute_uri(obj.member.resume.url)
+            return obj.member.resume.url
         return None
-    
+
+    def get_resume_uploaded_at(self, obj):
+        if hasattr(obj, 'member'):
+            return obj.member.resume_uploaded_at
+        return None
+
+    def get_chapter(self, obj):
+        if hasattr(obj, 'member'):
+            return obj.member.chapter
+        return None
+
     def get_badge_name(self, obj):
         """Compute badge name from preferred_first_name + last_name"""
-        return obj.get_badge_name()
-    
+        if hasattr(obj, 'member'):
+            return obj.member.get_badge_name()
+        preferred = obj.preferred_first_name or obj.first_name
+        return f"{preferred} {obj.last_name}"
+
     def get_primary_phone(self, obj):
         """Get primary phone number"""
         try:
@@ -146,7 +160,7 @@ class MemberPersonalInfoSerializer(serializers.ModelSerializer):
         except:
             pass
         return None
-    
+
     def get_primary_address(self, obj):
         """Get primary address"""
         try:
@@ -417,26 +431,26 @@ class ConventionRegistrationDetailSerializer(serializers.ModelSerializer):
     """
     convention_info = ConventionSerializer(source='convention', read_only=True)
     
-    # Member personal info (from Member model, not duplicated)
-    member_info = MemberPersonalInfoSerializer(source='member', read_only=True)
-    
-    # All member's addresses and phones (for editing)
+    # Person personal info (from Person model, not duplicated)
+    member_info = MemberPersonalInfoSerializer(source='person', read_only=True)
+
+    # All person's addresses and phones (for editing)
     member_addresses = serializers.SerializerMethodField()
     member_phones = serializers.SerializerMethodField()
-    
+
     # Nested convention-specific objects
     committee_preferences = ConventionCommitteePreferenceSerializer(read_only=True)
     guest_details = ConventionGuestSerializer(many=True, read_only=True)
     travel = ConventionTravelSerializer(read_only=True)
     accommodation = ConventionAccommodationSerializer(read_only=True)
-    
+
     class Meta:
         model = ConventionRegistration
         fields = [
             'id',
             'convention',
             'convention_info',
-            'member',
+            'person',
             'member_info',
             'member_addresses',
             'member_phones',
@@ -447,16 +461,17 @@ class ConventionRegistrationDetailSerializer(serializers.ModelSerializer):
             'travel',
             'accommodation',
             'visible_to_recruiters',
+            'confirmation_email_sent',
         ]
-    
+
     def get_member_addresses(self, obj):
-        """Get all addresses for the member"""
-        addresses = Address.objects.filter(member=obj.member)
+        """Get all addresses for the person"""
+        addresses = Address.objects.filter(person=obj.person)
         return AddressSerializer(addresses, many=True).data
-    
+
     def get_member_phones(self, obj):
-        """Get all phone numbers for the member"""
-        phones = PhoneNumber.objects.filter(member=obj.member)
+        """Get all phone numbers for the person"""
+        phones = PhoneNumber.objects.filter(person=obj.person)
         return PhoneNumberSerializer(phones, many=True).data
 
 
@@ -486,11 +501,11 @@ class AdminConventionTravelListSerializer(serializers.ModelSerializer):
     """
     Serializer for admin travel list view with member information.
     """
-    member_id = serializers.IntegerField(source='registration.member.id', read_only=True)
-    member_number = serializers.CharField(source='registration.member.member_id', read_only=True)
-    first_name = serializers.CharField(source='registration.member.first_name', read_only=True)
-    last_name = serializers.CharField(source='registration.member.last_name', read_only=True)
-    chapter = serializers.CharField(source='registration.member.chapter', read_only=True)
+    member_id = serializers.IntegerField(source='registration.person.id', read_only=True)
+    member_number = serializers.CharField(source='registration.person.member.member_id', read_only=True)
+    first_name = serializers.CharField(source='registration.person.first_name', read_only=True)
+    last_name = serializers.CharField(source='registration.person.last_name', read_only=True)
+    chapter = serializers.CharField(source='registration.person.member.chapter', read_only=True)
     registration_id = serializers.IntegerField(source='registration.id', read_only=True)
     
     # Get state for departure and return airports
@@ -729,12 +744,12 @@ class CheckInListSerializer(serializers.ModelSerializer):
     """
     Serializer for check-in list view showing all registrations
     """
-    member_id = serializers.IntegerField(source='member.id', read_only=True)
-    member_number = serializers.IntegerField(source='member.member_id', read_only=True)
-    first_name = serializers.CharField(source='member.first_name', read_only=True)
-    last_name = serializers.CharField(source='member.last_name', read_only=True)
-    preferred_first_name = serializers.CharField(source='member.preferred_first_name', read_only=True)
-    chapter = serializers.CharField(source='member.chapter', read_only=True)
+    member_id = serializers.IntegerField(source='person.id', read_only=True)
+    member_number = serializers.IntegerField(source='person.member.member_id', read_only=True)
+    first_name = serializers.CharField(source='person.first_name', read_only=True)
+    last_name = serializers.CharField(source='person.last_name', read_only=True)
+    preferred_first_name = serializers.CharField(source='person.preferred_first_name', read_only=True)
+    chapter = serializers.CharField(source='person.member.chapter', read_only=True)
     primary_address = serializers.SerializerMethodField()
     has_guest = serializers.SerializerMethodField()
     guest_count = serializers.SerializerMethodField()
@@ -759,9 +774,9 @@ class CheckInListSerializer(serializers.ModelSerializer):
         ]
     
     def get_primary_address(self, obj):
-        """Get primary address for member"""
+        """Get primary address for person"""
         try:
-            primary_address = obj.member.addresses.filter(is_primary=True).first()
+            primary_address = obj.person.addresses.filter(is_primary=True).first()
             if primary_address:
                 return AddressSerializer(primary_address).data
         except:

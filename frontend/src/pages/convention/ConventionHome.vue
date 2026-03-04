@@ -646,7 +646,7 @@
         </form>
       </div>
     </div>
-      <div id="committee-prefs" class="section-card scroll-target">
+      <div v-if="registration" id="committee-prefs" class="section-card scroll-target">
         <div class="section-header">
           <h2 class="section-title">
             <div class="section-icon gold">
@@ -814,6 +814,9 @@ const committeePreferences = ref({
   rituals: 0
 })
 
+// Mirrors the last *saved* state — completion badge is based on this, not the live form
+const savedCommitteePreferences = ref({ ...committeePreferences.value })
+
 // Guests
 const bringingGuest = ref(false)
 const guests = ref([])
@@ -917,12 +920,12 @@ const accommodation = ref({
 
 // Computed - Section Completion Status
 const isPersonalInfoComplete = computed(() => {
-  return mobilePhone.value.phone_number && memberAddresses.value.length > 0
+  return mobilePhone.value.phone_number && memberAddresses.value.some(a => a.is_primary)
 })
 
 const isCommitteePrefsComplete = computed(() => {
-  // Check if user has selected at least one preference (value > 0)
-  return Object.values(committeePreferences.value).some(val => val > 0)
+  // Based on savedCommitteePreferences so unsaved changes don't affect the status badge
+  return committees.some(c => savedCommitteePreferences.value[c.field] > 0)
 })
 
 const isTravelComplete = computed(() => {
@@ -979,33 +982,18 @@ const formatDateTime = (dateTimeString) => {
 }
 
 // Progress tracking
-const sections = computed(() => [
-  {
-    id: 'personal-info',
-    title: 'Personal Information',
-    isComplete: isPersonalInfoComplete.value
-  },
-  {
-    id: 'travel-info',
-    title: 'Travel',
-    isComplete: isTravelComplete.value
-  },
-  {
-    id: 'guest-info',
-    title: 'Guest Information',
-    isComplete: isGuestInfoComplete.value
-  },
-  {
-    id: 'accommodation',
-    title: 'Accommodation',
-    isComplete: isAccommodationComplete.value
-  },
-  {
-    id: 'committee-prefs',
-    title: 'Committee Preferences',
-    isComplete: isCommitteePrefsComplete.value
+const sections = computed(() => {
+  const base = [
+    { id: 'personal-info',  title: 'Personal Information', isComplete: isPersonalInfoComplete.value },
+    { id: 'travel-info',    title: 'Travel',               isComplete: isTravelComplete.value },
+    { id: 'guest-info',     title: 'Guest Information',    isComplete: isGuestInfoComplete.value },
+    { id: 'accommodation',  title: 'Accommodation',        isComplete: isAccommodationComplete.value },
+  ]
+  if (registration.value) {
+    base.push({ id: 'committee-prefs', title: 'Committee Preferences', isComplete: isCommitteePrefsComplete.value })
   }
-])
+  return base
+})
 
 const completionPercentage = computed(() => {
   const completedCount = sections.value.filter(s => s.isComplete).length
@@ -1093,6 +1081,7 @@ const loadRegistrationData = async (data) => {
   // Load committee preferences
   if (data.committee_preferences) {
     committeePreferences.value = { ...data.committee_preferences }
+    savedCommitteePreferences.value = { ...data.committee_preferences }
   }
 
   // Load guests
@@ -1303,12 +1292,17 @@ const setPrimaryPhone = async (phoneId) => {
 }
 
 const saveCommitteePreferences = async () => {
+  if (!committees.some(c => committeePreferences.value[c.field] > 0)) {
+    toast.error('Please select a preference level for at least one committee.')
+    return
+  }
   saving.value = true
   try {
     await api.put(
       `/api/convention/registration/${registration.value.id}/committee-preferences/`,
       committeePreferences.value
     )
+    savedCommitteePreferences.value = { ...committeePreferences.value }
     toast.success('Committee preferences saved!')
   } catch (error) {
     console.error('Error saving committee preferences:', error)
@@ -1407,6 +1401,17 @@ watch(returnState, (newState) => {
   } else {
     returnAirports.value = []
     travel.value.return_airport = ''
+  }
+})
+
+watch(completionPercentage, async (newVal) => {
+  if (newVal === 100 && registration.value && !registration.value.confirmation_email_sent) {
+    try {
+      await api.post(`/api/convention/registration/${registration.value.id}/send-confirmation/`)
+      registration.value.confirmation_email_sent = true
+    } catch (error) {
+      console.error('Failed to send registration confirmation email:', error)
+    }
   }
 })
 

@@ -6,13 +6,13 @@
 <body>
     <h2>Your Flight Details</h2>
     
-    {% if member %}
-        <p>Hi {{ member.first_name }},</p>
+    {% if person %}
+        <p>Hi {{ person.first_name }},</p>
     {% else %}
         <p>Hello,</p>
     {% endif %}
     
-    <p>Great news! Your flights have been booked for the <strong>{{ convention.name }}</strong> in {{ convention.city }}, {{ convention.state }}.</p>
+    <p>Great news! Your flights have been booked for the <strong>{{ convention.name }}</strong> in {{ convention.location }}.</p>
     
     <p><strong>Important:</strong> Please review all flight details carefully and arrive at the airport at least 2 hours before your scheduled departure time.</p>
     

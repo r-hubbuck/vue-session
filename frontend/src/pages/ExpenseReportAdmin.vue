@@ -1,7 +1,14 @@
 <template>
-  <div v-if="hasAccess" class="container-fluid mt-4">
-    <h1>Expense Reports Administration</h1>
-    
+  <div v-if="hasAccess" class="expense-report-admin-page">
+    <div class="page-header">
+      <div class="page-header-content">
+        <h1 class="page-title">Expense Reports Administration</h1>
+        <p class="page-subtitle">Review and manage member expense reports</p>
+      </div>
+    </div>
+
+    <div class="content-container">
+
     <!-- Summary Stats -->
     <div class="row mb-4" v-if="expenseReports.length > 0">
       <div class="col-md-2">
@@ -528,8 +535,10 @@
       {{ success }}
       <button type="button" class="btn-close" @click="success = null"></button>
     </div>
+
+    </div><!-- end content-container -->
   </div>
-  <div v-else class="container-fluid mt-4">
+  <div v-else class="expense-report-admin-page">
     <div class="alert alert-danger">You do not have permission to view this page.</div>
   </div>
 </template>
@@ -804,6 +813,10 @@ export default {
 </script>
 
 <style scoped>
+.expense-report-admin-page {
+}
+
+
 .card {
   margin-bottom: 1.5rem;
 }

@@ -1,6 +1,6 @@
 import bleach
 from rest_framework import serializers
-from .models import Code, User, Address, PhoneNumber, StateProvince, UsedToken
+from .models import Code, User, Address, PhoneNumber, StateProvince, UsedToken, Person
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -17,10 +17,9 @@ class CreateUserSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'email': {
                 'validators': [],  # Remove default unique validator
-            } 
+            }
         }
 
-    # Keep your existing password validation methods
     def validate_password1(self, value):
         if len(value) < 8:
             raise serializers.ValidationError('Password must be at least 8 characters long.')
@@ -35,7 +34,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
         if re.search(r'[^A-Za-z0-9!@#$%^&*_=+\-.]', value):
             raise serializers.ValidationError('Password contains invalid characters.')
         return value
-    
+
     def validate_password2(self, value):
         if len(value) < 8:
             raise serializers.ValidationError('Password must be at least 8 characters long.')
@@ -52,110 +51,78 @@ class CreateUserSerializer(serializers.ModelSerializer):
         return value
 
     def validate_email(self, value):
-        """
-        Modified to allow re-registration for inactive users.
-        Stores reference to existing inactive user if found.
-        """
-        # Check if user with this email already exists
         existing_user = User.objects.filter(email=value).first()
-        
+
         if existing_user:
-            # If user exists but is NOT active, allow re-registration
             if not existing_user.is_active:
-                # Check how old the inactive account is
                 account_age = timezone.now() - existing_user.date_joined
 
                 if account_age < timedelta(hours=24):
-                     # Too soon to re-register
                     raise serializers.ValidationError(
                         'An activation email was recently sent to this address. '
                         'Please check your email or wait 24 hours to re-register.'
                     )
-                
-                # Account is old enough, allow re-registration
-                # Store the existing user so we can update it in create()
+
                 self.existing_inactive_user = existing_user
                 return value
             else:
-                # User exists and IS active - use generic message to avoid confirming
-                # whether a specific email is registered in the system
                 raise serializers.ValidationError(
                     'This email address cannot be used for registration.'
                 )
-        
-        # Email doesn't exist - normal registration flow
+
         return value
 
     def validate(self, data):
-        """Check that passwords match"""
         if data['password1'] != data['password2']:
             raise serializers.ValidationError({'password2': 'Passwords do not match.'})
         return data
 
     def create(self, validated_data):
-        """
-        Create new user OR update existing inactive user.
-        Also clears old activation tokens for existing users.
-        """
         email = validated_data['email']
         password = validated_data['password1']
-        
-        # Check if we have an existing inactive user (set in validate_email)
-        if hasattr(self, 'existing_inactive_user'):
-            # UPDATE EXISTING USER instead of creating new one
-            user = self.existing_inactive_user
-            
-            # Update password
-            user.set_password(password)
 
-            # Update last_login to invalidate old tokens
+        if hasattr(self, 'existing_inactive_user'):
+            user = self.existing_inactive_user
+            user.set_password(password)
             user.last_login = timezone.now()
-            
-            # Keep inactive until email is verified
             user.is_active = False
-            
-            # Save updated user
             user.save()
-            
-            # Delete any old activation tokens for this user
-            # This ensures old activation links won't work
+
             UsedToken.objects.filter(
                 user=user,
                 token_type='activation'
             ).delete()
-            
-            # The signal will NOT create a new Code because created=False, so we need to update the Code manually
+
             if hasattr(user, 'code'):
-                # Update existing code with new random number
-                user.code.save()  # This triggers Code.save() which generates new number
+                user.code.save()
             else:
-                # Create code if somehow it doesn't exist
                 Code.objects.create(user=user)
-            
+
             return user
         else:
-            # CREATE NEW USER (normal flow)
             user = User(
                 email=email,
                 is_active=False
             )
             user.set_password(password)
             user.save()
-            
-            # Signal automatically creates Code for new users
             return user
+
 
 class CodeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Code
         fields = ('number',)
-        
+
+
 class CodeValidationSerializer(serializers.Serializer):
     code = serializers.CharField(max_length=5, min_length=5, required=True)
+
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, min_length=8, write_only=True)
+
 
 class VerifyMemberSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
@@ -178,6 +145,7 @@ class VerifyMemberSerializer(serializers.Serializer):
         if not value.isdigit() or len(value) != 4:
             raise serializers.ValidationError("Year must be a 4-digit number.")
         return value
+
 
 class AddressSerializer(serializers.ModelSerializer):
     display_name = serializers.SerializerMethodField()
@@ -207,7 +175,6 @@ class AddressSerializer(serializers.ModelSerializer):
         return value
 
     def get_display_name(self, obj):
-        """Return a formatted address string for display in dropdowns"""
         parts = [obj.add_line1]
         if obj.add_line2:
             parts.append(obj.add_line2)
@@ -215,51 +182,40 @@ class AddressSerializer(serializers.ModelSerializer):
         if obj.add_country and obj.add_country != 'United States':
             parts.append(obj.add_country)
         return ', '.join(parts)
-        
+
     def validate(self, data):
-        """
-        Validate based on country:
-        - US addresses require state
-        - Non-US addresses don't require state
-        - Zip/Postal code is optional for all addresses
-        - Check for duplicate address types
-        """
-        # Get the member from the view context
-        member = None
+        person = None
         if self.context and 'request' in self.context:
             request = self.context['request']
-            if hasattr(request.user, 'member'):
-                member = request.user.member
-        
-        # Validate state requirement based on country
+            if hasattr(request.user, 'person') and request.user.person is not None:
+                person = request.user.person
+
         country = data.get('add_country', 'United States')
         state = data.get('add_state')
-        
+
         if country == 'United States' and not state:
             raise serializers.ValidationError({
                 'add_state': 'State is required for United States addresses.'
             })
-        
-        # Validate unique address type per member
-        if member and 'add_type' in data:
+
+        if person and 'add_type' in data:
             add_type = data['add_type']
-            
+
             if self.instance:
-                # For updates: check if another address of this type exists (excluding current one)
                 existing = Address.objects.filter(
-                    member=member, 
+                    person=person,
                     add_type=add_type
                 ).exclude(id=self.instance.id)
             else:
-                # For creates: check if any address of this type exists
-                existing = Address.objects.filter(member=member, add_type=add_type)
-            
+                existing = Address.objects.filter(person=person, add_type=add_type)
+
             if existing.exists():
                 raise serializers.ValidationError({
                     'add_type': f'You already have a {add_type.lower()} address. You can only have one address of each type.'
                 })
-        
+
         return data
+
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
@@ -269,9 +225,8 @@ class PasswordResetRequestSerializer(serializers.Serializer):
             validate_email(value)
         except ValidationError:
             raise serializers.ValidationError("Please enter a valid email address.")
-        # Do NOT check if the user exists here — the view returns a generic response
-        # regardless of whether the email is registered, preventing email enumeration.
         return value
+
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
     new_password1 = serializers.CharField(write_only=True, min_length=8)
@@ -315,17 +270,15 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
 class PhoneNumberSerializer(serializers.ModelSerializer):
     formatted_number = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = PhoneNumber
         fields = ['id', 'country_code', 'phone_number', 'formatted_number', 'phone_type', 'is_primary']
-    
+
     def get_formatted_number(self, obj):
-        """Return formatted phone number for display"""
         return obj.get_formatted_number()
-    
+
     def validate_phone_number(self, value):
-        """Strip all formatting and validate digits only"""
         clean_number = re.sub(r'\D', '', value)
 
         if not clean_number:
@@ -337,54 +290,53 @@ class PhoneNumberSerializer(serializers.ModelSerializer):
         if len(set(clean_number)) == 1:
             raise serializers.ValidationError("Please enter a valid phone number.")
 
-        # US 10-digit: area code and exchange cannot start with 0 or 1
         if len(clean_number) == 10:
             if clean_number[0] in ('0', '1') or clean_number[3] in ('0', '1'):
                 raise serializers.ValidationError("Please enter a valid phone number.")
 
         return clean_number
-    
+
     def validate(self, data):
-        """
-        Validate that the member doesn't already have a phone of this type.
-        Primary phone validation is handled in the view's perform_update() method.
-        """
-        member = None
+        person = None
         if self.context and 'request' in self.context:
             request = self.context['request']
-            if hasattr(request.user, 'member'):
-                member = request.user.member
-        
-        if member and 'phone_type' in data:
+            if hasattr(request.user, 'person') and request.user.person is not None:
+                person = request.user.person
+
+        if person and 'phone_type' in data:
             phone_type = data['phone_type']
-            
+
             if self.instance:
                 existing_type = PhoneNumber.objects.filter(
-                    member=member, 
+                    person=person,
                     phone_type=phone_type
                 ).exclude(id=self.instance.id)
             else:
-                existing_type = PhoneNumber.objects.filter(member=member, phone_type=phone_type)
-            
+                existing_type = PhoneNumber.objects.filter(person=person, phone_type=phone_type)
+
             if existing_type.exists():
                 raise serializers.ValidationError({
                     'phone_type': f'You already have a {phone_type.lower()} phone number. You can only have one phone number of each type.'
                 })
-        
+
         return data
 
+
 class UserAccountSerializer(serializers.ModelSerializer):
-    phone_numbers = PhoneNumberSerializer(many=True, read_only=True, source='member.phone_numbers')
-    
+    phone_numbers = PhoneNumberSerializer(many=True, read_only=True, source='person.phone_numbers')
+    first_name = serializers.CharField(source='person.first_name', read_only=True, default='')
+    last_name = serializers.CharField(source='person.last_name', read_only=True, default='')
+
     class Meta:
         model = User
-        fields = ['id', 'email', 'alt_email', 'phone_numbers']
-        read_only_fields = ['id', 'email']  # Email should not be editable
-    
+        fields = ['id', 'email', 'alt_email', 'first_name', 'last_name', 'phone_numbers']
+        read_only_fields = ['id', 'email', 'first_name', 'last_name']
+
     def validate_alt_email(self, value):
         if value and User.objects.filter(email=value).exists():
             raise serializers.ValidationError('This email is already in use as a primary email.')
         return value
+
 
 class UserSerializer(serializers.ModelSerializer):
     member = serializers.SerializerMethodField()
@@ -393,27 +345,27 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'alt_email', 'user_type', 'roles', 'member', 'recruiter_profile']
+        fields = ['id', 'email', 'alt_email', 'roles', 'member', 'recruiter_profile']
 
     def get_member(self, obj):
-        if obj.member:
+        if obj.person and hasattr(obj.person, 'member'):
+            m = obj.person.member
             return {
-                'member_id': obj.member.member_id,
-                'first_name': obj.member.first_name,
-                'preferred_first_name': obj.member.preferred_first_name,
-                'middle_name': obj.member.middle_name,
-                'last_name': obj.member.last_name,
-                'chapter': obj.member.chapter,
-                'district': obj.member.district,
+                'member_id': m.member_id,
+                'first_name': obj.person.first_name,
+                'preferred_first_name': obj.person.preferred_first_name,
+                'middle_name': obj.person.middle_name,
+                'last_name': obj.person.last_name,
+                'chapter': m.chapter,
+                'district': m.district,
             }
         return None
 
     def get_roles(self, obj):
-        """Return list of all role names (groups) for the user"""
         return list(obj.groups.values_list('name', flat=True))
 
     def get_recruiter_profile(self, obj):
-        if obj.user_type == 'recruiter' and hasattr(obj, 'recruiter_profile'):
+        if obj.has_role('recruiter') and hasattr(obj, 'recruiter_profile'):
             profile = obj.recruiter_profile
             return {
                 'id': profile.id,
@@ -424,15 +376,15 @@ class UserSerializer(serializers.ModelSerializer):
             }
         return None
 
+
 class StateProvinceSerializer(serializers.ModelSerializer):
     country_name = serializers.ReadOnlyField()
-    
+
     class Meta:
         model = StateProvince
         fields = ['st_id', 'st_name', 'st_abbrev', 'st_region', 'country_name', 'st_ctrid']
-        
+
     def to_representation(self, instance):
-        """Custom representation for grouped display"""
         return {
             'id': instance.st_id,
             'name': instance.st_name,

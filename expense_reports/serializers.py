@@ -1,7 +1,7 @@
 import bleach
 from rest_framework import serializers
 from .models import ExpenseReportType, ExpenseReport, ExpenseReportDetail
-from accounts.models import Member
+from accounts.models import Person
 from accounts.serializers import AddressSerializer
 
 
@@ -93,7 +93,7 @@ class ExpenseReportListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
     
     def get_member_name(self, obj):
-        return f"{obj.member.first_name} {obj.member.last_name}"
+        return f"{obj.person.first_name} {obj.person.last_name}"
 
 
 class ExpenseReportDetailedSerializer(serializers.ModelSerializer):
@@ -156,10 +156,10 @@ class ExpenseReportDetailedSerializer(serializers.ModelSerializer):
         ]
     
     def get_member_name(self, obj):
-        return f"{obj.member.first_name} {obj.member.last_name}"
-    
+        return f"{obj.person.first_name} {obj.person.last_name}"
+
     def get_member_email(self, obj):
-        return obj.member.user.email if obj.member.user else None
+        return obj.person.user.email if hasattr(obj.person, 'user') and obj.person.user else None
     
     def get_reviewer_name(self, obj):
         if obj.reviewer:
@@ -199,10 +199,10 @@ class ExpenseReportCreateSerializer(serializers.ModelSerializer):
         ]
     
     def validate_mailing_address(self, value):
-        """Validate that the address belongs to the member"""
+        """Validate that the address belongs to the person"""
         request = self.context.get('request')
-        if request and hasattr(request.user, 'member'):
-            if value.member != request.user.member:
+        if request and hasattr(request.user, 'person') and request.user.person is not None:
+            if value.person != request.user.person:
                 raise serializers.ValidationError(
                     'You can only select addresses that belong to you.'
                 )

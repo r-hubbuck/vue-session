@@ -25,7 +25,7 @@ from django.db import transaction
 from .throttles import LoginThrottle, RegisterThrottle, PasswordResetThrottle, CodeCheckThrottle
 
 from .tokens import account_activation_token, password_reset_token
-from .models import User, Member, Address, PhoneNumber, StateProvince, Code, ROLE_MEMBER, ROLE_ALUMNI
+from .models import User, Member, Person, Address, PhoneNumber, StateProvince, Code, ROLE_MEMBER, ROLE_ALUMNI
 from .serializers import (
     CodeValidationSerializer,
     LoginSerializer,
@@ -209,18 +209,39 @@ def register(request):
         member_last_name = request.session.get('member_last_name', '')
         member_chapter = request.session.get('member_chapter', '')
         member_class_year = request.session.get('member_class_year', '')
+        birth_date = request.session.get('birth_date', None)
+        initiation_date = request.session.get('initiation_date', None)
+        gender_id = request.session.get('gender_id', None)
+        person = None
         member = None
         if member_first_name and member_last_name and member_chapter:
-            member = Member.objects.create(
-                member_id=member_id,
-                first_name=member_first_name,
-                middle_name=member_middle_name,
-                last_name=member_last_name,
-                chapter=member_chapter,
-                # phone=user.phone,
-                # email=user.email
-            )
-            user.member = member
+            existing_member = Member.objects.filter(member_id=member_id).select_related('person').first()
+            if existing_member:
+                # Reuse the existing Person/Member (orphaned from a previous attempt)
+                person = existing_member.person
+                person.first_name = member_first_name
+                person.middle_name = member_middle_name
+                person.last_name = member_last_name
+                person.birth_date = birth_date
+                person.initiation_date = initiation_date
+                person.gender_id = gender_id
+                person.save()
+                member = existing_member
+            else:
+                person = Person.objects.create(
+                    first_name=member_first_name,
+                    middle_name=member_middle_name,
+                    last_name=member_last_name,
+                    birth_date=birth_date,
+                    initiation_date=initiation_date,
+                    gender_id=gender_id,
+                )
+                member = Member.objects.create(
+                    person=person,
+                    member_id=member_id,
+                    chapter=member_chapter,
+                )
+            user.person = person
 
             # Set role based on class year
             if member_class_year:
@@ -245,7 +266,7 @@ def register(request):
         print(f"DEBUG: Retrieved {len(member_addresses)} addresses from session:")
         for addr in member_addresses:
             print(f"  Type: '{addr.get('add_type')}', Line1: '{addr.get('add_line1')}'")
-        if member_addresses and member:
+        if member_addresses and person:
             created_types = set()
             for address_data in member_addresses:
                 add_type = address_data.get('add_type', '')
@@ -261,7 +282,7 @@ def register(request):
                 print(f"  add_country: '{address_data.get('add_country', 'United States')}'")
                 try:
                     Address.objects.create(
-                        member=member,
+                        person=person,
                         add_line1=address_data.get('add_line1', ''),
                         add_line2=address_data.get('add_line2', ''),
                         add_city=address_data.get('add_city', ''),
@@ -277,7 +298,7 @@ def register(request):
 
         # Create phone numbers from session data
         member_phone_numbers = request.session.get('member_phone_numbers', [])
-        if member_phone_numbers and member:
+        if member_phone_numbers and person:
             import re
             created_types = set()
             has_primary = False
@@ -308,7 +329,7 @@ def register(request):
                         is_primary = False
                     
                     PhoneNumber.objects.create(
-                        member=member,
+                        person=person,
                         country_code='+1',  # Default to US country code
                         phone_number=clean_number,
                         phone_type=phone_type,
@@ -324,7 +345,7 @@ def register(request):
             del request.session['member_phone_numbers']
 
         # Sync user email to SQL Server if member has a member_id
-        if member and member.member_id:
+        if member and member.member_id and person:
             _sync_emails_to_sql_server(
                 member.member_id,
                 user.email,
@@ -334,7 +355,7 @@ def register(request):
         current_site = get_current_site(request)
         mail_subject = 'Activate Your Account'
         message = render_to_string('registration/account_activation_email.html', {
-            'member': member,
+            'person': person,
             # 'domain': current_site.domain,
             'domain': DOMAIN,
             'uid': urlsafe_base64_encode(force_bytes(user.pk)),
@@ -421,8 +442,11 @@ class VerifyMemberAPIView(APIView):
                                 ,Memblist.mem_lname
                                 ,Memblist.mem_fname
                                 ,Memblist.mem_mname
-                                ,Memblist.PreferredName  
-                                ,Memblist.mem_chpcd  
+                                ,Memblist.PreferredName
+                                ,Memblist.mem_chpcd
+                                ,Memblist.BirthDate
+                                ,Memblist.InitiationDate
+                                ,Memblist.Gender
                                 ,Chapters.chp_name
                                 ,Chapters.Chp_Name_Short
                                 ,Chapters.chp_code
@@ -441,19 +465,29 @@ class VerifyMemberAPIView(APIView):
                                 ON Memblist.mem_chpcd = Chapters.chp_code
                                 INNER JOIN Address
                                 ON Address.add_memid = Memblist.mem_id
-                                WHERE Memblist.mem_classy = %s 
-                                AND Memblist.mem_chpcd = %s 
+                                WHERE Memblist.mem_classy = %s
+                                AND Memblist.mem_chpcd = %s
                                 AND (add_email = %s OR add_email_alt = %s) ''', [year, chapter, email, email])
             users = cursor.fetchall()
 
             if len(users) > 0:
+                def to_date_str(val):
+                    if not val:
+                        return None
+                    if isinstance(val, str):
+                        return val[:10]  # take YYYY-MM-DD portion if already a string
+                    return val.strftime('%Y-%m-%d')
+
                 member_info = {
                     'member_id': users[0]['add_memid'],
                     'member_first_name': users[0]['mem_fname'],
                     'member_middle_name': users[0]['mem_mname'],
                     'member_last_name': users[0]['mem_lname'],
                     'member_chapter': users[0]['Chp_Name_Short'],
-                    'member_class_year': users[0]['mem_classy']                                
+                    'member_class_year': users[0]['mem_classy'],
+                    'birth_date': to_date_str(users[0]['BirthDate']),
+                    'initiation_date': to_date_str(users[0]['InitiationDate']),
+                    'gender_id': users[0]['Gender'],
                 }
 
                 cursor = conn.cursor(as_dict=True)
@@ -577,7 +611,7 @@ def password_reset_request(request):
             mail_subject = 'Password Reset Request'
             message = render_to_string('registration/password_reset_confirm_email.html', {
                 'user': user,
-                'member': user.member if hasattr(user, 'member') else None,
+                'person': user.person if user.person else None,
                 # 'domain': current_site.domain,
                 'domain': DOMAIN,
                 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
@@ -700,10 +734,10 @@ class AddressViewSet(viewsets.ModelViewSet):
         return self.SQL_TO_DJANGO.get(sql_type, sql_type)  
     
     def get_queryset(self):
-        # Only return addresses for the authenticated user's member_id
+        # Only return addresses for the authenticated user's person
         user = self.request.user
-        if hasattr(user, 'member'):
-            return Address.objects.filter(member=user.member).select_related('member')
+        if hasattr(user, 'person') and user.person is not None:
+            return Address.objects.filter(person=user.person).select_related('person')
         return Address.objects.none()
     
     def _sync_to_sql_server(self, action, member_id, address_data, old_address_data=None):
@@ -794,13 +828,14 @@ class AddressViewSet(viewsets.ModelViewSet):
             # Don't raise exception - allow Django operation to succeed even if SQL Server sync fails
     
     def perform_create(self, serializer):
-        # Automatically set the member to the authenticated user's member_id
-        if hasattr(self.request.user, 'member'):
-            member = self.request.user.member
-            address = serializer.save(member=member)
-            
-            # Sync to SQL Server if member has a member_id
-            if member.member_id:
+        # Automatically set the person to the authenticated user's person
+        if hasattr(self.request.user, 'person') and self.request.user.person is not None:
+            person = self.request.user.person
+            address = serializer.save(person=person)
+
+            # Sync to SQL Server if person has an associated member with member_id
+            member_id = person.member.member_id if hasattr(person, 'member') and person.member else None
+            if member_id:
                 address_data = {
                     'add_line1': address.add_line1,
                     'add_line2': address.add_line2,
@@ -809,15 +844,15 @@ class AddressViewSet(viewsets.ModelViewSet):
                     'add_zip': address.add_zip,
                     'add_type': address.add_type
                 }
-                self._sync_to_sql_server('create', member.member_id, address_data)
+                self._sync_to_sql_server('create', member_id, address_data)
         else:
-            raise PermissionDenied("User must have an associated member record to create addresses")
+            raise PermissionDenied("User must have an associated person record to create addresses")
     
     def perform_update(self, serializer):
-        # Ensure the member field cannot be changed during update
-        if hasattr(self.request.user, 'member'):
-            member = self.request.user.member
-            
+        # Ensure the person field cannot be changed during update
+        if hasattr(self.request.user, 'person') and self.request.user.person is not None:
+            person = self.request.user.person
+
             # Get old address data before update
             old_address = self.get_object()
             old_address_data = {
@@ -828,18 +863,19 @@ class AddressViewSet(viewsets.ModelViewSet):
                 'add_zip': old_address.add_zip,
                 'add_type': old_address.add_type
             }
-            
+
             # If this address is being set as primary, unset all other primary addresses
             if serializer.validated_data.get('is_primary', False):
-                Address.objects.filter(member=member, is_primary=True).exclude(
+                Address.objects.filter(person=person, is_primary=True).exclude(
                     id=old_address.id
                 ).update(is_primary=False)
-            
+
             # Save the updated address
-            address = serializer.save(member=member)
-            
-            # Sync to SQL Server if member has a member_id
-            if member.member_id:
+            address = serializer.save(person=person)
+
+            # Sync to SQL Server if person has an associated member with member_id
+            member_id = person.member.member_id if hasattr(person, 'member') and person.member else None
+            if member_id:
                 new_address_data = {
                     'add_line1': address.add_line1,
                     'add_line2': address.add_line2,
@@ -848,15 +884,15 @@ class AddressViewSet(viewsets.ModelViewSet):
                     'add_zip': address.add_zip,
                     'add_type': address.add_type
                 }
-                self._sync_to_sql_server('update', member.member_id, new_address_data, old_address_data)
+                self._sync_to_sql_server('update', member_id, new_address_data, old_address_data)
         else:
-            raise PermissionDenied("User must have an associated member record to update addresses")
+            raise PermissionDenied("User must have an associated person record to update addresses")
     
     def destroy(self, request, *args, **kwargs):
         # Get address data before deletion
         address = self.get_object()
-        member = address.member
-        
+        person = address.person
+
         address_data = {
             'add_line1': address.add_line1,
             'add_line2': address.add_line2,
@@ -865,14 +901,15 @@ class AddressViewSet(viewsets.ModelViewSet):
             'add_zip': address.add_zip,
             'add_type': address.add_type
         }
-        
+
         # Delete from Django database
         response = super().destroy(request, *args, **kwargs)
-        
-        # Sync deletion to SQL Server if member has a member_id
-        if member.member_id:
-            self._sync_to_sql_server('delete', member.member_id, address_data)
-        
+
+        # Sync deletion to SQL Server if person has an associated member with member_id
+        member_id = person.member.member_id if hasattr(person, 'member') and person.member else None
+        if member_id:
+            self._sync_to_sql_server('delete', member_id, address_data)
+
         return response
     
     @action(detail=True, methods=['post'])
@@ -883,17 +920,17 @@ class AddressViewSet(viewsets.ModelViewSet):
         Unsets all other primary addresses for this member.
         """
         address = self.get_object()
-        member = address.member
-        
-        # Verify the address belongs to the requesting user's member
-        if request.user.member != member:
+        person = address.person
+
+        # Verify the address belongs to the requesting user's person
+        if request.user.person != person:
             return Response(
                 {'error': 'You do not have permission to modify this address.'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
-        # Unset all other primary addresses for this member
-        Address.objects.filter(member=member).update(is_primary=False)
+
+        # Unset all other primary addresses for this person
+        Address.objects.filter(person=person).update(is_primary=False)
         
         # Set this address as primary
         address.is_primary = True
@@ -977,9 +1014,9 @@ def user_account_view(request):
             user = serializer.save()
             
             # Sync emails to SQL Server if user has an associated member with member_id
-            if hasattr(user, 'member') and user.member and user.member.member_id:
+            if user.person and hasattr(user.person, 'member') and user.person.member.member_id:
                 _sync_emails_to_sql_server(
-                    user.member.member_id,
+                    user.person.member.member_id,
                     user.email,
                     user.alt_email
                 )
@@ -1109,81 +1146,84 @@ class PhoneNumberViewSet(viewsets.ModelViewSet):
             # Don't raise exception - allow Django operation to succeed even if SQL Server sync fails
     
     def get_queryset(self):
-        # Only return phone numbers for the authenticated user's member
+        # Only return phone numbers for the authenticated user's person
         user = self.request.user
-        if hasattr(user, 'member'):
-            return PhoneNumber.objects.filter(member=user.member).select_related('member')
+        if hasattr(user, 'person') and user.person is not None:
+            return PhoneNumber.objects.filter(person=user.person).select_related('person')
         return PhoneNumber.objects.none()
     
     def perform_create(self, serializer):
-        # Automatically set the member to the authenticated user's member
-        if hasattr(self.request.user, 'member'):
+        # Automatically set the person to the authenticated user's person
+        if hasattr(self.request.user, 'person') and self.request.user.person is not None:
+            person = self.request.user.person
             # If this is the first phone number, make it primary by default
-            member = self.request.user.member
-            existing_phones = PhoneNumber.objects.filter(member=member)
+            existing_phones = PhoneNumber.objects.filter(person=person)
             if not existing_phones.exists():
-                phone = serializer.save(member=member, is_primary=True)
+                phone = serializer.save(person=person, is_primary=True)
             else:
-                phone = serializer.save(member=member)
-            
-            # Sync to SQL Server if member has a member_id
-            if member.member_id:
-                self._sync_phone_to_sql_server('create', member.member_id, phone.phone_type, phone.phone_number)
+                phone = serializer.save(person=person)
+
+            # Sync to SQL Server if person has an associated member with member_id
+            member_id = person.member.member_id if hasattr(person, 'member') and person.member else None
+            if member_id:
+                self._sync_phone_to_sql_server('create', member_id, phone.phone_type, phone.phone_number)
         else:
-            raise PermissionDenied("User must have an associated member record to create phone numbers")
+            raise PermissionDenied("User must have an associated person record to create phone numbers")
     
     def perform_update(self, serializer):
-        # Ensure the member field cannot be changed during update
-        if hasattr(self.request.user, 'member'):
-            member = self.request.user.member
-            
+        # Ensure the person field cannot be changed during update
+        if hasattr(self.request.user, 'person') and self.request.user.person is not None:
+            person = self.request.user.person
+
             # Get old phone data before update
             old_phone = self.get_object()
             old_phone_type = old_phone.phone_type
-            
+
             # If this phone is being set as primary, unset all other primary phones
             if serializer.validated_data.get('is_primary', False):
-                PhoneNumber.objects.filter(member=member, is_primary=True).exclude(
+                PhoneNumber.objects.filter(person=person, is_primary=True).exclude(
                     id=old_phone.id
                 ).update(is_primary=False)
-            
-            phone = serializer.save(member=member)
-            
-            # Sync to SQL Server if member has a member_id
-            if member.member_id:
+
+            phone = serializer.save(person=person)
+
+            # Sync to SQL Server if person has an associated member with member_id
+            member_id = person.member.member_id if hasattr(person, 'member') and person.member else None
+            if member_id:
                 # If phone type changed, clear the old column and set the new one
                 if old_phone_type != phone.phone_type:
-                    self._sync_phone_to_sql_server('delete', member.member_id, old_phone_type)
-                    self._sync_phone_to_sql_server('create', member.member_id, phone.phone_type, phone.phone_number)
+                    self._sync_phone_to_sql_server('delete', member_id, old_phone_type)
+                    self._sync_phone_to_sql_server('create', member_id, phone.phone_type, phone.phone_number)
                 else:
                     # Just update the phone number
-                    self._sync_phone_to_sql_server('update', member.member_id, phone.phone_type, phone.phone_number)
+                    self._sync_phone_to_sql_server('update', member_id, phone.phone_type, phone.phone_number)
         else:
-            raise PermissionDenied("User must have an associated member record to update phone numbers")
+            raise PermissionDenied("User must have an associated person record to update phone numbers")
     
     def destroy(self, request, *args, **kwargs):
         # Get the phone number to be deleted
         phone_number = self.get_object()
-        member = phone_number.member
+        person = phone_number.person
         is_primary = phone_number.is_primary
         phone_type = phone_number.phone_type
-        
+
         # Get remaining phones (excluding the one being deleted)
-        remaining_phones = PhoneNumber.objects.filter(member=member).exclude(id=phone_number.id)
-        
+        remaining_phones = PhoneNumber.objects.filter(person=person).exclude(id=phone_number.id)
+
         # Delete the phone first to avoid constraint violations
         response = super().destroy(request, *args, **kwargs)
-        
+
         # If we deleted the primary phone and there are other phones, make the first one primary
         if is_primary and remaining_phones.exists():
             first_phone = remaining_phones.first()
             first_phone.is_primary = True
             first_phone.save()
-        
-        # Sync deletion to SQL Server if member has a member_id
-        if member.member_id:
-            self._sync_phone_to_sql_server('delete', member.member_id, phone_type)
-        
+
+        # Sync deletion to SQL Server if person has an associated member with member_id
+        member_id = person.member.member_id if hasattr(person, 'member') and person.member else None
+        if member_id:
+            self._sync_phone_to_sql_server('delete', member_id, phone_type)
+
         return response
     
     @action(detail=True, methods=['post'])
@@ -1194,17 +1234,17 @@ class PhoneNumberViewSet(viewsets.ModelViewSet):
         Unsets all other primary phone numbers for this member.
         """
         phone = self.get_object()
-        member = phone.member
-        
-        # Verify the phone belongs to the requesting user's member
-        if request.user.member != member:
+        person = phone.person
+
+        # Verify the phone belongs to the requesting user's person
+        if request.user.person != person:
             return Response(
                 {'error': 'You do not have permission to modify this phone number.'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
-        # Unset all other primary phones for this member
-        PhoneNumber.objects.filter(member=member).update(is_primary=False)
+
+        # Unset all other primary phones for this person
+        PhoneNumber.objects.filter(person=person).update(is_primary=False)
         
         # Set this phone as primary
         phone.is_primary = True

@@ -10,6 +10,8 @@ urlpatterns = [
     # Admin: approve recruiters
     path('admin/pending/', views.admin_pending_recruiters, name='admin_pending_recruiters'),
     path('admin/approve/<int:pk>/', views.admin_approve_recruiter, name='admin_approve_recruiter'),
+    path('admin/deny/<int:pk>/', views.admin_deny_recruiter, name='admin_deny_recruiter'),
+    path('admin/delete/<int:pk>/', views.admin_delete_recruiter, name='admin_delete_recruiter'),
     path('admin/organizations/', views.admin_organizations, name='admin_organizations'),
 
     # Convention: booth packages & meal options

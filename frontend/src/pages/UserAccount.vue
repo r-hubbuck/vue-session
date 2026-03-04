@@ -41,6 +41,9 @@
 
         <form @submit.prevent="saveAccountInfo">
           <div class="row g-4">
+            <div class="col-12" v-if="accountData.first_name || accountData.last_name">
+              <p class="mb-0 fw-semibold fs-5">{{ accountData.first_name }} {{ accountData.last_name }}</p>
+            </div>
             <div class="col-md-6">
               <label for="email" class="form-label">Primary Email</label>
               <input type="email" class="form-control" id="email" :value="accountData.email" disabled />
@@ -59,7 +62,7 @@
                 @blur="validateAltEmail"
                 :class="{'is-invalid': emailValidationError}"
               />
-              <small class="form-text">Used for notifications and recovery</small>
+              <small class="form-text">Used for recovery and optionally for notifications</small>
               <div v-if="emailValidationError" class="text-danger mt-2">
                 <i class="bi bi-exclamation-circle me-1"></i>{{ emailValidationError }}
               </div>
@@ -542,7 +545,9 @@ export default {
         const response = await api.get('/api/accounts/user-account')
         this.accountData = {
           email: response.data.email || '',
-          alt_email: response.data.alt_email || ''
+          alt_email: response.data.alt_email || '',
+          first_name: response.data.first_name || '',
+          last_name: response.data.last_name || '',
         }
       } catch (error) {
         console.error('Error fetching account data:', error)

@@ -55,7 +55,7 @@ export default {
                     <div class="info-alert">
                         <i class="bi bi-info-circle-fill"></i>
                         <div class="info-alert-content">
-                            Welcome back, <strong>{{ authStore.user?.email }}</strong>! 
+                            Welcome back, <strong>{{ authStore.user?.member?.preferred_first_name || authStore.user?.member?.first_name || authStore.user?.email }}</strong>!
                             You're logged into the Tau Beta Pi Member Portal.
                         </div>
                     </div>

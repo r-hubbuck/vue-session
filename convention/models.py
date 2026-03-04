@@ -1,6 +1,5 @@
 from django.db import models
 from django.core.validators import MinValueValidator
-from accounts.models import Member  # Import Member from your accounts app
 
 
 class Airport(models.Model):
@@ -63,13 +62,13 @@ class ConventionRegistration(models.Model):
     ]
 
     convention = models.ForeignKey(
-        Convention, 
-        on_delete=models.CASCADE, 
+        Convention,
+        on_delete=models.CASCADE,
         related_name='registrations'
     )
-    member = models.ForeignKey(
-        Member, 
-        on_delete=models.CASCADE, 
+    person = models.ForeignKey(
+        'accounts.Person',
+        on_delete=models.CASCADE,
         related_name='convention_registrations'
     )
     is_guest = models.BooleanField(default=False)
@@ -92,6 +91,7 @@ class ConventionRegistration(models.Model):
     checked_in_at = models.DateTimeField(null=True, blank=True)
     at_convention = models.BooleanField(default=False)
     visible_to_recruiters = models.BooleanField(default=True)
+    confirmation_email_sent = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -99,8 +99,8 @@ class ConventionRegistration(models.Model):
         db_table = 'convention_registration'
         constraints = [
             models.UniqueConstraint(
-                fields=['convention', 'member'],
-                name='unique_convention_member'
+                fields=['convention', 'person'],
+                name='unique_convention_person'
             )
         ]
         indexes = [
@@ -111,7 +111,7 @@ class ConventionRegistration(models.Model):
 
     def __str__(self):
         guest_str = " (Guest)" if self.is_guest else ""
-        return f"{self.member} - {self.convention}{guest_str}"
+        return f"{self.person} - {self.convention}{guest_str}"
 
 
 class ConventionCommitteePreference(models.Model):
@@ -176,7 +176,7 @@ class ConventionGuest(models.Model):
         db_table = 'convention_guest'
 
     def __str__(self):
-        return f"{self.guest_first_name} {self.guest_last_name} (Guest of {self.registration.member})"
+        return f"{self.guest_first_name} {self.guest_last_name} (Guest of {self.registration.person})"
 
 
 class ConventionTravel(models.Model):

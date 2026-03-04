@@ -86,13 +86,25 @@ const logout = async () => {
               Account
             </router-link>
           </li>
-          <li>
+          <li v-if="authStore.hasRole('hq_staff') || authStore.hasRole('hq_admin') || authStore.hasRole('hq_finance')">
+            <router-link to="/convention-travel" @click="closeMobileMenu">
+              <i class="bi bi-calendar-event"></i>
+              Convention Admin
+            </router-link>
+          </li>
+          <li v-else>
             <router-link to="/convention" @click="closeMobileMenu">
               <i class="bi bi-calendar-event"></i>
               Convention
             </router-link>
           </li>
-          <li>
+          <li v-if="authStore.hasRole('hq_staff') || authStore.hasRole('hq_admin') || authStore.hasRole('hq_finance')">
+            <router-link to="/expense-report-admin" @click="closeMobileMenu">
+              <i class="bi bi-receipt"></i>
+              Expense Report Admin
+            </router-link>
+          </li>
+          <li v-else>
             <router-link to="/expense-report" @click="closeMobileMenu">
               <i class="bi bi-receipt"></i>
               Expense Reports

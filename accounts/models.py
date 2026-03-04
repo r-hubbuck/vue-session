@@ -55,6 +55,58 @@ ALL_ROLES = [
     ROLE_RECRUITER,
 ]
 
+
+class Person(models.Model):
+    first_name = models.CharField(max_length=100)
+    preferred_first_name = models.CharField(max_length=100, blank=True)
+    middle_name = models.CharField(max_length=100, blank=True)
+    last_name = models.CharField(max_length=100)
+    gender = models.ForeignKey(
+        'Gender',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='persons',
+    )
+    birth_date = models.DateField(null=True, blank=True)
+    initiation_date = models.DateField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'person'
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+
+
+class Staff(models.Model):
+    DEPARTMENT_CHOICES = [
+        ('finance', 'Finance'),
+        ('administration', 'Administration'),
+        ('chapter_services', 'Chapter Services'),
+        ('it', 'IT'),
+        ('marketing_communications', 'Marketing & Communications'),
+    ]
+    person = models.OneToOneField('Person', on_delete=models.CASCADE, related_name='staff')
+    department = models.CharField(max_length=30, choices=DEPARTMENT_CHOICES, blank=True)
+
+    class Meta:
+        db_table = 'staff'
+
+    def __str__(self):
+        return f"Staff: {self.person}"
+
+
+class GuestSpeaker(models.Model):
+    person = models.OneToOneField('Person', on_delete=models.CASCADE, related_name='guest_speaker')
+    company = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        db_table = 'guest_speaker'
+
+    def __str__(self):
+        return f"Guest Speaker: {self.person}"
+
+
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -72,18 +124,12 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 class User(AbstractUser):
-    USER_TYPE_CHOICES = [
-        ('member', 'Member'),
-        ('recruiter', 'Recruiter'),
-    ]
-
     first_name = None
     last_name = None
     username = None
     email = models.EmailField(max_length=254, unique=True)
     alt_email = models.EmailField(max_length=254, blank=True)
-    user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES, default='member')
-    member = models.OneToOneField('Member', on_delete=models.CASCADE, null=True, blank=True, related_name='user')
+    person = models.OneToOneField('Person', on_delete=models.CASCADE, null=True, blank=True, related_name='user')
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
@@ -92,31 +138,32 @@ class User(AbstractUser):
 
     class Meta:
         db_table = 'user'
-    
+
+    @property
+    def is_member(self):
+        return hasattr(self, 'person') and self.person is not None and hasattr(self.person, 'member')
+
     def has_role(self, role_name):
         """Check if user has a specific role"""
         return self.groups.filter(name=role_name).exists()
-    
+
     def add_role(self, role_name):
         """Add a role to user"""
         from django.contrib.auth.models import Group
         group, _ = Group.objects.get_or_create(name=role_name)
         self.groups.add(group)
-    
+
     def remove_role(self, role_name):
         """Remove a role from user"""
         self.groups.filter(name=role_name).delete()
-    
+
     def get_roles(self):
         """Get list of role names for this user"""
         return list(self.groups.values_list('name', flat=True))
 
 class Member(models.Model):
+    person = models.OneToOneField('Person', on_delete=models.CASCADE, related_name='member')
     member_id = models.IntegerField(unique=True, null=True, blank=True)
-    first_name = models.CharField(max_length=100)
-    preferred_first_name = models.CharField(max_length=100, blank=True)
-    middle_name = models.CharField(max_length=100, blank=True)
-    last_name = models.CharField(max_length=100)
     chapter = models.CharField(max_length=100)
     district = models.IntegerField(null=True, blank=True)  # For district directors
     resume = models.FileField(upload_to='resumes/', blank=True, null=True)
@@ -126,38 +173,38 @@ class Member(models.Model):
         db_table = 'member'
 
     def get_badge_name(self):
-        first = self.preferred_first_name or self.first_name
-        return f"{first} {self.last_name}"
+        first = self.person.preferred_first_name or self.person.first_name
+        return f"{first} {self.person.last_name}"
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
-    
+        return f"{self.person.first_name} {self.person.last_name}"
+
 class Address(models.Model):
-    member = models.ForeignKey('Member', on_delete=models.CASCADE, related_name='addresses')
+    person = models.ForeignKey('Person', on_delete=models.CASCADE, related_name='addresses')
     add_line1 = models.CharField(max_length=255, blank=False)
     add_line2 = models.CharField(max_length=255, blank=True)
     add_city = models.CharField(max_length=100, blank=False)
     add_state = models.CharField(max_length=100, blank=True, null=True)
     add_zip = models.CharField(max_length=20, blank=True)
-    add_country = models.CharField(max_length=100, default='United States', blank=False)  
+    add_country = models.CharField(max_length=100, default='United States', blank=False)
     is_primary = models.BooleanField(default=False)
-    
+
     ADD_TYPE_CHOICES = [
         ('Home', 'Home'),
         ('Work', 'Work'),
         ('School', 'School'),
     ]
     add_type = models.CharField(max_length=10, choices=ADD_TYPE_CHOICES, blank=False)
-    
+
     class Meta:
         db_table = 'address'
         constraints = [
             models.UniqueConstraint(
-                fields=['member', 'add_type'],
-                name='unique_member_address_type'
+                fields=['person', 'add_type'],
+                name='unique_person_address_type'
             )
         ]
-    
+
     def __str__(self):
         parts = [self.add_line1]
         if self.add_line2:
@@ -170,7 +217,7 @@ class Address(models.Model):
         return ', '.join(parts)
 
 class PhoneNumber(models.Model):
-    member = models.ForeignKey('Member', on_delete=models.CASCADE, related_name='phone_numbers')
+    person = models.ForeignKey('Person', on_delete=models.CASCADE, related_name='phone_numbers')
     country_code = models.CharField(max_length=5, default='+1', blank=False)
     phone_number = models.CharField(max_length=20, blank=False)
     PHONE_TYPE_CHOICES = [
@@ -185,14 +232,14 @@ class PhoneNumber(models.Model):
         db_table = 'phone_number'
         constraints = [
             models.UniqueConstraint(
-                fields=['member', 'phone_type'],
-                name='unique_member_phone_type'
+                fields=['person', 'phone_type'],
+                name='unique_person_phone_type'
             ),
         ]
-    
+
     def __str__(self):
         return f"{self.country_code} {self.phone_number}"
-    
+
     def get_formatted_number(self):
         """Return formatted phone number based on country code"""
         if self.country_code == '+1' and len(self.phone_number) == 10:
@@ -208,7 +255,7 @@ class Code(models.Model):
 
     def __str__(self):
         return str(self.number)
-    
+
     def save(self, *args, **kwargs):
         self.number = ''.join(str(secrets.randbelow(10)) for _ in range(5))
         super().save(*args, **kwargs)
@@ -221,11 +268,11 @@ class UsedToken(models.Model):
         ('password_reset', 'Password Reset')
     ])
     used_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         db_table = 'used_token'
         unique_together = ['user', 'token_hash', 'token_type']
-    
+
     def __str__(self):
         return f"{self.user.email} - {self.token_type} - {self.used_at}"
 
@@ -239,22 +286,34 @@ class StateProvince(models.Model):
     st_conus = models.BooleanField(default=False)
     st_foreign = models.BooleanField(default=False)
     st_ctrid = models.IntegerField(null=True, blank=True)
-    
+
     class Meta:
         db_table = 'state_province'
         ordering = ['st_name']
-    
+
     def __str__(self):
         return f"{self.st_name} ({self.st_abbrev})"
-    
+
     @property
     def country_name(self):
         """Return the country this state/province belongs to"""
-        if self.st_ctrid == 0: 
+        if self.st_ctrid == 0:
             return "United States"
-        elif self.st_ctrid == 19:  
+        elif self.st_ctrid == 19:
             return "Canada"
-        elif self.st_ctrid == 4:  
+        elif self.st_ctrid == 4:
             return "Australia"
         else:
             return self.st_region or "Other"
+
+
+class Gender(models.Model):
+    gender = models.CharField(max_length=50)
+    title = models.CharField(max_length=50, blank=True, null=True)
+
+    class Meta:
+        db_table = 'gender'
+        ordering = ['id']
+
+    def __str__(self):
+        return self.gender

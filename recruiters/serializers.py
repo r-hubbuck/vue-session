@@ -293,23 +293,29 @@ class AdminRecruiterRegistrationSerializer(serializers.ModelSerializer):
 
 class AttendeeSerializer(serializers.Serializer):
     """Read-only serializer for attendee list visible to recruiters."""
-    id = serializers.IntegerField(source='member.id')
+    id = serializers.IntegerField(source='person.id')
     first_name = serializers.SerializerMethodField()
-    last_name = serializers.CharField(source='member.last_name')
-    chapter = serializers.CharField(source='member.chapter')
+    last_name = serializers.CharField(source='person.last_name')
+    chapter = serializers.SerializerMethodField()
     has_resume = serializers.SerializerMethodField()
     resume_url = serializers.SerializerMethodField()
 
     def get_first_name(self, obj):
-        return obj.member.preferred_first_name or obj.member.first_name
+        return obj.person.preferred_first_name or obj.person.first_name
+
+    def get_chapter(self, obj):
+        if hasattr(obj.person, 'member') and obj.person.member:
+            return obj.person.member.chapter
+        return None
 
     def get_has_resume(self, obj):
-        return bool(obj.member.resume)
+        return bool(hasattr(obj.person, 'member') and obj.person.member and obj.person.member.resume)
 
     def get_resume_url(self, obj):
         # Return the access-controlled API endpoint, never the raw media path
-        if self.context.get('includes_resume_access') and obj.member.resume:
-            return f'/api/recruiters/convention/attendees/{obj.member.id}/resume/'
+        member = obj.person.member if hasattr(obj.person, 'member') else None
+        if self.context.get('includes_resume_access') and member and member.resume:
+            return f'/api/recruiters/convention/attendees/{obj.person.id}/resume/'
         return None
 
 

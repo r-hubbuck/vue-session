@@ -49,8 +49,8 @@ export const useAuthStore = defineStore('auth', {
     isHQFinance: (state) => state.user?.roles?.includes('hq_finance') || false,
 
     // Recruiter
-    isRecruiter: (state) => state.user?.user_type === 'recruiter',
-    userType: (state) => state.user?.user_type || 'member',
+    isRecruiter: (state) => state.user?.roles?.includes('recruiter') || false,
+    userType: (state) => state.user?.roles?.includes('recruiter') ? 'recruiter' : 'member',
     
     // Convenience getters for permission checks
     isAnyMember: (state) => {
@@ -161,7 +161,7 @@ export const useAuthStore = defineStore('auth', {
 
           if (router) {
             // Route recruiters to their dashboard
-            if (this.user?.user_type === 'recruiter') {
+            if (this.user?.roles?.includes('recruiter')) {
               await router.push({ name: 'recruiter-dashboard' })
             } else {
               await router.push({ name: 'home' })

@@ -64,15 +64,13 @@
                   <td class="fw-medium">{{ attendee.first_name }} {{ attendee.last_name }}</td>
                   <td>{{ attendee.chapter }}</td>
                   <td v-if="hasResumeAccess">
-                    <a
+                    <button
                       v-if="attendee.resume_url"
-                      :href="attendee.resume_url"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      @click="downloadResume(attendee)"
                       class="btn btn-sm btn-outline-custom"
                     >
                       <i class="bi bi-file-earmark-pdf me-1"></i>Download
-                    </a>
+                    </button>
                     <span v-else class="text-muted">No resume</span>
                   </td>
                 </tr>
@@ -144,6 +142,20 @@ const goToPage = (page) => {
   if (page < 1 || page > totalPages.value) return
   currentPage.value = page
   fetchAttendees()
+}
+
+const downloadResume = async (attendee) => {
+  try {
+    const res = await api.get(attendee.resume_url, { responseType: 'blob' })
+    const url = URL.createObjectURL(res.data)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${attendee.last_name}_${attendee.first_name}_resume.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    error.value = err.response?.data?.error || 'Failed to download resume.'
+  }
 }
 
 const fetchAttendees = async () => {

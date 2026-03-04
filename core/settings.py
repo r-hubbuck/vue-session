@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'convention',
     'expense_reports.apps.ExpenseReportsConfig',
     'recruiters.apps.RecruitersConfig',
+    'surveys.apps.SurveysConfig',
     'corsheaders',
     'phonenumber_field',
 ]

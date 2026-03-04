@@ -1,7 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
-from accounts.models import Member, User
+from accounts.models import User
 
 
 class ExpenseReportType(models.Model):
@@ -113,8 +113,8 @@ class ExpenseReport(models.Model):
     ]
     
     # Basic information
-    member = models.ForeignKey(
-        Member,
+    person = models.ForeignKey(
+        'accounts.Person',
         on_delete=models.CASCADE,
         related_name='expense_reports'
     )
@@ -204,13 +204,13 @@ class ExpenseReport(models.Model):
         db_table = 'expense_report'
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['member', 'status']),
+            models.Index(fields=['person', 'status']),
             models.Index(fields=['status', 'created_at']),
             models.Index(fields=['report_date']),
         ]
     
     def __str__(self):
-        return f"{self.member} - {self.report_type.report_code} - {self.report_date}"
+        return f"{self.person} - {self.report_type.report_code} - {self.report_date}"
     
     def calculate_total(self):
         """

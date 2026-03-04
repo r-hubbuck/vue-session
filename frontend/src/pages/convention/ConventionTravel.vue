@@ -1,9 +1,13 @@
 <template>
   <div class="convention-travel-admin">
     <div class="page-header">
-      <h1>Convention Travel Management</h1>
-      <p class="text-muted">Review and manage member travel arrangements</p>
+      <div class="page-header-content">
+        <h1 class="page-title">Convention Travel Management</h1>
+        <p class="page-subtitle">Review and manage member travel arrangements</p>
+      </div>
     </div>
+
+    <div class="content-container">
 
     <!-- Filters -->
     <div class="filters-section card mb-4">
@@ -22,8 +26,8 @@
             <label class="form-label">Booking Status</label>
             <select v-model="filters.bookingStatus" class="form-select" @change="loadTravelData">
               <option value="">All Statuses</option>
-              <option value="false">Pending Booking</option>
-              <option value="true">Flight Booked</option>
+              <option value="false">Pending</option>
+              <option value="true">Booked</option>
             </select>
           </div>
           <div class="col-md-4">
@@ -453,6 +457,8 @@
         </div>
       </div>
     </div>
+
+    </div><!-- end content-container -->
   </div>
 </template>
 
@@ -742,20 +748,8 @@ export default {
 
 <style scoped>
 .convention-travel-admin {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
 }
 
-.page-header {
-  margin-bottom: 2rem;
-}
-
-.page-header h1 {
-  font-size: 2rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
 
 .filters-section {
   background: white;

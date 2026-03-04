@@ -24,17 +24,17 @@ def send_expense_report_email(report, email_type):
         email_type: 'rejected', 'approved', or 'paid'
     """
     try:
-        # Get member's email
-        member = report.member
-        if not hasattr(member, 'user') or not member.user or not member.user.email:
+        # Get person's email
+        person = report.person
+        if not hasattr(person, 'user') or not person.user or not person.user.email:
             logger.warning(f"Cannot send email for report {report.id}: No email address found")
             return
-        
-        recipient_email = member.user.email
-        
+
+        recipient_email = person.user.email
+
         # Prepare common context
         context = {
-            'member': member,
+            'person': person,
             'report_id': report.id,
             'report_type_name': report.report_type.report_name,
             'total_amount': f"{report.total_amount:.2f}",

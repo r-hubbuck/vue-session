@@ -22,6 +22,12 @@ import RecruiterAttendees from './pages/recruiter/RecruiterAttendees.vue'
 import RecruiterInvoices from './pages/recruiter/RecruiterInvoices.vue'
 import RecruiterAdmin from './pages/recruiter/RecruiterAdmin.vue'
 import InvoiceAdmin from './pages/recruiter/InvoiceAdmin.vue'
+import SurveyList from './pages/surveys/SurveyList.vue'
+import SurveyTake from './pages/surveys/SurveyTake.vue'
+import SurveyBuilder from './pages/surveys/SurveyBuilder.vue'
+import SurveyResults from './pages/surveys/SurveyResults.vue'
+import SurveyAdmin from './pages/surveys/SurveyAdmin.vue'
+import NotFound from './pages/NotFound.vue'
 
 const routes = [
   {
@@ -181,6 +187,62 @@ const routes = [
       requiresAuth: true,
       requiresRoles: ['hq_staff', 'hq_finance', 'hq_admin']
     }
+  },
+  // Survey routes
+  {
+    path: '/surveys/admin',
+    name: 'survey-admin',
+    component: SurveyAdmin,
+    meta: {
+      requiresAuth: true,
+      requiresRoles: ['hq_staff', 'hq_it', 'hq_admin', 'hq_finance', 'executive_council']
+    }
+  },
+  {
+    path: '/surveys/admin/builder',
+    name: 'survey-builder',
+    component: SurveyBuilder,
+    meta: {
+      requiresAuth: true,
+      requiresRoles: ['hq_staff', 'hq_it', 'hq_admin', 'hq_finance', 'executive_council']
+    }
+  },
+  {
+    path: '/surveys/admin/builder/:id',
+    name: 'survey-builder-edit',
+    component: SurveyBuilder,
+    meta: {
+      requiresAuth: true,
+      requiresRoles: ['hq_staff', 'hq_it', 'hq_admin', 'hq_finance', 'executive_council']
+    }
+  },
+  {
+    path: '/surveys/admin/:id/results',
+    name: 'survey-results',
+    component: SurveyResults,
+    meta: {
+      requiresAuth: true,
+      requiresRoles: ['hq_staff', 'hq_it', 'hq_admin', 'hq_finance', 'executive_council']
+    }
+  },
+  {
+    path: '/surveys',
+    name: 'survey-list',
+    component: SurveyList,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/surveys/:id/take',
+    name: 'survey-take',
+    component: SurveyTake,
+    meta: { requiresAuth: true }
+  },
+  // Catch-all: redirect unauthenticated users to login, show 404 for authenticated users
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    component: NotFound,
+    meta: { requiresAuth: true }
   },
   // Example: Route only for officials
   // {

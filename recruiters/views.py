@@ -40,7 +40,7 @@ DOMAIN = settings.DOMAIN
 # ============================================================
 
 def is_recruiter(user):
-    return user.user_type == 'recruiter'
+    return user.has_role(ROLE_RECRUITER)
 
 
 def is_approved_recruiter(user):
@@ -83,7 +83,6 @@ def recruiter_register(request):
     if existing_user:
         user = existing_user
         user.set_password(data['password1'])
-        user.user_type = 'recruiter'
         user.is_active = False
         user.last_login = timezone.now()
         user.save()
@@ -93,7 +92,7 @@ def recruiter_register(request):
         else:
             Code.objects.create(user=user)
     else:
-        user = User(email=data['email'], is_active=False, user_type='recruiter')
+        user = User(email=data['email'], is_active=False)
         user.set_password(data['password1'])
         user.save()
 
@@ -233,6 +232,41 @@ def admin_pending_recruiters(request):
     page = paginator.paginate_queryset(profiles, request)
     serializer = RecruiterProfileSerializer(page, many=True)
     return paginator.get_paginated_response(serializer.data)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def admin_deny_recruiter(request, pk):
+    """Deny a recruiter profile by deactivating their account."""
+    if not is_staff_or_admin(request.user):
+        return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        profile = RecruiterProfile.objects.select_related('user').get(pk=pk)
+    except RecruiterProfile.DoesNotExist:
+        return Response({'error': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    profile.user.is_active = False
+    profile.user.save()
+    return Response({'success': 'Recruiter denied.'})
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def admin_delete_recruiter(request, pk):
+    """Delete a recruiter profile and associated user account."""
+    if not is_staff_or_admin(request.user):
+        return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        profile = RecruiterProfile.objects.select_related('user').get(pk=pk)
+    except RecruiterProfile.DoesNotExist:
+        return Response({'error': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    user = profile.user
+    profile.delete()
+    user.delete()
+    return Response({'success': 'Recruiter deleted.'})
 
 
 @api_view(['PUT'])
@@ -432,13 +466,32 @@ def admin_update_registration(request, pk):
     except RecruiterRegistration.DoesNotExist:
         return Response({'error': 'Registration not found.'}, status=status.HTTP_404_NOT_FOUND)
 
+    old_status = registration.status
+
     serializer = AdminRecruiterRegistrationSerializer(
         registration, data=request.data, partial=True
     )
     if not serializer.is_valid():
         return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-    serializer.save()
+    updated = serializer.save()
+
+    if old_status != 'approved' and updated.status == 'approved':
+        try:
+            message = render_to_string('recruiters/registration_approved_email.html', {
+                'registration': updated,
+                'frontend_url': FRONTEND_URL,
+            })
+            email_msg = EmailMultiAlternatives(
+                subject='Your Convention Registration Has Been Approved',
+                body='',
+                to=[updated.recruiter.email],
+            )
+            email_msg.attach_alternative(message, 'text/html')
+            email_msg.send()
+        except Exception as e:
+            print(f"Failed to send registration approval email: {e}")
+
     return Response(serializer.data)
 
 
@@ -493,7 +546,7 @@ def recruiter_attendees(request):
         convention=convention,
         visible_to_recruiters=True,
         status_code__in=['registered', 'confirmed', 'checked_in']
-    ).select_related('member')
+    ).select_related('person').order_by('person__last_name', 'person__first_name')
 
     # Search filter — require at least 2 characters to prevent enumeration
     search = request.query_params.get('search', '').strip()
@@ -505,10 +558,10 @@ def recruiter_attendees(request):
             )
         from django.db.models import Q
         attendees = attendees.filter(
-            Q(member__first_name__icontains=search) |
-            Q(member__last_name__icontains=search) |
-            Q(member__preferred_first_name__icontains=search) |
-            Q(member__chapter__icontains=search)
+            Q(person__first_name__icontains=search) |
+            Q(person__last_name__icontains=search) |
+            Q(person__preferred_first_name__icontains=search) |
+            Q(person__member__chapter__icontains=search)
         )
 
     paginator = AttendeePagination()
@@ -550,16 +603,16 @@ def recruiter_attendee_resume(request, member_id):
             status=status.HTTP_403_FORBIDDEN
         )
 
-    # Check member is attending and visible
-    from accounts.models import Member
+    # Check person is attending and visible
+    from accounts.models import Person
     try:
-        member = Member.objects.get(pk=member_id)
-    except Member.DoesNotExist:
-        return Response({'error': 'Member not found.'}, status=status.HTTP_404_NOT_FOUND)
+        person = Person.objects.get(pk=member_id)
+    except Person.DoesNotExist:
+        return Response({'error': 'Person not found.'}, status=status.HTTP_404_NOT_FOUND)
 
     reg_exists = ConventionRegistration.objects.filter(
         convention=convention,
-        member=member,
+        person=person,
         visible_to_recruiters=True,
         status_code__in=['registered', 'confirmed', 'checked_in']
     ).exists()
@@ -567,11 +620,11 @@ def recruiter_attendee_resume(request, member_id):
     if not reg_exists:
         return Response({'error': 'Member not available.'}, status=status.HTTP_404_NOT_FOUND)
 
-    if not member.resume:
+    if not hasattr(person, 'member') or not person.member or not person.member.resume:
         return Response({'error': 'No resume on file.'}, status=status.HTTP_404_NOT_FOUND)
 
     from django.http import FileResponse
-    return FileResponse(member.resume.open('rb'), content_type='application/pdf')
+    return FileResponse(person.member.resume.open('rb'), content_type='application/pdf')
 
 
 # ============================================================
@@ -583,10 +636,10 @@ def recruiter_attendee_resume(request, member_id):
 def member_resume(request):
     """Upload or delete member resume."""
     user = request.user
-    if not hasattr(user, 'member') or not user.member:
+    if not (hasattr(user, 'person') and user.person and hasattr(user.person, 'member') and user.person.member):
         return Response({'error': 'No member profile.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    member = user.member
+    member = user.person.member
 
     if request.method == 'DELETE':
         if member.resume:

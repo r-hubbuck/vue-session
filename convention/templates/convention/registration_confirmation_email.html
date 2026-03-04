@@ -6,8 +6,8 @@
 <body>
     <h2>Convention Registration Received</h2>
     
-    {% if member %}
-        <p>Hi {{ member.first_name }},</p>
+    {% if person %}
+        <p>Hi {{ person.first_name }},</p>
     {% else %}
         <p>Hello,</p>
     {% endif %}
@@ -16,7 +16,7 @@
     
     <p><strong>Convention Details:</strong><br>
     {{ convention.name }}<br>
-    {{ convention.city }}, {{ convention.state }}<br>
+    {{ convention.location }}<br>
     Registration Date: {{ registration.created_at|date:"F d, Y" }}</p>
     
     <p>We have received your registration and are processing your information. Our team will review your travel preferences and accommodation requests.</p>

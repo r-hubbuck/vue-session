@@ -11,6 +11,7 @@ urlpatterns = [
     
     # Registration
     path('my-registration/', views.my_registration, name='my-registration'),
+    path('registration/<int:registration_id>/send-confirmation/', views.send_registration_confirmation, name='send-registration-confirmation'),
     
     # Member info (updates Member model directly - no duplication)
     path('member/update-info/', views.update_member_info, name='update-member-info'),
