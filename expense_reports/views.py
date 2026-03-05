@@ -236,7 +236,7 @@ def upload_receipts(request, report_id):
             }
         )
         return Response(
-            {'error': f'Failed to process receipt files: {str(e)}'},
+            {'error': 'Failed to process receipt files. Please try again.'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 

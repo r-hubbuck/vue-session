@@ -373,6 +373,7 @@
 
 <script>
 import api from '../../api';
+import { isValidAddressField } from '../../utils/validation';
 
 export default {
   name: 'ConventionCheckIn',
@@ -565,9 +566,25 @@ export default {
     },
 
     async saveAddressAndCheckIn() {
-      this.savingCheckIn = true;
       this.addressErrors = {};
       this.addressSaveError = null;
+
+      const { add_line1, add_line2, add_city } = this.addressForm;
+      if (!isValidAddressField(add_line1)) {
+        this.addressErrors.add_line1 = 'Invalid characters in address line 1.';
+      }
+      if (add_line2 && !isValidAddressField(add_line2)) {
+        this.addressErrors.add_line2 = 'Invalid characters in address line 2.';
+      }
+      if (!isValidAddressField(add_city)) {
+        this.addressErrors.add_city = 'Invalid characters in city.';
+      }
+      if (Object.keys(this.addressErrors).length > 0) {
+        this.addressSaveError = 'Please correct the errors above and try again.';
+        return;
+      }
+
+      this.savingCheckIn = true;
 
       try {
         // Updated to use accounts app endpoint which includes database sync

@@ -123,6 +123,9 @@ class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, min_length=8, write_only=True)
 
+    def validate_email(self, value):
+        return bleach.clean(value, tags=[], strip=True).strip()
+
 
 class VerifyMemberSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
@@ -170,6 +173,16 @@ class AddressSerializer(serializers.ModelSerializer):
         return value
 
     def validate_add_state(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_add_zip(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_add_country(self, value):
         if value:
             return bleach.clean(value, tags=[], strip=True).strip()
         return value

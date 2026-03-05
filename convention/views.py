@@ -22,6 +22,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.db import transaction, IntegrityError
+import bleach
 import re
 
 from .models import (
@@ -231,7 +232,9 @@ def update_member_info(request):
 
     # Update preferred_first_name if provided
     if 'preferred_first_name' in request.data:
-        person.preferred_first_name = request.data['preferred_first_name']
+        person.preferred_first_name = bleach.clean(
+            str(request.data['preferred_first_name']), tags=[], strip=True
+        ).strip()
         person.save()
 
     serializer = MemberPersonalInfoSerializer(person)
@@ -422,9 +425,7 @@ def update_travel(request, registration_id):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-    # Log the validation errors for debugging
-    print("Travel validation errors:", serializer.errors)
-    print("Request data:", request.data)
+    logger.debug("Travel validation errors: %s | data: %s", serializer.errors, request.data)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -790,13 +791,13 @@ def admin_travel_detail(request, travel_id):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
 def check_in_list(request):
     """
     Get all registrations for the active convention for check-in.
-    Staff only - requires appropriate permissions.
+    Requires hq_staff or member role.
     """
-    # Check if user has staff permissions
-    if not request.user.is_staff:
+    if not any(request.user.has_role(r) for r in ['hq_staff', 'member']):
         raise PermissionDenied('You do not have permission to access check-in.')
     
     try:
@@ -826,7 +827,7 @@ def update_registration_status(request, registration_id):
     Staff only.
     """
     # Check if user has staff permissions
-    if not request.user.is_staff:
+    if not any(request.user.has_role(r) for r in ['hq_staff', 'member']):
         raise PermissionDenied('You do not have permission to update registration status.')
     
     registration = get_object_or_404(ConventionRegistration, id=registration_id)

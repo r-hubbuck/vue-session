@@ -1,6 +1,9 @@
 from datetime import datetime
+import logging
 import os
 import pymssql
+
+logger = logging.getLogger(__name__)
 
 from django.shortcuts import redirect
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -63,8 +66,7 @@ def code_check(request):
     """
     
     pk = request.session.get('pk')
-    print("PK is", pk)
-    
+
     if not pk:
         return Response(
             {'success': False, 'message': 'No user session found'}, 
@@ -116,17 +118,15 @@ def login_view(request):
         email = serializer.validated_data['email']
         password = serializer.validated_data['password']
         
-        print(email, password)
         user = authenticate(request, email=email, password=password)
 
         if user:
             request.session['pk'] = user.pk
-            print(user.pk)
-            
+
             # Trigger the code sending logic from code_check
             code = user.code
             code_user = f"{user.code}"
-            print(code, code_user)
+            print(f"[DEV] 2FA code for {email}: {code_user}")  # dev convenience — remove in production
             
             # Try to send email
             try:
@@ -146,10 +146,9 @@ def login_view(request):
                 )
                 email_msg.attach_alternative(message, "text/html")
                 email_msg.send()
-                print("Email sent successfully")
             except Exception as e:
-                print(f"Failed to send email: {e}")
-                # Continue anyway - code is printed in console for dev testing
+                logger.error("Failed to send 2FA email to %s: %s", email, e)
+                # Continue anyway — code is printed in console for dev testing
             
             return Response(
                 {'success': True, 'message': 'Verification code sent to your email'}, 
@@ -198,6 +197,7 @@ def user_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @throttle_classes([RegisterThrottle])
+@transaction.atomic
 def register(request):
     serializer = CreateUserSerializer(data=request.data)
     if serializer.is_valid():
@@ -263,23 +263,12 @@ def register(request):
 
         # Create addresses from session data
         member_addresses = request.session.get('member_addresses', [])
-        print(f"DEBUG: Retrieved {len(member_addresses)} addresses from session:")
-        for addr in member_addresses:
-            print(f"  Type: '{addr.get('add_type')}', Line1: '{addr.get('add_line1')}'")
         if member_addresses and person:
             created_types = set()
             for address_data in member_addresses:
                 add_type = address_data.get('add_type', '')
                 if add_type in created_types or not add_type or add_type not in ['Home', 'Work', 'School']:
                     continue
-                # ADD THIS DEBUG BLOCK HERE:
-                print(f"DEBUG: Attempting to create {add_type} address:")
-                print(f"  add_line1: '{address_data.get('add_line1', '')}'")
-                print(f"  add_line2: '{address_data.get('add_line2', '')}'")
-                print(f"  add_city: '{address_data.get('add_city', '')}'")
-                print(f"  add_state: '{address_data.get('add_state', '')}'")
-                print(f"  add_zip: '{address_data.get('add_zip', '')}'")
-                print(f"  add_country: '{address_data.get('add_country', 'United States')}'")
                 try:
                     Address.objects.create(
                         person=person,
@@ -293,7 +282,7 @@ def register(request):
                     )
                     created_types.add(add_type)
                 except Exception as e:
-                    print(f"Error creating address of type {add_type}: {e}")
+                    logger.error("Error creating address of type %s: %s", add_type, e)
             del request.session['member_addresses']
 
         # Create phone numbers from session data
@@ -340,7 +329,7 @@ def register(request):
                         has_primary = True
                         
                 except Exception as e:
-                    print(f"Error creating phone number of type {phone_type}: {e}")
+                    logger.error("Error creating phone number of type %s: %s", phone_type, e)
             
             del request.session['member_phone_numbers']
 
@@ -369,7 +358,6 @@ def register(request):
         )
         email_msg.attach_alternative(message, "text/html")
         email_msg.send()
-        print("Email sent successfully")
         return Response({'success': 'User registered successfully'}, status=status.HTTP_201_CREATED)
     else:
         return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -381,9 +369,9 @@ SQL_USER = os.getenv('SQL_USER')
 
 class ChapterListAPIView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [RegisterThrottle]
 
     def get(self, request):
-        print('connecting...')
         conn = pymssql.connect(
             server=SQL_PROD_HOST,
             tds_version=r'7.0',
@@ -425,8 +413,6 @@ class VerifyMemberAPIView(APIView):
             chapter = serializer.validated_data['chapter']
             year = serializer.validated_data['year']
 
-            print(email, chapter, year)
-            print('connecting...')
             conn = pymssql.connect(
                 server=SQL_PROD_HOST,
                 tds_version=r'7.0',
@@ -434,7 +420,6 @@ class VerifyMemberAPIView(APIView):
                 password=SQL_PASSWORD,
                 database='Member'
             )
-            print('success connecting to ms sqlserver')
             cursor = conn.cursor(as_dict=True)
 
             cursor.execute(''' SELECT Memblist.mem_id
@@ -559,7 +544,6 @@ class VerifyMemberAPIView(APIView):
                 request.session['member_phone_numbers'] = member_phone_numbers
                 request.session.update(member_info)
 
-                print(request.session.items())
                 return Response({'message': 'OK'}, status=status.HTTP_200_OK)
             else:
                 return Response({'message': 'No member record could be found. Please try again or contact tbp hq.'}, status=status.HTTP_200_OK)
@@ -777,7 +761,7 @@ class AddressViewSet(viewsets.ModelViewSet):
                     address_data.get('add_zip', ''),
                     sql_type
                 ))
-                print(f"SQL Server: Created address (type: {sql_type}) for member {member_id}")
+                logger.debug("SQL Server: Created address (type: %s) for member %s", sql_type, member_id)
                 
             elif action == 'update':
                 # Update existing address in SQL Server
@@ -805,7 +789,7 @@ class AddressViewSet(viewsets.ModelViewSet):
                     old_line1,
                     old_sql_type
                 ))
-                print(f"SQL Server: Updated address (type: {old_sql_type} -> {sql_type}) for member {member_id}")
+                logger.debug("SQL Server: Updated address (type: %s -> %s) for member %s", old_sql_type, sql_type, member_id)
                 
             elif action == 'delete':
                 # Delete address from SQL Server
@@ -817,14 +801,14 @@ class AddressViewSet(viewsets.ModelViewSet):
                     address_data.get('add_line1', ''),
                     sql_type
                 ))
-                print(f"SQL Server: Deleted address (type: {sql_type}) for member {member_id}")
+                logger.debug("SQL Server: Deleted address (type: %s) for member %s", sql_type, member_id)
             
             conn.commit()
             cursor.close()
             conn.close()
             
         except Exception as e:
-            print(f"Error syncing address to SQL Server: {e}")
+            logger.error("Error syncing address to SQL Server: %s", e, exc_info=True)
             # Don't raise exception - allow Django operation to succeed even if SQL Server sync fails
     
     def perform_create(self, serializer):
@@ -975,7 +959,7 @@ def _sync_emails_to_sql_server(member_id, email, alt_email):
                 INSERT INTO Address (add_memid, add_type, add_email, add_email_alt)
                 VALUES (%s, 'Home', %s, %s)
             ''', (member_id, email or '', alt_email or ''))
-            print(f"SQL Server: Created Home address with emails for member {member_id}")
+            logger.debug("SQL Server: Created Home address with emails for member %s", member_id)
         else:
             # Home address exists, update the email columns
             cursor.execute('''
@@ -984,16 +968,14 @@ def _sync_emails_to_sql_server(member_id, email, alt_email):
                     add_email_alt = %s
                 WHERE add_memid = %s AND add_type = 'Home'
             ''', (email or '', alt_email or '', member_id))
-            print(f"SQL Server: Updated emails (primary: {email}, alt: {alt_email}) for member {member_id}")
+            logger.info("SQL Server: Updated emails for member %s", member_id)
         
         conn.commit()
         cursor.close()
         conn.close()
         
     except Exception as e:
-        print(f"Error syncing emails to SQL Server: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error("Error syncing emails to SQL Server: %s", e, exc_info=True)
         # Don't raise exception - allow Django operation to succeed even if SQL Server sync fails
         
 @api_view(['GET', 'PUT'])
@@ -1083,7 +1065,7 @@ class PhoneNumberViewSet(viewsets.ModelViewSet):
         """
         column_name = self._get_sql_column_for_type(phone_type)
         if not column_name or column_name not in self.ALLOWED_SQL_COLUMNS:
-            print(f"Warning: Unknown phone type '{phone_type}', skipping SQL Server sync")
+            logger.warning("Unknown phone type '%s', skipping SQL Server sync", phone_type)
             return
         
         # Format phone number for SQL Server (XXX-XXX-XXXX)
@@ -1115,7 +1097,7 @@ class PhoneNumberViewSet(viewsets.ModelViewSet):
                         INSERT INTO Address (add_memid, add_type, {column_name})
                         VALUES (%s, 'Home', %s)
                     ''', (member_id, formatted_phone))
-                    print(f"SQL Server: Created Home address with {phone_type} phone ({formatted_phone}) for member {member_id}")
+                    logger.debug("SQL Server: Created Home address with %s phone for member %s", phone_type, member_id)
             else:
                 # Home address exists, update the phone number column
                 if action == 'delete':
@@ -1125,7 +1107,7 @@ class PhoneNumberViewSet(viewsets.ModelViewSet):
                         SET {column_name} = ''
                         WHERE add_memid = %s AND add_type = 'Home'
                     ''', (member_id,))
-                    print(f"SQL Server: Deleted {phone_type} phone for member {member_id}")
+                    logger.debug("SQL Server: Deleted %s phone for member %s", phone_type, member_id)
                 else:
                     # Create or update - set the phone number
                     cursor.execute(f'''
@@ -1133,16 +1115,14 @@ class PhoneNumberViewSet(viewsets.ModelViewSet):
                         SET {column_name} = %s
                         WHERE add_memid = %s AND add_type = 'Home'
                     ''', (formatted_phone, member_id))
-                    print(f"SQL Server: Updated {phone_type} phone to {formatted_phone} for member {member_id}")
+                    logger.debug("SQL Server: Updated %s phone for member %s", phone_type, member_id)
             
             conn.commit()
             cursor.close()
             conn.close()
             
         except Exception as e:
-            print(f"Error syncing phone to SQL Server: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("Error syncing phone to SQL Server: %s", e, exc_info=True)
             # Don't raise exception - allow Django operation to succeed even if SQL Server sync fails
     
     def get_queryset(self):

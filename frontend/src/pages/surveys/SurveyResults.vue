@@ -201,6 +201,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '../../api'
+import { useToast } from 'vue-toastification'
+
+const toast = useToast()
 
 const route = useRoute()
 const surveyId = route.params.id
@@ -264,7 +267,7 @@ async function loadResults() {
     individualResponses.value = res.data.individual_responses
     scoreSummary.value = res.data.score_summary
   } catch (e) {
-    alert(e.response?.data?.error || 'Failed to load results.')
+    toast.error(e.response?.data?.error || 'Failed to load results.')
   } finally {
     loading.value = false
   }

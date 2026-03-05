@@ -820,7 +820,6 @@ export default {
       try {
         const response = await api.get('/api/accounts/states-provinces')
         this.groupedStates = response.data
-        console.log('States loaded:', this.groupedStates)
       } catch (error) {
         console.error('Error fetching states:', error)
       }

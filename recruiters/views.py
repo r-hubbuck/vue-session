@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
@@ -6,6 +8,8 @@ from django.utils.encoding import force_bytes
 from django.utils import timezone
 
 from django.db import transaction, IntegrityError
+
+logger = logging.getLogger(__name__)
 
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
@@ -70,6 +74,7 @@ def get_active_convention():
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @throttle_classes([RegisterThrottle])
+@transaction.atomic
 def recruiter_register(request):
     """Register a new recruiter with organization info."""
     serializer = RecruiterRegistrationSerializer(data=request.data)
@@ -164,7 +169,7 @@ def recruiter_register(request):
         email_msg.attach_alternative(message, "text/html")
         email_msg.send()
     except Exception as e:
-        print(f"Failed to send recruiter activation email: {e}")
+        logger.error("Failed to send recruiter activation email to %s: %s", data['email'], e)
 
     return Response(
         {'success': 'Recruiter account created. Please check your email to activate.'},
@@ -299,7 +304,7 @@ def admin_approve_recruiter(request, pk):
         email_msg.attach_alternative(message, "text/html")
         email_msg.send()
     except Exception as e:
-        print(f"Failed to send approval email: {e}")
+        logger.error("Failed to send recruiter approval email to %s: %s", profile.email, e)
 
     return Response({'success': 'Recruiter approved.'})
 
@@ -490,7 +495,7 @@ def admin_update_registration(request, pk):
             email_msg.attach_alternative(message, 'text/html')
             email_msg.send()
         except Exception as e:
-            print(f"Failed to send registration approval email: {e}")
+            logger.error("Failed to send recruiter registration approval email to %s: %s", updated.recruiter.email, e)
 
     return Response(serializer.data)
 
@@ -740,7 +745,7 @@ def admin_invoices(request):
             email_msg.attach_alternative(message, "text/html")
             email_msg.send()
         except Exception as e:
-            print(f"Failed to send invoice email: {e}")
+            logger.error("Failed to send invoice email for invoice %s: %s", invoice.invoice_number, e)
 
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -780,7 +785,7 @@ def admin_update_invoice(request, pk):
             email_msg.attach_alternative(message, "text/html")
             email_msg.send()
         except Exception as e:
-            print(f"Failed to send invoice email: {e}")
+            logger.error("Failed to send invoice email for invoice %s: %s", invoice.invoice_number, e)
 
     return Response(serializer.data)
 

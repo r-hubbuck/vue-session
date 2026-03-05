@@ -127,6 +127,12 @@ def start_survey(request, survey_id):
 
     user = None if survey.is_anonymous else request.user
     survey_response = SurveyResponse.objects.create(survey=survey, user=user)
+
+    if survey.is_anonymous:
+        anon_responses = request.session.get('anon_survey_responses', [])
+        anon_responses.append(survey_response.id)
+        request.session['anon_survey_responses'] = anon_responses
+
     return Response({'response_id': survey_response.id}, status=status.HTTP_201_CREATED)
 
 
@@ -138,8 +144,12 @@ def save_draft(request, survey_id, response_id):
     survey = get_object_or_404(Survey, pk=survey_id)
     survey_response = get_object_or_404(SurveyResponse, pk=response_id, survey=survey)
 
-    if survey_response.user != request.user and not survey.is_anonymous:
+    if survey.is_anonymous:
+        if survey_response.id not in request.session.get('anon_survey_responses', []):
+            return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+    elif survey_response.user != request.user:
         return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
     if survey_response.is_complete:
         return Response({'error': 'Survey already submitted.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -170,8 +180,12 @@ def submit_survey(request, survey_id, response_id):
     survey = get_object_or_404(Survey, pk=survey_id)
     survey_response = get_object_or_404(SurveyResponse, pk=response_id, survey=survey)
 
-    if survey_response.user != request.user and not survey.is_anonymous:
+    if survey.is_anonymous:
+        if survey_response.id not in request.session.get('anon_survey_responses', []):
+            return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+    elif survey_response.user != request.user:
         return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
     if survey_response.is_complete:
         return Response({'error': 'Survey already submitted.'}, status=status.HTTP_400_BAD_REQUEST)
 

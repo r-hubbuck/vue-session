@@ -155,7 +155,12 @@ class User(AbstractUser):
 
     def remove_role(self, role_name):
         """Remove a role from user"""
-        self.groups.filter(name=role_name).delete()
+        from django.contrib.auth.models import Group
+        try:
+            group = Group.objects.get(name=role_name)
+            self.groups.remove(group)
+        except Group.DoesNotExist:
+            pass
 
     def get_roles(self):
         """Get list of role names for this user"""

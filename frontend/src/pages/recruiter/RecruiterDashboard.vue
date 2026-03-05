@@ -146,7 +146,8 @@
                   </div>
                   <div class="col-md-6">
                     <label class="form-label small">Phone</label>
-                    <input v-model="orgForm.phone" @input="formatOrgPhone" type="tel" class="form-control form-control-sm" placeholder="(555) 123-4567" maxlength="14">
+                    <input v-model="orgForm.phone" @input="formatOrgPhone" @blur="validateOrgPhone" type="tel" class="form-control form-control-sm" :class="{ 'is-invalid': orgPhoneError }" placeholder="(555) 123-4567" maxlength="14">
+                    <div v-if="orgPhoneError" class="invalid-feedback">{{ orgPhoneError }}</div>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label small"># Recruiters Attending *</label>
@@ -186,7 +187,8 @@
                   </div>
                   <div class="col-md-4">
                     <label class="form-label small">Billing Email *</label>
-                    <input v-model.trim="orgForm.billing_email" type="email" class="form-control form-control-sm" required maxlength="254">
+                    <input v-model.trim="orgForm.billing_email" type="email" class="form-control form-control-sm" :class="{ 'is-invalid': billingEmailError }" required maxlength="254" @blur="validateBillingEmail" @input="validateBillingEmail">
+                    <div v-if="billingEmailError" class="invalid-feedback">{{ billingEmailError }}</div>
                   </div>
                 </div>
                 <div class="d-flex gap-2 mt-3">
@@ -211,6 +213,7 @@
 import { ref, onMounted } from 'vue'
 import api from '../../api'
 import { useToast } from 'vue-toastification'
+import { isValidEmail, validatePhone } from '../../utils/validation'
 
 const toast = useToast()
 const loading = ref(true)
@@ -220,6 +223,8 @@ const invoices = ref([])
 const editingOrg = ref(false)
 const savingOrg = ref(false)
 const orgForm = ref({})
+const billingEmailError = ref('')
+const orgPhoneError = ref('')
 
 const formatPhone = (value) => {
   if (!value) return ''
@@ -243,6 +248,21 @@ const formatOrgPhone = () => {
   orgForm.value.phone = formatPhoneNumber(orgForm.value.phone)
 }
 
+const validateBillingEmail = () => {
+  billingEmailError.value = isValidEmail(orgForm.value.billing_email)
+    ? ''
+    : 'Please enter a valid email address.'
+}
+
+const validateOrgPhone = () => {
+  if (!orgForm.value.phone) {
+    orgPhoneError.value = ''
+    return
+  }
+  const result = validatePhone(orgForm.value.phone)
+  orgPhoneError.value = result.valid ? '' : result.error
+}
+
 const startEditOrg = () => {
   const org = profile.value.organization
   orgForm.value = {
@@ -260,10 +280,16 @@ const startEditOrg = () => {
     billing_contact_last_name: org.billing_contact_last_name || '',
     num_recruiters: org.num_recruiters || 1,
   }
+  billingEmailError.value = ''
+  orgPhoneError.value = ''
   editingOrg.value = true
 }
 
 const saveOrg = async () => {
+  validateBillingEmail()
+  validateOrgPhone()
+  if (billingEmailError.value || orgPhoneError.value) return
+
   savingOrg.value = true
   try {
     const res = await api.put('/api/recruiters/organization/', orgForm.value)

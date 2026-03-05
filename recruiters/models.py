@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from django.db import models
+from django.db import models, transaction
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
 from convention.models import Convention
@@ -207,9 +207,13 @@ class Invoice(models.Model):
     def save(self, *args, **kwargs):
         if not self.invoice_number:
             # Auto-generate invoice number: INV-{convention_year}-{sequence}
-            last_invoice = Invoice.objects.filter(
-                convention=self.convention
-            ).order_by('-id').first()
-            seq = (last_invoice.id + 1) if last_invoice else 1
-            self.invoice_number = f"INV-{self.convention.year}-{seq:04d}"
+            # select_for_update locks the row to prevent concurrent duplicates
+            with transaction.atomic():
+                last_invoice = Invoice.objects.select_for_update().filter(
+                    convention=self.convention
+                ).order_by('-id').first()
+                seq = (last_invoice.id + 1) if last_invoice else 1
+                self.invoice_number = f"INV-{self.convention.year}-{seq:04d}"
+                super().save(*args, **kwargs)
+            return
         super().save(*args, **kwargs)

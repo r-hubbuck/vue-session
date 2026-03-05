@@ -104,6 +104,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '../../api'
+import { useToast } from 'vue-toastification'
+
+const toast = useToast()
 
 const surveys = ref([])
 const loading = ref(false)
@@ -135,7 +138,7 @@ async function deactivate(survey) {
     await api.delete(`/api/surveys/admin/${survey.id}/`)
     survey.is_active = false
   } catch (e) {
-    alert(e.response?.data?.error || 'Failed to deactivate survey.')
+    toast.error(e.response?.data?.error || 'Failed to deactivate survey.')
   }
 }
 

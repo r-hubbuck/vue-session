@@ -102,10 +102,5 @@ export default {
       }
     },
   },
-  mounted() {
-    if (this.$store && this.$store.clearMessage) {
-      this.$store.clearMessage();
-    }
-  },
 };
 </script>

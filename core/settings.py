@@ -26,7 +26,7 @@ ENVIRONMENT = os.getenv('ENVIRONMENT', 'local')  # default to 'local'
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
@@ -156,10 +156,8 @@ MEDIA_ROOT = '/portal/vue-session/media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
-    # Use Django's standard `django.contrib.auth` permissions,
-    # or allow read-only access for unauthenticated users.
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+        'rest_framework.permissions.IsAuthenticated'
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',  # Enables CSRF
@@ -172,6 +170,14 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
+    'DEFAULT_THROTTLE_RATES': {
+        'login': '5/minute',
+        'register': '3/hour',
+        'password_reset': '3/hour',
+        'code_check': '5/minute',
+        'recruiter': '60/minute',
+        'admin': '100/hour',
+    },
 }
 
 CORS_ALLOW_CREDENTIALS = True
@@ -201,10 +207,14 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_HTTPONLY = False  # False since frontend reads CSRF token via JavaScript
 SESSION_COOKIE_HTTPONLY = True
 
-# Secure cookies only in production (requires HTTPS)
+# Secure cookies and transport security — production only
 if ENVIRONMENT != 'local':
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 
 SESSION_COOKIE_AGE = 3600  # 1 hour
 SESSION_SAVE_EVERY_REQUEST = True  # Reset expiry on each request
@@ -248,6 +258,7 @@ PASSWORD_RESET_TIMEOUT = 60 * 30  # 30 minutes
 # Ensure SSL certificates are properly handled
 os.environ['SSL_CERT_FILE'] = certifi.where()
 
-# Media files configuration
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Media files configuration — local development only
+# Production uses /portal/vue-session/media (set above)
+if ENVIRONMENT == 'local':
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

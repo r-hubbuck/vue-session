@@ -287,9 +287,6 @@ export default {
       return;
     }
 
-    if (this.$store && this.$store.clearMessage) {
-      this.$store.clearMessage();
-    }
   },
 };
 </script>

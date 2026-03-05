@@ -47,8 +47,8 @@
         },
         methods: {
             validateCode() {
-                if (this.code.length !== 5) {
-                    this.codeError = "Code must be exactly 5 characters long.";
+                if (!/^\d{5}$/.test(this.code)) {
+                    this.codeError = "Code must be exactly 5 digits.";
                 } else {
                     this.codeError = "";
                 }

@@ -2,25 +2,24 @@ from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
 class LoginThrottle(AnonRateThrottle):
     """Limit login attempts to prevent brute force"""
-    scope = 'sensitive'
-    rate = '5/minute'
+    scope = 'login'
 
 class RegisterThrottle(AnonRateThrottle):
     """Limit registration to prevent spam"""
-    scope = 'sensitive'
-    rate = '20/hour'
+    scope = 'register'
 
 class PasswordResetThrottle(AnonRateThrottle):
     """Limit password reset requests"""
-    scope = 'sensitive'
-    rate = '3/hour'
+    scope = 'password_reset'
 
 class CodeCheckThrottle(AnonRateThrottle):
     """Limit 2FA code attempts to prevent brute force"""
     scope = 'code_check'
-    rate = '5/minute'
 
 class RecruiterThrottle(UserRateThrottle):
     """Limit authenticated recruiter requests to search/download endpoints"""
     scope = 'recruiter'
-    rate = '60/minute'
+
+class AdminRateThrottle(UserRateThrottle):
+    """Limit admin/staff endpoints"""
+    scope = 'admin'

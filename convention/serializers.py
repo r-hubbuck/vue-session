@@ -228,6 +228,11 @@ class ConventionGuestSerializer(serializers.ModelSerializer):
                 return digits
         return value
 
+    def validate_guest_email(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
     def validate_guest_dietary_restrictions(self, value):
         if value:
             return bleach.clean(value, tags=[], strip=True)
@@ -407,11 +412,25 @@ class ConventionAccommodationSerializer(serializers.ModelSerializer):
         return bool(obj.room_number)
     
     def validate_special_requests(self, value):
-        """Strip HTML tags from special requests"""
         if value:
             return bleach.clean(value, tags=[], strip=True)
         return value
-    
+
+    def validate_other_allergies(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_specific_roommate_name(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_specific_roommate_chapter(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
     def validate_food_allergies(self, value):
         """Strip HTML tags from food allergies"""
         if value:

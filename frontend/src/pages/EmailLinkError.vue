@@ -28,10 +28,5 @@
 <script>
 export default {
   name: 'EmailLinkError',
-  mounted() {
-    if (this.$store && this.$store.clearMessage) {
-      this.$store.clearMessage();
-    }
-  },
 };
 </script>

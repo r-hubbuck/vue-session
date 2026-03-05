@@ -7,8 +7,19 @@
         <form  @submit.prevent="submitVerifyForm" class="container-md">
             <div class="form-group row">
                 <label class="form-label" for="email" type="email">Email:</label> 
-                <input class="form-control" v-model="formData.email" id="email" type ="email" maxlength="254" required >
-            </div> 
+                <input
+                    class="form-control"
+                    :class="{ 'is-invalid': emailError }"
+                    v-model.trim="formData.email"
+                    id="email"
+                    type="email"
+                    maxlength="254"
+                    required
+                    @blur="validateEmail"
+                    @input="validateEmail"
+                >
+                <div v-if="emailError" class="invalid-feedback fw-bold">{{ emailError }}</div>
+            </div>
             <div class="form-group row">
                 <label class="form-label" for="chapter">Chapter:</label>
                 <select class="form-control chapter-select" v-model="formData.chapter" id="chapter" required>
@@ -37,6 +48,7 @@
 <script>
 import { useAuthStore } from '../store/auth.js'
 import api from '../api'
+import { isValidEmail } from '../utils/validation'
 
 export default {
     setup() {
@@ -54,10 +66,16 @@ export default {
                 email: "",
                 year: new Date().getFullYear(),
             },
-            errorMessage: ""
+            errorMessage: "",
+            emailError: "",
         }
     },
     methods: {
+        validateEmail() {
+            this.emailError = isValidEmail(this.formData.email)
+                ? ""
+                : "Please enter a valid email address.";
+        },
         generateYearRange(start, end) {
             const yearRange = [];
             for (let i = end; i >= start; i--) {
@@ -81,6 +99,8 @@ export default {
         },
         
         async submitVerifyForm() {
+            this.validateEmail();
+            if (this.emailError) return;
             try {
                 const response = await api.post('/api/accounts/verify-member', this.formData)
                 

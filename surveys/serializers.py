@@ -279,6 +279,18 @@ class AnswerSerializer(serializers.ModelSerializer):
             return bleach.clean(value, tags=[], strip=True)
         return value
 
+    def validate(self, data):
+        question = data.get('question')
+        choices = data.get('selected_choices', [])
+        if choices and question:
+            valid_ids = set(question.choices.values_list('id', flat=True))
+            for choice in choices:
+                if choice.id not in valid_ids:
+                    raise serializers.ValidationError({
+                        'selected_choices': 'One or more choices do not belong to the specified question.'
+                    })
+        return data
+
 
 class SurveyResponseSerializer(serializers.ModelSerializer):
     """Read-only serializer for returning a full response (draft or submitted)."""

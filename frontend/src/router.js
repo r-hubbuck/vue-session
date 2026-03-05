@@ -303,7 +303,7 @@ router.beforeEach(async (to, from, next) => {
     const hasRequiredRole = requiredRoles.some(role => userRoles.includes(role))
 
     if (!hasRequiredRole) {
-      console.warn(`Access denied: User roles [${userRoles.join(', ')}] don't include any of [${requiredRoles.join(', ')}]`)
+      console.warn('Access denied: insufficient role for route', to.name)
       return next({
         name: 'home',
         query: {
@@ -316,7 +316,7 @@ router.beforeEach(async (to, from, next) => {
   // Check if route requires member status (any member type)
   if (to.meta.requiresMember) {
     if (!authStore.isMember) {
-      console.warn('Access denied: User is not a member')
+      console.warn('Access denied: membership required for route', to.name)
       return next({
         name: 'home',
         query: {

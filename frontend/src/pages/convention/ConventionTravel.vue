@@ -594,7 +594,7 @@ export default {
         // Show Bootstrap modal
         this.$nextTick(() => {
           const modalElement = document.getElementById('travelDetailModal');
-          const modal = new bootstrap.Modal(modalElement);
+          const modal = new window.bootstrap.Modal(modalElement);
           modal.show();
         });
       } catch (err) {
@@ -643,7 +643,7 @@ export default {
         
         // Close Bootstrap modal
         const modalElement = document.getElementById('travelDetailModal');
-        const modal = bootstrap.Modal.getInstance(modalElement);
+        const modal = window.bootstrap.Modal.getInstance(modalElement);
         if (modal) {
           modal.hide();
         }

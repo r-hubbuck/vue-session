@@ -15,8 +15,7 @@
 
     <template v-else>
       <div v-if="saveError" class="alert alert-danger mb-3">
-        <strong>Save failed:</strong>
-        <pre class="mb-0 small">{{ JSON.stringify(saveError, null, 2) }}</pre>
+        <strong>Save failed:</strong> {{ saveError }}
       </div>
 
       <!-- Survey Metadata -->
@@ -293,6 +292,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../api'
+import { useToast } from 'vue-toastification'
+
+const toast = useToast()
 
 const route = useRoute()
 const router = useRouter()
@@ -407,7 +409,7 @@ async function loadSurvey() {
       audience: data.audience || [],
     }
   } catch (e) {
-    alert('Failed to load survey.')
+    toast.error('Failed to load survey.')
   } finally {
     loading.value = false
   }
@@ -439,7 +441,18 @@ async function saveSurvey() {
       router.push({ name: 'survey-builder-edit', params: { id: res.data.id } })
     }
   } catch (e) {
-    saveError.value = e.response?.data || 'Save failed.'
+    const data = e.response?.data
+    if (typeof data === 'string') {
+      saveError.value = data
+    } else if (data?.error) {
+      saveError.value = data.error
+    } else if (data?.detail) {
+      saveError.value = data.detail
+    } else if (data && typeof data === 'object') {
+      saveError.value = Object.values(data).flat().join(' ')
+    } else {
+      saveError.value = 'Save failed.'
+    }
   } finally {
     saving.value = false
   }
