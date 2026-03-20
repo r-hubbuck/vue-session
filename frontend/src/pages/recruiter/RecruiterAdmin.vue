@@ -1,4 +1,5 @@
 <template>
+  <div>
   <div v-if="hasAccess">
     <div class="page-header">
       <div class="page-header-content">
@@ -88,7 +89,6 @@
                   <th>Recruiter</th>
                   <th>Organization</th>
                   <th>Package</th>
-                  <th>Meal</th>
                   <th>Booth ID</th>
                   <th>Status</th>
                   <th>Actions</th>
@@ -99,7 +99,6 @@
                   <td class="fw-medium">{{ reg.recruiter.first_name }} {{ reg.recruiter.last_name }}</td>
                   <td>{{ reg.recruiter.organization_name }}</td>
                   <td>{{ reg.booth_package_detail?.name }}</td>
-                  <td>{{ reg.meal_option_detail?.name || '—' }}</td>
                   <td>
                     <input
                       v-model.trim="reg._boothId"
@@ -185,7 +184,7 @@
           </div>
           <div class="detail-item">
             <span class="detail-label">Type</span>
-            <span class="detail-value">{{ selectedRecruiter.organization?.org_type || '—' }}</span>
+            <span class="detail-value">{{ { business: 'Business', graduate_school: 'Graduate School', other: 'Other' }[selectedRecruiter.organization?.org_type] || selectedRecruiter.organization?.org_type || '—' }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Website</span>
@@ -204,22 +203,18 @@
             <span class="detail-value">{{ selectedRecruiter.organization?.billing_email || '—' }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Billing Contact</span>
+            <span class="detail-label">Invoice Contact</span>
             <span class="detail-value">
               {{ selectedRecruiter.organization?.billing_contact_first_name }}
               {{ selectedRecruiter.organization?.billing_contact_last_name }}
             </span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Recruiters Expected</span>
-            <span class="detail-value">{{ selectedRecruiter.organization?.num_recruiters ?? '—' }}</span>
           </div>
         </div>
       </div>
 
       <div class="modal-footer-custom">
         <button
-          @click="approveRecruiter(selectedRecruiter.id, true)"
+          @click="approveRecruiter(selectedRecruiter.id)"
           class="btn btn-success"
           :disabled="saving"
         >
@@ -239,11 +234,12 @@
         >
           <i class="bi bi-trash me-1"></i>Delete
         </button>
-        <button @click="closeDetail" class="btn btn-outline-secondary ms-auto">
+        <button @click="closeDetail" class="btn btn-outline-dark ms-auto" style="border: 1px solid #212529;">
           Close
         </button>
       </div>
     </div>
+  </div>
   </div>
 </template>
 
@@ -302,7 +298,7 @@ const removeFromPending = (id) => {
   closeDetail()
 }
 
-const approveRecruiter = async (id, fromModal = false) => {
+const approveRecruiter = async (id) => {
   if (saving.value) return
   saving.value = true
   try {
@@ -348,7 +344,7 @@ const deleteRecruiter = async (id) => {
 
 const updateRegistration = async (reg) => {
   if (saving.value) return
-  if (reg._boothId && !/^[A-Za-z0-9\-]+$/.test(reg._boothId)) {
+  if (reg._boothId && !/^[A-Za-z0-9-]+$/.test(reg._boothId)) {
     toast.error('Booth ID may only contain letters, numbers, and hyphens.')
     return
   }

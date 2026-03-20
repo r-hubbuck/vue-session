@@ -101,7 +101,7 @@ const logout = async () => {
           <li v-if="authStore.hasRole('hq_staff') || authStore.hasRole('hq_admin') || authStore.hasRole('hq_finance')">
             <router-link to="/expense-report-admin" @click="closeMobileMenu">
               <i class="bi bi-receipt"></i>
-              Expense Report Admin
+              Expense Reports
             </router-link>
           </li>
           <li v-else>
@@ -113,13 +113,19 @@ const logout = async () => {
           <li v-if="authStore.hasRole('hq_staff') || authStore.hasRole('hq_admin')">
             <router-link to="/recruiter-admin" @click="closeMobileMenu">
               <i class="bi bi-briefcase"></i>
-              Recruiter Admin
+              Recruiters
             </router-link>
           </li>
           <li v-if="authStore.hasRole('hq_staff') || authStore.hasRole('hq_finance') || authStore.hasRole('hq_admin')">
             <router-link to="/invoice-admin" @click="closeMobileMenu">
               <i class="bi bi-file-earmark-text"></i>
-              Invoice Admin
+              Invoices
+            </router-link>
+          </li>
+          <li v-if="authStore.hasRole('hq_admin')">
+            <router-link to="/user-management" @click="closeMobileMenu">
+              <i class="bi bi-people"></i>
+              Users
             </router-link>
           </li>
         </ul>

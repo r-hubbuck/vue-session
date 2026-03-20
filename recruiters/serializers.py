@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     BoothPackage, MealOption, Organization, RecruiterProfile,
-    RecruiterRegistration, Invoice
+    RecruiterRegistration, RecruiterAttendee, Invoice
 )
 from accounts.models import User
 from accounts.serializers import CreateUserSerializer
@@ -40,6 +40,8 @@ def validate_phone_digits(digits, field_name='Phone number'):
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
+    logo_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Organization
         fields = [
@@ -47,9 +49,14 @@ class OrganizationSerializer(serializers.ModelSerializer):
             'address_line1', 'address_line2', 'city', 'state',
             'zip_code', 'country', 'phone', 'billing_email',
             'billing_contact_first_name', 'billing_contact_last_name',
-            'num_recruiters'
+            'logo_url',
         ]
         read_only_fields = ['id']
+
+    def get_logo_url(self, obj):
+        if obj.logo:
+            return obj.logo.url
+        return None
 
     def validate_name(self, value):
         return clean_text(value)
@@ -106,18 +113,17 @@ class RecruiterRegistrationSerializer(serializers.Serializer):
     # Organization info
     org_name = serializers.CharField(max_length=255)
     org_type = serializers.ChoiceField(choices=Organization.ORG_TYPE_CHOICES)
-    org_website = serializers.URLField(required=False, allow_blank=True)
+    org_website = serializers.URLField()
     org_address_line1 = serializers.CharField(max_length=255)
     org_address_line2 = serializers.CharField(max_length=255, required=False, allow_blank=True)
     org_city = serializers.CharField(max_length=100)
-    org_state = serializers.CharField(max_length=100, required=False, allow_blank=True)
-    org_zip_code = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    org_state = serializers.CharField(max_length=100)
+    org_zip_code = serializers.CharField(max_length=20)
     org_country = serializers.CharField(max_length=100, required=False, default='United States')
     org_phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
     org_billing_email = serializers.EmailField()
     org_billing_contact_first_name = serializers.CharField(max_length=100)
     org_billing_contact_last_name = serializers.CharField(max_length=100)
-    org_num_recruiters = serializers.IntegerField(min_value=1, default=1)
 
     def validate_first_name(self, value):
         return clean_text(value)
@@ -150,6 +156,9 @@ class RecruiterRegistrationSerializer(serializers.Serializer):
         return clean_text(value)
 
     def validate_org_city(self, value):
+        return clean_text(value)
+
+    def validate_org_zip_code(self, value):
         return clean_text(value)
 
     def validate_org_state(self, value):
@@ -190,11 +199,29 @@ class RecruiterRegistrationSerializer(serializers.Serializer):
         return data
 
 
+class RecruiterAttendeeSerializer(serializers.Serializer):
+    first_name = serializers.CharField(max_length=100)
+    last_name = serializers.CharField(max_length=100)
+    email = serializers.EmailField()
+    phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+
+    def validate_first_name(self, value):
+        return clean_text(value)
+
+    def validate_last_name(self, value):
+        return clean_text(value)
+
+    def validate_phone(self, value):
+        if value:
+            return validate_phone_digits(clean_phone(value), 'Phone number')
+        return value
+
+
 class BoothPackageSerializer(serializers.ModelSerializer):
     class Meta:
         model = BoothPackage
         fields = [
-            'id', 'name', 'description', 'price', 'is_in_person',
+            'id', 'name', 'description', 'price', 'is_in_person', 'is_virtual',
             'includes_resume_access', 'sort_order'
         ]
 
@@ -207,14 +234,13 @@ class MealOptionSerializer(serializers.ModelSerializer):
 
 class RecruiterConventionRegistrationSerializer(serializers.ModelSerializer):
     booth_package_detail = BoothPackageSerializer(source='booth_package', read_only=True)
-    meal_option_detail = MealOptionSerializer(source='meal_option', read_only=True)
+    attendees = RecruiterAttendeeSerializer(many=True)
 
     class Meta:
         model = RecruiterRegistration
         fields = [
             'id', 'booth_package', 'booth_package_detail',
-            'booth_id', 'meal_option', 'meal_option_detail',
-            'status', 'special_requests', 'created_at', 'updated_at'
+            'booth_id', 'status', 'special_requests', 'attendees', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'booth_id', 'status', 'created_at', 'updated_at']
 
@@ -225,9 +251,15 @@ class RecruiterConventionRegistrationSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError('Special requests must be 500 characters or fewer.')
         return value
 
+    def validate_attendees(self, value):
+        if not value:
+            raise serializers.ValidationError('At least one recruiter attendee is required.')
+        if len(value) > 4:
+            raise serializers.ValidationError('A maximum of 4 attendees is allowed.')
+        return value
+
     def validate(self, data):
         booth_package = data.get('booth_package')
-        meal_option = data.get('meal_option')
 
         if booth_package:
             from convention.models import Convention
@@ -241,30 +273,34 @@ class RecruiterConventionRegistrationSerializer(serializers.ModelSerializer):
                     'booth_package': 'This booth package is no longer available.'
                 })
 
-        if booth_package and booth_package.is_in_person and not meal_option:
-            raise serializers.ValidationError({
-                'meal_option': 'Meal selection is required for in-person booth packages.'
-            })
-
-        if booth_package and not booth_package.is_in_person and meal_option:
-            raise serializers.ValidationError({
-                'meal_option': 'Meal selection is not available for virtual booth packages.'
-            })
-
         return data
+
+    def create(self, validated_data):
+        attendees_data = validated_data.pop('attendees', [])
+        instance = super().create(validated_data)
+        for i, attendee in enumerate(attendees_data):
+            RecruiterAttendee.objects.create(registration=instance, order=i, **attendee)
+        return instance
+
+    def update(self, instance, validated_data):
+        attendees_data = validated_data.pop('attendees', None)
+        instance = super().update(instance, validated_data)
+        if attendees_data is not None:
+            instance.attendees.all().delete()
+            for i, attendee in enumerate(attendees_data):
+                RecruiterAttendee.objects.create(registration=instance, order=i, **attendee)
+        return instance
 
 
 class AdminRecruiterRegistrationSerializer(serializers.ModelSerializer):
     recruiter = RecruiterProfileSerializer(read_only=True)
     booth_package_detail = BoothPackageSerializer(source='booth_package', read_only=True)
-    meal_option_detail = MealOptionSerializer(source='meal_option', read_only=True)
 
     class Meta:
         model = RecruiterRegistration
         fields = [
             'id', 'recruiter', 'booth_package', 'booth_package_detail',
-            'booth_id', 'meal_option', 'meal_option_detail',
-            'status', 'special_requests', 'created_at', 'updated_at'
+            'booth_id', 'status', 'special_requests', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'recruiter', 'created_at', 'updated_at']
 

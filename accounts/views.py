@@ -25,15 +25,18 @@ from rest_framework.decorators import throttle_classes
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 
-from .throttles import LoginThrottle, RegisterThrottle, PasswordResetThrottle, CodeCheckThrottle
+from .throttles import LoginThrottle, RegisterThrottle, PasswordResetThrottle, CodeCheckThrottle, AdminRateThrottle
 
 from .tokens import account_activation_token, password_reset_token
 from .models import User, Member, Person, Address, PhoneNumber, StateProvince, Code, ROLE_MEMBER, ROLE_ALUMNI
+import bleach
+
 from .serializers import (
     CodeValidationSerializer,
     LoginSerializer,
     CreateUserSerializer,
     UserAccountSerializer,
+    AdminUserListSerializer,
     VerifyMemberSerializer,
     AddressSerializer,
     PasswordResetRequestSerializer,
@@ -211,7 +214,8 @@ def register(request):
         member_class_year = request.session.get('member_class_year', '')
         birth_date = request.session.get('birth_date', None)
         initiation_date = request.session.get('initiation_date', None)
-        gender_id = request.session.get('gender_id', None)
+        gender = request.session.get('gender', None)
+        pronoun = request.session.get('pronoun', None)
         person = None
         member = None
         if member_first_name and member_last_name and member_chapter:
@@ -224,7 +228,8 @@ def register(request):
                 person.last_name = member_last_name
                 person.birth_date = birth_date
                 person.initiation_date = initiation_date
-                person.gender_id = gender_id
+                person.gender_id = gender
+                person.pronoun_id = pronoun
                 person.save()
                 member = existing_member
             else:
@@ -234,7 +239,8 @@ def register(request):
                     last_name=member_last_name,
                     birth_date=birth_date,
                     initiation_date=initiation_date,
-                    gender_id=gender_id,
+                    gender_id=gender,
+                    pronoun_id=pronoun,
                 )
                 member = Member.objects.create(
                     person=person,
@@ -432,6 +438,7 @@ class VerifyMemberAPIView(APIView):
                                 ,Memblist.BirthDate
                                 ,Memblist.InitiationDate
                                 ,Memblist.Gender
+                                ,Memblist.Pronoun
                                 ,Chapters.chp_name
                                 ,Chapters.Chp_Name_Short
                                 ,Chapters.chp_code
@@ -472,7 +479,8 @@ class VerifyMemberAPIView(APIView):
                     'member_class_year': users[0]['mem_classy'],
                     'birth_date': to_date_str(users[0]['BirthDate']),
                     'initiation_date': to_date_str(users[0]['InitiationDate']),
-                    'gender_id': users[0]['Gender'],
+                    'gender': users[0]['Gender'],
+                    'pronoun': users[0]['Pronoun'],
                 }
 
                 cursor = conn.cursor(as_dict=True)
@@ -725,91 +733,9 @@ class AddressViewSet(viewsets.ModelViewSet):
         return Address.objects.none()
     
     def _sync_to_sql_server(self, action, member_id, address_data, old_address_data=None):
-        """
-        Sync address changes to SQL Server database.
-        
-        Args:
-            action: 'create', 'update', or 'delete'
-            member_id: The member_id to sync
-            address_data: Dict with address fields (add_line1, add_line2, add_city, add_state, add_zip, add_type)
-            old_address_data: For updates, the old address data to find the record
-        """
-        try:
-            conn = pymssql.connect(
-                server=SQL_PROD_HOST,
-                tds_version=r'7.0',
-                user=SQL_USER,
-                password=SQL_PASSWORD,
-                database='Member'
-            )
-            cursor = conn.cursor()
-            
-            # Map address types from Django to SQL Server format
-            sql_type = self._map_type_to_sql(address_data.get('add_type', ''))
-            
-            if action == 'create':
-                # Insert new address into SQL Server
-                cursor.execute('''
-                    INSERT INTO Address (add_memid, add_line1, add_line2, add_city, add_state, add_zip, add_type)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ''', (
-                    member_id,
-                    address_data.get('add_line1', ''),
-                    address_data.get('add_line2', ''),
-                    address_data.get('add_city', ''),
-                    address_data.get('add_state', ''),
-                    address_data.get('add_zip', ''),
-                    sql_type
-                ))
-                logger.debug("SQL Server: Created address (type: %s) for member %s", sql_type, member_id)
-                
-            elif action == 'update':
-                # Update existing address in SQL Server
-                # Match by old add_line1 and add_memid, then update all fields
-                old_line1 = old_address_data.get('add_line1', '')
-                old_sql_type = self._map_type_to_sql(old_address_data.get('add_type', ''))
-                
-                cursor.execute('''
-                    UPDATE Address
-                    SET add_line1 = %s,
-                        add_line2 = %s,
-                        add_city = %s,
-                        add_state = %s,
-                        add_zip = %s,
-                        add_type = %s
-                    WHERE add_memid = %s AND add_line1 = %s AND add_type = %s
-                ''', (
-                    address_data.get('add_line1', ''),
-                    address_data.get('add_line2', ''),
-                    address_data.get('add_city', ''),
-                    address_data.get('add_state', ''),
-                    address_data.get('add_zip', ''),
-                    sql_type,
-                    member_id,
-                    old_line1,
-                    old_sql_type
-                ))
-                logger.debug("SQL Server: Updated address (type: %s -> %s) for member %s", old_sql_type, sql_type, member_id)
-                
-            elif action == 'delete':
-                # Delete address from SQL Server
-                cursor.execute('''
-                    DELETE FROM Address
-                    WHERE add_memid = %s AND add_line1 = %s AND add_type = %s
-                ''', (
-                    member_id,
-                    address_data.get('add_line1', ''),
-                    sql_type
-                ))
-                logger.debug("SQL Server: Deleted address (type: %s) for member %s", sql_type, member_id)
-            
-            conn.commit()
-            cursor.close()
-            conn.close()
-            
-        except Exception as e:
-            logger.error("Error syncing address to SQL Server: %s", e, exc_info=True)
-            # Don't raise exception - allow Django operation to succeed even if SQL Server sync fails
+        """Delegate to shared db_sync utility."""
+        from accounts.db_sync import sync_address_to_sql
+        sync_address_to_sql(action, member_id, address_data, old_address_data)
     
     def perform_create(self, serializer):
         # Automatically set the person to the authenticated user's person
@@ -1053,77 +979,9 @@ class PhoneNumberViewSet(viewsets.ModelViewSet):
     ALLOWED_SQL_COLUMNS = set(PHONE_TYPE_TO_COLUMN.values())
 
     def _sync_phone_to_sql_server(self, action, member_id, phone_type, phone_number=None):
-        """
-        Sync phone number changes to SQL Server database.
-        Phone numbers are stored in the Address table where add_type='Home'.
-
-        Args:
-            action: 'create', 'update', or 'delete'
-            member_id: The member_id to sync
-            phone_type: 'Mobile', 'Home', or 'Work'
-            phone_number: The phone number (digits only) or None for delete
-        """
-        column_name = self._get_sql_column_for_type(phone_type)
-        if not column_name or column_name not in self.ALLOWED_SQL_COLUMNS:
-            logger.warning("Unknown phone type '%s', skipping SQL Server sync", phone_type)
-            return
-        
-        # Format phone number for SQL Server (XXX-XXX-XXXX)
-        formatted_phone = self._format_phone_for_sql(phone_number) if phone_number else ''
-        
-        try:
-            conn = pymssql.connect(
-                server=SQL_PROD_HOST,
-                tds_version=r'7.0',
-                user=SQL_USER,
-                password=SQL_PASSWORD,
-                database='Member'
-            )
-            cursor = conn.cursor()
-            
-            # Phone numbers are stored in the Home address record
-            # First check if a Home address exists
-            cursor.execute('''
-                SELECT COUNT(*) as count
-                FROM Address
-                WHERE add_memid = %s AND add_type = 'Home'
-            ''', (member_id,))
-            result = cursor.fetchone()
-            
-            if result[0] == 0:
-                # No Home address exists, create one with just the phone number
-                if action in ['create', 'update'] and formatted_phone:
-                    cursor.execute(f'''
-                        INSERT INTO Address (add_memid, add_type, {column_name})
-                        VALUES (%s, 'Home', %s)
-                    ''', (member_id, formatted_phone))
-                    logger.debug("SQL Server: Created Home address with %s phone for member %s", phone_type, member_id)
-            else:
-                # Home address exists, update the phone number column
-                if action == 'delete':
-                    # Set phone column to empty string
-                    cursor.execute(f'''
-                        UPDATE Address
-                        SET {column_name} = ''
-                        WHERE add_memid = %s AND add_type = 'Home'
-                    ''', (member_id,))
-                    logger.debug("SQL Server: Deleted %s phone for member %s", phone_type, member_id)
-                else:
-                    # Create or update - set the phone number
-                    cursor.execute(f'''
-                        UPDATE Address
-                        SET {column_name} = %s
-                        WHERE add_memid = %s AND add_type = 'Home'
-                    ''', (formatted_phone, member_id))
-                    logger.debug("SQL Server: Updated %s phone for member %s", phone_type, member_id)
-            
-            conn.commit()
-            cursor.close()
-            conn.close()
-            
-        except Exception as e:
-            logger.error("Error syncing phone to SQL Server: %s", e, exc_info=True)
-            # Don't raise exception - allow Django operation to succeed even if SQL Server sync fails
+        """Delegate to shared db_sync utility."""
+        from accounts.db_sync import sync_phone_to_sql
+        sync_phone_to_sql(action, member_id, phone_type, phone_number)
     
     def get_queryset(self):
         # Only return phone numbers for the authenticated user's person
@@ -1257,3 +1115,232 @@ def state_province_list(request):
         })
     
     return Response(grouped_data, status=status.HTTP_200_OK)
+
+
+# ============================================================
+# Admin User Management
+# ============================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def admin_list_users(request):
+    """
+    List/search users for hq_admin management.
+    GET /api/accounts/admin/users/?search=
+    """
+    if not request.user.has_role('hq_admin'):
+        raise PermissionDenied('hq_admin role required.')
+
+    search = bleach.clean(request.query_params.get('search', ''), tags=[], strip=True).strip()
+
+    from django.db.models import Q
+    queryset = (
+        User.objects
+        .select_related('person', 'person__member')
+        .prefetch_related('groups')
+        .filter(is_active=True)
+    )
+    if search:
+        queryset = queryset.filter(
+            Q(email__icontains=search)
+            | Q(person__first_name__icontains=search)
+            | Q(person__last_name__icontains=search)
+            | Q(person__preferred_first_name__icontains=search)
+            | Q(person__member__member_id__icontains=search)
+        )
+    queryset = queryset.order_by('person__last_name', 'person__first_name')[:100]
+
+    serializer = AdminUserListSerializer(queryset, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def admin_user_account_view(request, user_id):
+    """
+    Get or update any user's account details (hq_admin only).
+    GET/PUT /api/accounts/admin/users/{user_id}/user-account/
+    user_id is Person.id (as returned by AdminUserListSerializer.person_id).
+    """
+    if not request.user.has_role('hq_admin'):
+        raise PermissionDenied('hq_admin role required.')
+
+    target_person = get_object_or_404(Person, pk=user_id)
+    target_user = get_object_or_404(User, person=target_person)
+
+    if request.method == 'GET':
+        serializer = UserAccountSerializer(target_user)
+        return Response(serializer.data)
+
+    serializer = UserAccountSerializer(target_user, data=request.data, partial=True)
+    if serializer.is_valid():
+        user = serializer.save()
+        if user.person and hasattr(user.person, 'member') and user.person.member and user.person.member.member_id:
+            _sync_emails_to_sql_server(user.person.member.member_id, user.email, user.alt_email)
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminAddressViewSet(AddressViewSet):
+    """
+    Admin address management — hq_admin can manage any user's addresses.
+    URL: /api/accounts/admin/users/{user_id}/addresses/
+    """
+
+    def _get_target_person(self):
+        if not self.request.user.has_role('hq_admin'):
+            raise PermissionDenied('hq_admin role required.')
+        # user_id in the URL is Person.id (from AdminUserListSerializer.person_id)
+        return get_object_or_404(Person, pk=self.kwargs['user_id'])
+
+    def get_queryset(self):
+        person = self._get_target_person()
+        return Address.objects.filter(person=person).select_related('person')
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        try:
+            context['target_person'] = self._get_target_person()
+        except (PermissionDenied, Exception):
+            pass
+        return context
+
+    def perform_create(self, serializer):
+        person = self._get_target_person()
+        address = serializer.save(person=person)
+        member_id = getattr(getattr(person, 'member', None), 'member_id', None)
+        if member_id:
+            self._sync_to_sql_server('create', member_id, {
+                'add_line1': address.add_line1, 'add_line2': address.add_line2,
+                'add_city': address.add_city, 'add_state': address.add_state,
+                'add_zip': address.add_zip, 'add_type': address.add_type,
+            })
+
+    def perform_update(self, serializer):
+        person = self._get_target_person()
+        old_address = self.get_object()
+        old_address_data = {
+            'add_line1': old_address.add_line1, 'add_line2': old_address.add_line2,
+            'add_city': old_address.add_city, 'add_state': old_address.add_state,
+            'add_zip': old_address.add_zip, 'add_type': old_address.add_type,
+        }
+        if serializer.validated_data.get('is_primary', False):
+            Address.objects.filter(person=person, is_primary=True).exclude(
+                id=old_address.id
+            ).update(is_primary=False)
+        address = serializer.save(person=person)
+        member_id = getattr(getattr(person, 'member', None), 'member_id', None)
+        if member_id:
+            self._sync_to_sql_server('update', member_id, {
+                'add_line1': address.add_line1, 'add_line2': address.add_line2,
+                'add_city': address.add_city, 'add_state': address.add_state,
+                'add_zip': address.add_zip, 'add_type': address.add_type,
+            }, old_address_data)
+
+    def destroy(self, request, *args, **kwargs):
+        address = self.get_object()
+        person = address.person
+        address_data = {
+            'add_line1': address.add_line1, 'add_line2': address.add_line2,
+            'add_city': address.add_city, 'add_state': address.add_state,
+            'add_zip': address.add_zip, 'add_type': address.add_type,
+        }
+        # Skip AddressViewSet.destroy and call ModelViewSet.destroy directly
+        response = super(AddressViewSet, self).destroy(request, *args, **kwargs)
+        member_id = getattr(getattr(person, 'member', None), 'member_id', None)
+        if member_id:
+            self._sync_to_sql_server('delete', member_id, address_data)
+        return response
+
+    @action(detail=True, methods=['post'])
+    def set_primary(self, request, pk=None, user_id=None):
+        if not request.user.has_role('hq_admin'):
+            raise PermissionDenied('hq_admin role required.')
+        address = self.get_object()
+        person = address.person
+        with transaction.atomic():
+            Address.objects.filter(person=person).update(is_primary=False)
+            address.is_primary = True
+            address.save()
+        return Response(self.get_serializer(address).data)
+
+
+class AdminPhoneNumberViewSet(PhoneNumberViewSet):
+    """
+    Admin phone management — hq_admin can manage any user's phone numbers.
+    URL: /api/accounts/admin/users/{user_id}/phone-numbers/
+    """
+
+    def _get_target_person(self):
+        if not self.request.user.has_role('hq_admin'):
+            raise PermissionDenied('hq_admin role required.')
+        # user_id in the URL is Person.id (from AdminUserListSerializer.person_id)
+        return get_object_or_404(Person, pk=self.kwargs['user_id'])
+
+    def get_queryset(self):
+        person = self._get_target_person()
+        return PhoneNumber.objects.filter(person=person).select_related('person')
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        try:
+            context['target_person'] = self._get_target_person()
+        except (PermissionDenied, Exception):
+            pass
+        return context
+
+    def perform_create(self, serializer):
+        person = self._get_target_person()
+        existing = PhoneNumber.objects.filter(person=person)
+        phone = serializer.save(person=person, is_primary=not existing.exists())
+        member_id = getattr(getattr(person, 'member', None), 'member_id', None)
+        if member_id:
+            self._sync_phone_to_sql_server('create', member_id, phone.phone_type, phone.phone_number)
+
+    def perform_update(self, serializer):
+        person = self._get_target_person()
+        old_phone = self.get_object()
+        old_phone_type = old_phone.phone_type
+        if serializer.validated_data.get('is_primary', False):
+            PhoneNumber.objects.filter(person=person, is_primary=True).exclude(
+                id=old_phone.id
+            ).update(is_primary=False)
+        phone = serializer.save(person=person)
+        member_id = getattr(getattr(person, 'member', None), 'member_id', None)
+        if member_id:
+            if old_phone_type != phone.phone_type:
+                self._sync_phone_to_sql_server('delete', member_id, old_phone_type)
+                self._sync_phone_to_sql_server('create', member_id, phone.phone_type, phone.phone_number)
+            else:
+                self._sync_phone_to_sql_server('update', member_id, phone.phone_type, phone.phone_number)
+
+    def destroy(self, request, *args, **kwargs):
+        phone = self.get_object()
+        person = phone.person
+        is_primary = phone.is_primary
+        phone_type = phone.phone_type
+        remaining = PhoneNumber.objects.filter(person=person).exclude(id=phone.id)
+        # Skip PhoneNumberViewSet.destroy and call ModelViewSet.destroy directly
+        response = super(PhoneNumberViewSet, self).destroy(request, *args, **kwargs)
+        if is_primary and remaining.exists():
+            first = remaining.first()
+            first.is_primary = True
+            first.save()
+        member_id = getattr(getattr(person, 'member', None), 'member_id', None)
+        if member_id:
+            self._sync_phone_to_sql_server('delete', member_id, phone_type)
+        return response
+
+    @action(detail=True, methods=['post'])
+    def set_primary(self, request, pk=None, user_id=None):
+        if not request.user.has_role('hq_admin'):
+            raise PermissionDenied('hq_admin role required.')
+        phone = self.get_object()
+        person = phone.person
+        with transaction.atomic():
+            PhoneNumber.objects.filter(person=person).update(is_primary=False)
+            phone.is_primary = True
+            phone.save()
+        return Response(self.get_serializer(phone).data)

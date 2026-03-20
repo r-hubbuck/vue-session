@@ -136,20 +136,27 @@
         <hr class="my-4" style="border-color: #e2e8f0;">
 
         <!-- Recruiter Visibility -->
-        <div class="form-check mb-3" style="padding: 1rem; background: #fafbfc; border-radius: 8px; border: 1px solid #e2e8f0;">
-          <input
-            v-model="visibleToRecruiters"
-            class="form-check-input"
-            type="checkbox"
-            id="visibleToRecruiters"
-            @change="saveRecruiterVisibility"
-          >
-          <label class="form-check-label" for="visibleToRecruiters" style="font-weight: 500;">
-            Visible to recruiters
-          </label>
-          <small class="d-block text-muted mt-1">
-            Allow business and graduate school recruiters to see your name, chapter, and resume (if uploaded) during the convention.
+        <div class="mb-3 p-3" style="background: #fafbfc; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <p class="mb-2" style="font-weight: 500; color: #1a202c;">Share profile &amp; resume with recruiters</p>
+          <small class="d-block text-muted mb-3">
+            Choose which recruiters can see your name, chapter, and resume (if uploaded) during the convention.
           </small>
+          <div class="d-flex flex-column gap-2">
+            <div v-for="option in recruiterVisibilityOptions" :key="option.value" class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                :id="'visibility-' + option.value"
+                :value="option.value"
+                v-model="visibleToRecruiters"
+                @change="saveRecruiterVisibility"
+              >
+              <label class="form-check-label" :for="'visibility-' + option.value">
+                <span style="font-weight: 500;">{{ option.label }}</span>
+                <small class="d-block text-muted">{{ option.description }}</small>
+              </label>
+            </div>
+          </div>
         </div>
 
         <!-- Resume Upload -->
@@ -247,6 +254,74 @@
           No addresses on file.
           <router-link :to="{ name: 'account' }">Add an address</router-link>
         </div>
+
+        <hr class="my-4" style="border-color: #e2e8f0;">
+
+        <!-- Emergency Contact -->
+        <h6 style="font-weight: 600; margin-bottom: 0.5rem; color: #1a202c;">Emergency Contact</h6>
+        <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">
+          Please provide an emergency contact who can be reached during the convention.
+        </p>
+
+        <form @submit.prevent="saveEmergencyContact">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Contact Name *</label>
+              <input
+                v-model="emergencyContact.name"
+                type="text"
+                class="form-control"
+                placeholder="Full name"
+                maxlength="200"
+                required
+              >
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Relationship *</label>
+              <select v-model="emergencyContact.relationship" class="form-select" required>
+                <option value="">Select relationship</option>
+                <option value="Mother">Mother</option>
+                <option value="Father">Father</option>
+                <option value="Brother">Brother</option>
+                <option value="Sister">Sister</option>
+                <option value="Spouse/Partner">Spouse/Partner</option>
+                <option value="Friend">Friend</option>
+                <option value="Colleague">Colleague</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div v-if="emergencyContact.relationship === 'Other'" class="col-md-6">
+              <label class="form-label">Please specify *</label>
+              <input
+                v-model="emergencyContact.relationship_other"
+                type="text"
+                class="form-control"
+                placeholder="Describe relationship"
+                maxlength="100"
+                required
+              >
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Phone Number</label>
+              <input
+                v-model="emergencyContact.phone"
+                @input="handleEmergencyPhoneInput"
+                type="tel"
+                class="form-control"
+                placeholder="(555) 123-4567 or international"
+                maxlength="20"
+                title="Phone number"
+              >
+              <small class="form-text text-muted">Include country code for international numbers (e.g. 447911123456)</small>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-gold mt-3" :disabled="saving">
+            <span v-if="saving">
+              <span class="spinner-border spinner-border-sm me-2"></span>Saving...
+            </span>
+            <span v-else><i class="bi bi-check2 me-2"></i>Save Emergency Contact</span>
+          </button>
+        </form>
       </div>
 
       <!-- Committee Preferences Section -->
@@ -494,8 +569,17 @@
                   <div class="text-muted small mt-1">
                     <div v-if="guest.guest_email"><i class="bi bi-envelope me-1"></i>{{ guest.guest_email }}</div>
                     <div v-if="guest.guest_phone"><i class="bi bi-telephone me-1"></i>{{ guest.guest_phone }}</div>
-                    <div v-if="guest.guest_dietary_restrictions">
-                      <i class="bi bi-info-circle me-1"></i>Dietary: {{ guest.guest_dietary_restrictions }}
+                    <div v-if="guest.guest_food_allergies?.length || guest.guest_food_allergies_other">
+                      <i class="bi bi-exclamation-triangle me-1"></i>Allergies:
+                      {{ formatGuestAllergies(guest) }}
+                    </div>
+                    <div v-if="guest.guest_dietary_restrictions?.length || guest.guest_dietary_restrictions_other">
+                      <i class="bi bi-cup-straw me-1"></i>Dietary:
+                      {{ formatGuestDietary(guest) }}
+                    </div>
+                    <div v-if="guest.guest_meals?.length">
+                      <i class="bi bi-fork-knife me-1"></i>Meals:
+                      {{ guest.guest_meals.map(m => m.name).join(', ') }}
                     </div>
                   </div>
                 </div>
@@ -533,8 +617,111 @@
                   <input v-model="newGuest.guest_phone" type="tel" class="form-control" maxlength="20" pattern="[\+]?[0-9\s\-\(\)]+" title="Phone number (numbers, spaces, dashes, parentheses allowed)">
                 </div>
                 <div class="col-12">
-                  <label class="form-label">Dietary Restrictions</label>
-                  <input v-model="newGuest.guest_dietary_restrictions" type="text" class="form-control" maxlength="500">
+                  <label class="form-label d-block">Food Allergies</label>
+                  <small class="text-muted d-block mb-2">Select all that apply.</small>
+                  <div class="d-flex flex-wrap gap-2 mb-2">
+                    <div
+                      v-for="option in foodAllergyOptions"
+                      :key="option.value"
+                      class="form-check"
+                      style="min-width: 140px;"
+                    >
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        :id="'guest-allergy-' + option.value"
+                        :value="option.value"
+                        v-model="newGuest.guest_food_allergies"
+                      >
+                      <label class="form-check-label" :for="'guest-allergy-' + option.value">
+                        {{ option.label }}
+                      </label>
+                    </div>
+                  </div>
+                  <input
+                    v-model="newGuest.guest_food_allergies_other"
+                    type="text"
+                    class="form-control"
+                    placeholder="Other allergy not listed above..."
+                    maxlength="500"
+                  >
+                </div>
+                <div class="col-12">
+                  <label class="form-label d-block">Dietary Restrictions</label>
+                  <small class="text-muted d-block mb-2">Select all that apply.</small>
+                  <div class="d-flex flex-wrap gap-2 mb-2">
+                    <div
+                      v-for="option in dietaryRestrictionOptions"
+                      :key="option.value"
+                      class="form-check"
+                      style="min-width: 140px;"
+                    >
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        :id="'guest-diet-' + option.value"
+                        :value="option.value"
+                        v-model="newGuest.guest_dietary_restrictions"
+                      >
+                      <label class="form-check-label" :for="'guest-diet-' + option.value">
+                        {{ option.label }}
+                      </label>
+                    </div>
+                  </div>
+                  <input
+                    v-model="newGuest.guest_dietary_restrictions_other"
+                    type="text"
+                    class="form-control"
+                    placeholder="Other dietary need not listed above..."
+                    maxlength="500"
+                  >
+                </div>
+                <div class="col-12">
+                  <label class="form-label d-block">Meal Selections</label>
+                  <small class="text-muted d-block mb-2">
+                    Select the meals this guest will attend. Selecting "All Meals" covers all individual options.
+                  </small>
+                  <div v-if="availableMeals.length > 0">
+                    <!-- All Meals option -->
+                    <div v-if="allMealsOption" class="form-check mb-2 p-2" style="background: #f0f9ff; border-radius: 6px; border: 1px solid #bfdbfe;">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="guest-meal-all"
+                        :value="allMealsOption.id"
+                        v-model="newGuest.guest_meal_ids"
+                        @change="onAllMealsChange"
+                      >
+                      <label class="form-check-label fw-semibold" for="guest-meal-all">
+                        {{ allMealsOption.name }}
+                        <span class="text-muted fw-normal ms-1">— {{ allMealsOption.price_display }}</span>
+                      </label>
+                    </div>
+                    <!-- Individual meal options -->
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                      <div
+                        v-for="meal in individualMealOptions"
+                        :key="meal.id"
+                        class="form-check"
+                        style="min-width: 220px;"
+                      >
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          :id="'guest-meal-' + meal.id"
+                          :value="meal.id"
+                          v-model="newGuest.guest_meal_ids"
+                          :disabled="allMealsOption && newGuest.guest_meal_ids.includes(allMealsOption.id)"
+                          @change="onIndividualMealChange"
+                        >
+                        <label class="form-check-label" :for="'guest-meal-' + meal.id">
+                          {{ meal.name }}
+                          <span class="text-muted ms-1">— {{ meal.price_display }}</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <p v-else class="text-muted small mb-0">No meal options available.</p>
                 </div>
                 <div class="col-12">
                   <label class="form-label">Special Requests</label>
@@ -621,12 +808,64 @@
             </div>
 
             <div class="col-12">
-              <label class="form-label">Food Allergies</label>
-              <input v-model="accommodation.food_allergies" type="text" class="form-control" maxlength="500">
+              <label class="form-label d-block">Food Allergies</label>
+              <small class="text-muted d-block mb-2">Select all that apply.</small>
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <div
+                  v-for="option in foodAllergyOptions"
+                  :key="option.value"
+                  class="form-check"
+                  style="min-width: 140px;"
+                >
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    :id="'allergy-' + option.value"
+                    :value="option.value"
+                    v-model="accommodation.food_allergies"
+                  >
+                  <label class="form-check-label" :for="'allergy-' + option.value">
+                    {{ option.label }}
+                  </label>
+                </div>
+              </div>
+              <input
+                v-model="accommodation.other_allergies"
+                type="text"
+                class="form-control"
+                placeholder="Other allergy not listed above..."
+                maxlength="500"
+              >
             </div>
             <div class="col-12">
-              <label class="form-label">Dietary Restrictions</label>
-              <input v-model="accommodation.dietary_restrictions" type="text" class="form-control" maxlength="500">
+              <label class="form-label d-block">Dietary Restrictions</label>
+              <small class="text-muted d-block mb-2">Select all that apply.</small>
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <div
+                  v-for="option in dietaryRestrictionOptions"
+                  :key="option.value"
+                  class="form-check"
+                  style="min-width: 140px;"
+                >
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    :id="'diet-' + option.value"
+                    :value="option.value"
+                    v-model="accommodation.dietary_restrictions"
+                  >
+                  <label class="form-check-label" :for="'diet-' + option.value">
+                    {{ option.label }}
+                  </label>
+                </div>
+              </div>
+              <input
+                v-model="accommodation.dietary_restrictions_other"
+                type="text"
+                class="form-control"
+                placeholder="Other dietary need not listed above..."
+                maxlength="500"
+              >
             </div>
             <div class="col-12">
               <label class="form-label">Special Requests</label>
@@ -745,6 +984,36 @@ const memberInfo = ref({
   badge_name: ''
 })
 
+// Emergency Contact
+const emergencyContact = ref({
+  name: '',
+  relationship: '',
+  relationship_other: '',
+  phone: '',
+})
+
+// Food allergy and dietary restriction option lists
+const foodAllergyOptions = [
+  { value: 'milk',       label: 'Milk' },
+  { value: 'eggs',       label: 'Eggs' },
+  { value: 'peanuts',    label: 'Peanuts' },
+  { value: 'tree_nuts',  label: 'Tree Nuts' },
+  { value: 'fish',       label: 'Fish' },
+  { value: 'shellfish',  label: 'Shellfish' },
+  { value: 'soy',        label: 'Soy' },
+  { value: 'wheat',      label: 'Wheat' },
+  { value: 'sesame',     label: 'Sesame' },
+]
+const dietaryRestrictionOptions = [
+  { value: 'gluten_free',  label: 'Gluten-Free' },
+  { value: 'vegetarian',   label: 'Vegetarian' },
+  { value: 'vegan',        label: 'Vegan' },
+  { value: 'kosher',       label: 'Kosher' },
+  { value: 'halal',        label: 'Halal' },
+  { value: 'dairy_free',   label: 'Dairy-Free' },
+  { value: 'nut_free',     label: 'Nut-Free' },
+]
+
 const memberAddresses = ref([])
 const memberPhones = ref([])
 const mobilePhone = ref({
@@ -754,7 +1023,13 @@ const mobilePhone = ref({
 })
 
 // Recruiter visibility & resume
-const visibleToRecruiters = ref(true)
+const recruiterVisibilityOptions = [
+  { value: 'both',            label: 'Businesses & Graduate Schools', description: 'Visible to all recruiter types.' },
+  { value: 'business',        label: 'Businesses only',               description: 'Only business recruiters can see your profile.' },
+  { value: 'graduate_school', label: 'Graduate Schools only',         description: 'Only graduate school recruiters can see your profile.' },
+  { value: 'none',            label: 'Not visible',                   description: 'Recruiters cannot see your profile or download your resume.' },
+]
+const visibleToRecruiters = ref('both')
 const resumeUrl = ref(null)
 const resumeUploadedAt = ref(null)
 
@@ -783,6 +1058,11 @@ const handlePhoneInput = (event) => {
   const input = event.target.value
   const formatted = formatPhoneNumber(input)
   mobilePhone.value.phone_number = formatted
+}
+
+const handleEmergencyPhoneInput = (event) => {
+  const formatted = formatPhoneNumber(event.target.value)
+  emergencyContact.value.phone = formatted
 }
 
 // Committees
@@ -820,14 +1100,24 @@ const savedCommitteePreferences = ref({ ...committeePreferences.value })
 // Guests
 const bringingGuest = ref(false)
 const guests = ref([])
+const availableMeals = ref([])
+
 const newGuest = ref({
   guest_first_name: '',
   guest_last_name: '',
   guest_email: '',
   guest_phone: '',
-  guest_dietary_restrictions: '',
-  guest_special_requests: ''
+  guest_food_allergies: [],
+  guest_food_allergies_other: '',
+  guest_dietary_restrictions: [],
+  guest_dietary_restrictions_other: '',
+  guest_special_requests: '',
+  guest_meal_ids: [],
 })
+
+// Computed helpers for meal selection logic
+const allMealsOption = computed(() => availableMeals.value.find(m => m.name === 'All Meals'))
+const individualMealOptions = computed(() => availableMeals.value.filter(m => m.name !== 'All Meals'))
 
 // States and Airports
 const states = ref([])
@@ -911,9 +1201,10 @@ const accommodation = ref({
   roommate_preference: 'any',
   specific_roommate_name: '',
   specific_roommate_chapter: '',
-  food_allergies: '',
-  dietary_restrictions: '',
+  food_allergies: [],
+  dietary_restrictions: [],
   other_allergies: '',
+  dietary_restrictions_other: '',
   special_requests: '',
   has_room_assignment: false
 })
@@ -1123,17 +1414,44 @@ const loadRegistrationData = async (data) => {
 
   // Load accommodation
   if (data.accommodation) {
-    accommodation.value = { ...data.accommodation }
-    
+    const acc = { ...data.accommodation }
+
+    // Ensure array fields are always arrays (guard against null/legacy values)
+    if (!Array.isArray(acc.food_allergies)) acc.food_allergies = []
+    if (!Array.isArray(acc.dietary_restrictions)) acc.dietary_restrictions = []
+
     // Migrate old package_choice values to new valid ones
     const oldToNewMapping = {
-      'hotel_only': 'custom',      // Hotel only -> Custom package
-      'none': 'commuter'           // No package -> Commuter (no hotel)
+      'hotel_only': 'custom',
+      'none': 'commuter',
     }
-    
-    if (oldToNewMapping[accommodation.value.package_choice]) {
-      accommodation.value.package_choice = oldToNewMapping[accommodation.value.package_choice]
+    if (oldToNewMapping[acc.package_choice]) {
+      acc.package_choice = oldToNewMapping[acc.package_choice]
     }
+
+    accommodation.value = acc
+  }
+
+  // Load emergency contact
+  if (data.emergency_contact_name !== undefined) {
+    emergencyContact.value.name = data.emergency_contact_name || ''
+  }
+  if (data.emergency_contact_relationship !== undefined) {
+    const rel = data.emergency_contact_relationship || ''
+    const presets = ['Mother', 'Father', 'Brother', 'Sister', 'Spouse/Partner', 'Friend', 'Colleague']
+    if (presets.includes(rel)) {
+      emergencyContact.value.relationship = rel
+      emergencyContact.value.relationship_other = ''
+    } else if (rel) {
+      emergencyContact.value.relationship = 'Other'
+      emergencyContact.value.relationship_other = rel
+    } else {
+      emergencyContact.value.relationship = ''
+      emergencyContact.value.relationship_other = ''
+    }
+  }
+  if (data.emergency_contact_phone !== undefined) {
+    emergencyContact.value.phone = formatPhoneNumber(data.emergency_contact_phone || '')
   }
 }
 
@@ -1146,7 +1464,7 @@ const createRegistration = async () => {
     toast.success('Registration created successfully!')
   } catch (error) {
     console.error('Error creating registration:', error)
-    toast.error(error.response?.data?.message || 'Failed to create registration')
+    toast.error(error.response?.data?.error || 'Failed to create registration')
   } finally {
     saving.value = false
   }
@@ -1193,6 +1511,30 @@ const saveMobilePhone = async () => {
   } catch (error) {
     console.error('Error saving mobile phone:', error)
     toast.error('Failed to save mobile phone')
+  } finally {
+    saving.value = false
+  }
+}
+
+const saveEmergencyContact = async () => {
+  saving.value = true
+  try {
+    const relationship = emergencyContact.value.relationship === 'Other'
+      ? emergencyContact.value.relationship_other
+      : emergencyContact.value.relationship
+
+    await api.put(
+      `/api/convention/registration/${registration.value.id}/emergency-contact/`,
+      {
+        emergency_contact_name: emergencyContact.value.name,
+        emergency_contact_relationship: relationship,
+        emergency_contact_phone: getCleanPhoneNumber(emergencyContact.value.phone),
+      }
+    )
+    toast.success('Emergency contact saved!')
+  } catch (error) {
+    console.error('Error saving emergency contact:', error)
+    toast.error(error.response?.data?.emergency_contact_phone?.[0] || 'Failed to save emergency contact')
   } finally {
     saving.value = false
   }
@@ -1312,13 +1654,60 @@ const saveCommitteePreferences = async () => {
   }
 }
 
+// Meal selection handlers — mutual exclusion between "All Meals" and individual meals
+const onAllMealsChange = () => {
+  if (allMealsOption.value && newGuest.value.guest_meal_ids.includes(allMealsOption.value.id)) {
+    newGuest.value.guest_meal_ids = [allMealsOption.value.id]
+  }
+}
+const onIndividualMealChange = () => {
+  if (allMealsOption.value) {
+    newGuest.value.guest_meal_ids = newGuest.value.guest_meal_ids.filter(
+      id => id !== allMealsOption.value.id
+    )
+  }
+}
+
+// Display helpers for guest cards
+const formatGuestAllergies = (guest) => {
+  const labels = (guest.guest_food_allergies || []).map(v => {
+    const opt = foodAllergyOptions.find(o => o.value === v)
+    return opt ? opt.label : v
+  })
+  if (guest.guest_food_allergies_other) labels.push(guest.guest_food_allergies_other)
+  return labels.join(', ')
+}
+const formatGuestDietary = (guest) => {
+  const labels = (guest.guest_dietary_restrictions || []).map(v => {
+    const opt = dietaryRestrictionOptions.find(o => o.value === v)
+    return opt ? opt.label : v
+  })
+  if (guest.guest_dietary_restrictions_other) labels.push(guest.guest_dietary_restrictions_other)
+  return labels.join(', ')
+}
+
+const resetNewGuest = () => {
+  newGuest.value = {
+    guest_first_name: '',
+    guest_last_name: '',
+    guest_email: '',
+    guest_phone: '',
+    guest_food_allergies: [],
+    guest_food_allergies_other: '',
+    guest_dietary_restrictions: [],
+    guest_dietary_restrictions_other: '',
+    guest_special_requests: '',
+    guest_meal_ids: [],
+  }
+}
+
 const addGuest = async () => {
   // Validate email if provided
   if (newGuest.value.guest_email && !isValidEmail(newGuest.value.guest_email)) {
     toast.error('Please enter a valid email address')
     return
   }
-  
+
   saving.value = true
   try {
     const response = await api.post(
@@ -1326,14 +1715,7 @@ const addGuest = async () => {
       newGuest.value
     )
     guests.value.push(response.data)
-    newGuest.value = {
-      guest_first_name: '',
-      guest_last_name: '',
-      guest_email: '',
-      guest_phone: '',
-      guest_dietary_restrictions: '',
-      guest_special_requests: ''
-    }
+    resetNewGuest()
     toast.success('Guest added successfully!')
   } catch (error) {
     console.error('Error adding guest:', error)
@@ -1358,6 +1740,16 @@ const removeGuest = async (guestId) => {
     toast.error('Failed to remove guest')
   } finally {
     saving.value = false
+  }
+}
+
+// Fetch available meals for current convention
+const fetchMeals = async () => {
+  try {
+    const response = await api.get('/api/convention/meals/')
+    availableMeals.value = response.data
+  } catch (error) {
+    console.error('Error fetching meals:', error)
   }
 }
 
@@ -1461,16 +1853,9 @@ const saveTravel = async () => {
     console.error('Response data:', error.response?.data)
     console.error('Travel value being sent:', travel.value)
     
-    // Show specific error message if available
-    if (error.response?.data) {
-      const errors = error.response.data
-      const errorMessages = Object.entries(errors)
-        .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
-        .join('\n')
-      toast.error(`Validation errors:\n${errorMessages}`)
-    } else {
-      toast.error('Failed to save travel information')
-    }
+    const data = error.response?.data
+    const msg = data?.error || Object.values(data || {}).flat().join(' ')
+    toast.error(msg || 'Failed to save travel information')
   } finally {
     saving.value = false
   }
@@ -1483,7 +1868,10 @@ const saveAccommodation = async () => {
     const cleanedData = {
       ...accommodation.value,
       check_in_date: accommodation.value.check_in_date || null,
-      check_out_date: accommodation.value.check_out_date || null
+      check_out_date: accommodation.value.check_out_date || null,
+      // Ensure array fields are always arrays
+      food_allergies: Array.isArray(accommodation.value.food_allergies) ? accommodation.value.food_allergies : [],
+      dietary_restrictions: Array.isArray(accommodation.value.dietary_restrictions) ? accommodation.value.dietary_restrictions : [],
     }
     
     await api.put(
@@ -1496,16 +1884,9 @@ const saveAccommodation = async () => {
     console.error('Response data:', error.response?.data)
     console.error('Accommodation value being sent:', accommodation.value)
     
-    // Show specific error message if available
-    if (error.response?.data) {
-      const errors = error.response.data
-      const errorMessages = Object.entries(errors)
-        .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
-        .join('\n')
-      toast.error(`Validation errors:\n${errorMessages}`)
-    } else {
-      toast.error('Failed to save accommodation information')
-    }
+    const data = error.response?.data
+    const msg = data?.error || Object.values(data || {}).flat().join(' ')
+    toast.error(msg || 'Failed to save accommodation information')
   } finally {
     saving.value = false
   }
@@ -1515,7 +1896,7 @@ const saveAccommodation = async () => {
 onMounted(async () => {
   loading.value = true
   try {
-    await fetchStates()
+    await Promise.all([fetchStates(), fetchMeals()])
     await fetchConvention()
     if (convention.value) {
       await fetchRegistration()

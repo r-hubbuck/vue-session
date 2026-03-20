@@ -97,11 +97,13 @@
                   No registrations found
                 </td>
               </tr>
-              <tr 
-                v-for="reg in filteredRegistrations" 
+              <tr
+                v-for="reg in filteredRegistrations"
                 :key="reg.id"
                 :class="getRowClass(reg)"
                 class="registration-row"
+                @click="openMemberModal(reg)"
+                style="cursor: pointer"
               >
                 <td>
                   <span class="text-muted">#{{ reg.member_number || 'N/A' }}</span>
@@ -128,9 +130,9 @@
                     {{ formatDateTime(reg.checked_in_at) }}
                   </div>
                 </td>
-                <td>
+                <td @click.stop>
                   <div class="btn-group" role="group">
-                    <button 
+                    <button
                       v-if="reg.status_code !== 'checked_in'"
                       class="btn btn-sm btn-success"
                       @click="openCheckInModal(reg)"
@@ -138,7 +140,7 @@
                     >
                       <i class="bi bi-check-circle"></i>
                     </button>
-                    <button 
+                    <button
                       v-if="reg.status_code !== 'cancelled'"
                       class="btn btn-sm btn-danger"
                       @click="cancelRegistration(reg)"
@@ -146,7 +148,7 @@
                     >
                       <i class="bi bi-x-circle"></i>
                     </button>
-                    <button 
+                    <button
                       v-if="reg.status_code === 'cancelled'"
                       class="btn btn-sm btn-primary"
                       @click="reactivateRegistration(reg)"
@@ -159,6 +161,87 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Member Detail Modal -->
+    <div
+      class="modal fade"
+      id="memberDetailModal"
+      tabindex="-1"
+      aria-labelledby="memberDetailModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content" v-if="selectedMember">
+          <div class="modal-header">
+            <h5 class="modal-title" id="memberDetailModalLabel">
+              <i class="bi bi-person-badge me-2"></i>
+              {{ selectedMember.preferred_first_name && selectedMember.preferred_first_name !== selectedMember.first_name ? selectedMember.preferred_first_name : selectedMember.first_name }} {{ selectedMember.last_name }}
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @click="closeMemberModal"></button>
+          </div>
+
+          <div class="modal-body">
+            <!-- Member summary bar -->
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-4 pb-3" style="border-bottom: 1px solid #e5e7eb;">
+              <span class="badge bg-secondary fs-6">#{{ selectedMember.member_number || 'N/A' }}</span>
+              <span style="font-weight: 600;">{{ selectedMember.chapter }}</span>
+              <span class="badge" :class="getStatusBadgeClass(selectedMember.status_code)">{{ getStatusDisplay(selectedMember.status_code) }}</span>
+            </div>
+
+            <!-- Addresses -->
+            <h6 class="mb-3">
+              <i class="bi bi-geo-alt-fill me-2"></i>Mailing Address
+              <small class="text-muted fw-normal ms-1">(reimbursement check sent here)</small>
+            </h6>
+
+            <template v-if="selectedMember.all_addresses && selectedMember.all_addresses.find(a => a.is_primary)">
+              <div v-for="addr in selectedMember.all_addresses.filter(a => a.is_primary)" :key="addr.id">
+                <div class="card" style="border: 1.5px solid #e5e7eb;">
+                  <div class="card-body py-3">
+                    <div class="mb-1">
+                      <span class="badge bg-light text-dark border">{{ addr.add_type }}</span>
+                    </div>
+                    <div>{{ addr.add_line1 }}</div>
+                    <div v-if="addr.add_line2">{{ addr.add_line2 }}</div>
+                    <div>{{ addr.add_city }}<span v-if="addr.add_state">, {{ addr.add_state }}</span> {{ addr.add_zip }}</div>
+                    <div v-if="addr.add_country && addr.add_country !== 'United States'" class="text-muted small">{{ addr.add_country }}</div>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <div v-else class="alert alert-warning" style="border-left: 4px solid #f59e0b;">
+              <i class="bi bi-exclamation-triangle me-2"></i>No primary address on file for this member.
+            </div>
+
+            <!-- Cell Phone -->
+            <h6 class="mt-4 mb-3">
+              <i class="bi bi-phone me-2"></i>Cell Phone
+              <small class="text-muted fw-normal ms-1">(used for voting)</small>
+            </h6>
+
+            <div class="card" style="border: 1.5px solid #e5e7eb;">
+              <div class="card-body py-3">
+                <span v-if="selectedMember.cell_phone" style="font-size: 1.05rem;">
+                  {{ displayPhone(selectedMember.cell_phone) }}
+                </span>
+                <span v-else class="text-muted">No cell phone on file</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer" style="border-top: 1px solid #e5e7eb;">
+            <router-link
+              :to="`/admin/users/${selectedMember.member_id}`"
+              class="btn btn-primary"
+              @click="closeMemberModal"
+            >
+              <i class="bi bi-person-gear me-1"></i>Edit Account
+            </router-link>
+            <button type="button" class="btn btn-secondary" @click="closeMemberModal" data-bs-dismiss="modal">Close</button>
+          </div>
         </div>
       </div>
     </div>
@@ -400,6 +483,8 @@ export default {
         add_zip: '',
         add_country: 'United States',
       },
+      // Member Detail Modal state
+      selectedMember: null,
     };
   },
 
@@ -769,6 +854,73 @@ export default {
         hour12: true
       });
     },
+
+    // ─── Member Detail Modal ──────────────────────────────────────────────────
+
+    openMemberModal(reg) {
+      // Deep copy so edits don't mutate the registrations array until saved
+      this.selectedMember = {
+        ...reg,
+        all_addresses: reg.all_addresses ? reg.all_addresses.map(a => ({ ...a })).sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0)) : [],
+        cell_phone: reg.cell_phone ? { ...reg.cell_phone } : null,
+      };
+      const el = document.getElementById('memberDetailModal');
+      if (el) {
+        if (window.bootstrap && window.bootstrap.Modal) {
+          new window.bootstrap.Modal(el).show();
+        } else {
+          el.classList.add('show');
+          el.style.display = 'block';
+          document.body.classList.add('modal-open');
+          const backdrop = document.createElement('div');
+          backdrop.className = 'modal-backdrop fade show';
+          backdrop.id = 'memberDetailModalBackdrop';
+          document.body.appendChild(backdrop);
+        }
+      }
+    },
+
+    closeMemberModal() {
+      const el = document.getElementById('memberDetailModal');
+      if (el) {
+        if (window.bootstrap && window.bootstrap.Modal) {
+          const m = window.bootstrap.Modal.getInstance(el);
+          if (m) m.hide();
+        } else {
+          el.classList.remove('show');
+          el.style.display = 'none';
+          document.body.classList.remove('modal-open');
+          const backdrop = document.getElementById('memberDetailModalBackdrop');
+          if (backdrop) backdrop.remove();
+        }
+      }
+      this.selectedMember = null;
+    },
+
+    displayPhone(phone) {
+      if (!phone) return '';
+      const code = phone.country_code || '+1';
+      if (code === '+1') {
+        // Use server-formatted value which is already (XXX) XXX-XXXX for 10-digit US numbers
+        return phone.formatted_number || phone.phone_number;
+      }
+      // International: prepend country code with + sign
+      const prefix = code.startsWith('+') ? code : `+${code}`;
+      return `${prefix} ${phone.phone_number}`;
+    },
+
+    syncMemberToRegistrations() {
+      // Update the main registrations array so the table stays in sync
+      const idx = this.registrations.findIndex(r => r.id === this.selectedMember.id);
+      if (idx !== -1) {
+        this.registrations.splice(idx, 1, {
+          ...this.registrations[idx],
+          all_addresses: this.selectedMember.all_addresses.map(a => ({ ...a })),
+          cell_phone: this.selectedMember.cell_phone ? { ...this.selectedMember.cell_phone } : null,
+          primary_address: this.selectedMember.all_addresses.find(a => a.is_primary) || null,
+        });
+      }
+    },
   },
 };
 </script>
@@ -825,10 +977,15 @@ export default {
 
 /* Modal styles */
 .modal-header {
-  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  background: #1e3a8a;
   color: white;
   border-bottom: none;
   padding: 1.5rem;
+}
+
+.modal-header .modal-title,
+.modal-header .modal-title * {
+  color: white;
 }
 
 .modal-header .btn-close {
@@ -842,5 +999,10 @@ export default {
 .address-display .card-body p {
   margin-bottom: 0.25rem;
   color: #374151;
+}
+
+/* Member detail modal address cards */
+.card.border-primary {
+  box-shadow: 0 0 0 1px #3b82f6;
 }
 </style>

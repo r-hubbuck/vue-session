@@ -28,6 +28,7 @@ import SurveyBuilder from './pages/surveys/SurveyBuilder.vue'
 import SurveyResults from './pages/surveys/SurveyResults.vue'
 import SurveyAdmin from './pages/surveys/SurveyAdmin.vue'
 import NotFound from './pages/NotFound.vue'
+import UserManagement from './pages/UserManagement.vue'
 
 const routes = [
   {
@@ -82,6 +83,18 @@ const routes = [
     name: 'account',
     component: UserAccount,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/user-management',
+    name: 'user-management',
+    component: UserManagement,
+    meta: { requiresAuth: true, requiresRoles: ['hq_admin'] }
+  },
+  {
+    path: '/admin/users/:userId',
+    name: 'admin-user-account',
+    component: UserAccount,
+    meta: { requiresAuth: true, requiresRoles: ['hq_admin'] }
   },
   {
     path: '/convention',

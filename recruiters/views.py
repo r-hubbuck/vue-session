@@ -1,4 +1,5 @@
 import logging
+import os
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
@@ -37,6 +38,35 @@ from .serializers import (
 
 FRONTEND_URL = settings.FRONTEND_URL
 DOMAIN = settings.DOMAIN
+
+_LOGO_ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg'}
+_LOGO_ALLOWED_CONTENT_TYPES = {'image/png', 'image/jpeg'}
+_LOGO_MAX_SIZE = 5 * 1024 * 1024  # 5MB
+_LOGO_PNG_SIG = b'\x89PNG'
+_LOGO_JPEG_SIG = b'\xff\xd8\xff'
+
+
+def _validate_org_logo(file):
+    """
+    Validate an organization logo file. Returns an error string or None if valid.
+    Accepts PNG and JPG only. Checks extension, content-type, magic bytes, and size.
+    """
+    if file.size > _LOGO_MAX_SIZE:
+        return 'Logo file size must be under 5MB.'
+
+    ext = os.path.splitext(file.name)[1].lower()
+    if ext not in _LOGO_ALLOWED_EXTENSIONS:
+        return 'Logo must be a PNG or JPG file.'
+
+    if file.content_type not in _LOGO_ALLOWED_CONTENT_TYPES:
+        return 'Logo must be a PNG or JPG file.'
+
+    header = file.read(8)
+    file.seek(0)
+    if not (header.startswith(_LOGO_PNG_SIG) or header.startswith(_LOGO_JPEG_SIG)):
+        return 'Logo does not appear to be a valid PNG or JPG image.'
+
+    return None
 
 
 # ============================================================
@@ -101,6 +131,13 @@ def recruiter_register(request):
         user.set_password(data['password1'])
         user.save()
 
+    # Validate logo before creating any DB records (fail fast)
+    logo_file = request.FILES.get('org_logo')
+    if logo_file:
+        logo_error = _validate_org_logo(logo_file)
+        if logo_error:
+            return Response({'errors': {'org_logo': logo_error}}, status=status.HTTP_400_BAD_REQUEST)
+
     # Create or link organization
     org, created = Organization.objects.get_or_create(
         name=data['org_name'],
@@ -117,9 +154,14 @@ def recruiter_register(request):
             'billing_email': data['org_billing_email'],
             'billing_contact_first_name': data['org_billing_contact_first_name'],
             'billing_contact_last_name': data['org_billing_contact_last_name'],
-            'num_recruiters': data.get('org_num_recruiters', 1),
         }
     )
+
+    # Save logo to the org if provided (only set on newly created orgs to avoid
+    # overwriting an existing org's logo when a second recruiter joins the same org)
+    if logo_file and created:
+        org.logo = logo_file
+        org.save(update_fields=['logo'])
 
     # If org already existed, block self-registration if it has approved recruiters
     # from other users. Prevents unauthorized org association.
@@ -216,6 +258,47 @@ def update_organization(request):
 
     serializer.save()
     return Response(serializer.data)
+
+
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def organization_logo(request):
+    """Upload or delete the current recruiter's organization logo."""
+    if not is_recruiter(request.user):
+        return Response({'error': 'Not a recruiter account.'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        profile = request.user.recruiter_profile
+    except RecruiterProfile.DoesNotExist:
+        return Response({'error': 'Recruiter profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    org = profile.organization
+
+    if request.method == 'DELETE':
+        if org.logo:
+            org.logo.delete(save=False)
+            org.logo = None
+            org.save(update_fields=['logo'])
+        return Response({'success': 'Logo removed.'})
+
+    # POST: upload new logo
+    file = request.FILES.get('logo')
+    if not file:
+        return Response({'error': 'No file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    logo_error = _validate_org_logo(file)
+    if logo_error:
+        return Response({'error': logo_error}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Delete old logo before saving new one
+    if org.logo:
+        org.logo.delete(save=False)
+
+    org.logo = file
+    org.save(update_fields=['logo'])
+
+    serializer = OrganizationSerializer(org)
+    return Response({'success': 'Logo uploaded.', 'logo_url': serializer.data['logo_url']})
 
 
 # ============================================================
@@ -404,7 +487,7 @@ def recruiter_my_registration(request):
         profile = request.user.recruiter_profile
         registration = RecruiterRegistration.objects.select_related(
             'booth_package', 'meal_option'
-        ).get(recruiter=profile, convention=convention)
+        ).prefetch_related('attendees').get(recruiter=profile, convention=convention)
     except (RecruiterProfile.DoesNotExist, RecruiterRegistration.DoesNotExist):
         return Response({'has_registration': False})
 
@@ -547,9 +630,18 @@ def recruiter_attendees(request):
 
     includes_resume = reg.booth_package.includes_resume_access
 
+    # Determine which visibility values the recruiter's org type can see
+    org_type = profile.organization.org_type if profile.organization else None
+    if org_type == 'business':
+        visibility_filter = ['business', 'both']
+    elif org_type == 'graduate_school':
+        visibility_filter = ['graduate_school', 'both']
+    else:
+        visibility_filter = ['both']
+
     attendees = ConventionRegistration.objects.filter(
         convention=convention,
-        visible_to_recruiters=True,
+        visible_to_recruiters__in=visibility_filter,
         status_code__in=['registered', 'confirmed', 'checked_in']
     ).select_related('person').order_by('person__last_name', 'person__first_name')
 
@@ -615,10 +707,18 @@ def recruiter_attendee_resume(request, member_id):
     except Person.DoesNotExist:
         return Response({'error': 'Person not found.'}, status=status.HTTP_404_NOT_FOUND)
 
+    org_type = profile.organization.org_type if profile.organization else None
+    if org_type == 'business':
+        resume_visibility_filter = ['business', 'both']
+    elif org_type == 'graduate_school':
+        resume_visibility_filter = ['graduate_school', 'both']
+    else:
+        resume_visibility_filter = ['both']
+
     reg_exists = ConventionRegistration.objects.filter(
         convention=convention,
         person=person,
-        visible_to_recruiters=True,
+        visible_to_recruiters__in=resume_visibility_filter,
         status_code__in=['registered', 'confirmed', 'checked_in']
     ).exists()
 

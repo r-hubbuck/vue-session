@@ -7,8 +7,8 @@ from .models import (
 
 @admin.register(BoothPackage)
 class BoothPackageAdmin(admin.ModelAdmin):
-    list_display = ['name', 'price', 'is_in_person', 'includes_resume_access', 'convention', 'is_active', 'sort_order']
-    list_filter = ['convention', 'is_active', 'is_in_person']
+    list_display = ['name', 'price', 'is_in_person', 'is_virtual', 'includes_resume_access', 'convention', 'is_active', 'sort_order']
+    list_filter = ['convention', 'is_active', 'is_in_person', 'is_virtual']
     list_editable = ['sort_order', 'is_active']
 
 
@@ -20,7 +20,7 @@ class MealOptionAdmin(admin.ModelAdmin):
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ['name', 'org_type', 'billing_email', 'num_recruiters', 'created_at']
+    list_display = ['name', 'org_type', 'billing_email', 'created_at']
     list_filter = ['org_type']
     search_fields = ['name', 'billing_email']
 

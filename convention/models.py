@@ -90,8 +90,22 @@ class ConventionRegistration(models.Model):
     credentials_received_date = models.DateTimeField(null=True, blank=True)
     checked_in_at = models.DateTimeField(null=True, blank=True)
     at_convention = models.BooleanField(default=False)
-    visible_to_recruiters = models.BooleanField(default=True)
+    VISIBILITY_CHOICES = [
+        ('none', 'None'),
+        ('business', 'Businesses'),
+        ('graduate_school', 'Graduate Schools'),
+        ('both', 'Both'),
+    ]
+    visible_to_recruiters = models.CharField(
+        max_length=20,
+        choices=VISIBILITY_CHOICES,
+        default='both',
+    )
     confirmation_email_sent = models.BooleanField(default=False)
+    paid = models.BooleanField(default=False)
+    emergency_contact_name = models.CharField(max_length=200, blank=True)
+    emergency_contact_relationship = models.CharField(max_length=100, blank=True)
+    emergency_contact_phone = models.CharField(max_length=20, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -154,6 +168,30 @@ class ConventionCommitteePreference(models.Model):
         return f"Committee Preferences for {self.registration}"
 
 
+class ConventionMeal(models.Model):
+    """
+    Meal options available for purchase by guests at a convention.
+    """
+    convention = models.ForeignKey(
+        Convention,
+        on_delete=models.CASCADE,
+        related_name='meals'
+    )
+    name = models.CharField(max_length=200)
+    price = models.DecimalField(max_digits=8, decimal_places=2)
+    is_active = models.BooleanField(default=True)
+    sort_order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'convention_meal'
+        ordering = ['sort_order', 'name']
+
+    def __str__(self):
+        return f"{self.name} (${self.price})"
+
+
 class ConventionGuest(models.Model):
     """
     Guest information for members bringing guests.
@@ -167,8 +205,16 @@ class ConventionGuest(models.Model):
     guest_last_name = models.CharField(max_length=100)
     guest_email = models.EmailField(blank=True)
     guest_phone = models.CharField(max_length=20, blank=True)
-    guest_dietary_restrictions = models.TextField(blank=True)
+    guest_food_allergies = models.JSONField(default=list, blank=True)
+    guest_food_allergies_other = models.TextField(blank=True)
+    guest_dietary_restrictions = models.JSONField(default=list, blank=True)
+    guest_dietary_restrictions_other = models.TextField(blank=True)
     guest_special_requests = models.TextField(blank=True)
+    guest_meals = models.ManyToManyField(
+        ConventionMeal,
+        blank=True,
+        related_name='guests'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -303,9 +349,10 @@ class ConventionAccommodation(models.Model):
     specific_roommate_chapter = models.CharField(max_length=100, blank=True)
     
     # Allergies and dietary restrictions
-    food_allergies = models.TextField(blank=True)
-    dietary_restrictions = models.TextField(blank=True)
+    food_allergies = models.JSONField(default=list, blank=True)
+    dietary_restrictions = models.JSONField(default=list, blank=True)
     other_allergies = models.TextField(blank=True)
+    dietary_restrictions_other = models.TextField(blank=True)
     
     # Room assignment (staff-populated)
     room_number = models.CharField(max_length=20, blank=True)

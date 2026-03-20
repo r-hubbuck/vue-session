@@ -1,10 +1,22 @@
 import bleach
 from rest_framework import serializers
+
+# Valid choices for structured allergy/dietary selection fields
+FOOD_ALLERGY_CHOICES = [
+    'milk', 'eggs', 'peanuts', 'tree_nuts', 'fish',
+    'shellfish', 'soy', 'wheat', 'sesame',
+]
+DIETARY_RESTRICTION_CHOICES = [
+    'gluten_free', 'vegetarian', 'vegan', 'kosher',
+    'halal', 'dairy_free', 'nut_free',
+]
+
 from .models import (
     Convention,
     ConventionRegistration,
     ConventionCommitteePreference,
     ConventionGuest,
+    ConventionMeal,
     ConventionTravel,
     ConventionAccommodation,
     Airport,
@@ -191,7 +203,28 @@ class ConventionCommitteePreferenceSerializer(serializers.ModelSerializer):
         ]
 
 
+class ConventionMealSerializer(serializers.ModelSerializer):
+    price_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ConventionMeal
+        fields = ['id', 'name', 'price', 'price_display', 'sort_order']
+
+    def get_price_display(self, obj):
+        return f"${obj.price:,.2f}"
+
+
 class ConventionGuestSerializer(serializers.ModelSerializer):
+    # Read: nested meal objects; Write: list of meal PKs (source maps both to guest_meals)
+    guest_meals = ConventionMealSerializer(many=True, read_only=True)
+    guest_meal_ids = serializers.PrimaryKeyRelatedField(
+        source='guest_meals',
+        queryset=ConventionMeal.objects.filter(is_active=True),
+        many=True,
+        required=False,
+        write_only=True,
+    )
+
     class Meta:
         model = ConventionGuest
         fields = [
@@ -200,8 +233,13 @@ class ConventionGuestSerializer(serializers.ModelSerializer):
             'guest_last_name',
             'guest_email',
             'guest_phone',
+            'guest_food_allergies',
+            'guest_food_allergies_other',
             'guest_dietary_restrictions',
+            'guest_dietary_restrictions_other',
             'guest_special_requests',
+            'guest_meals',
+            'guest_meal_ids',
         ]
 
     def validate_guest_first_name(self, value):
@@ -233,9 +271,46 @@ class ConventionGuestSerializer(serializers.ModelSerializer):
             return bleach.clean(value, tags=[], strip=True).strip()
         return value
 
-    def validate_guest_dietary_restrictions(self, value):
+    def validate_guest_food_allergies(self, value):
+        """Validate guest food allergies are from the known choices list."""
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Food allergies must be a list.')
+        cleaned = []
+        for item in value:
+            item = bleach.clean(str(item), tags=[], strip=True).strip().lower()
+            if item not in FOOD_ALLERGY_CHOICES:
+                raise serializers.ValidationError(
+                    f'"{item}" is not a valid food allergy choice.'
+                )
+            cleaned.append(item)
+        return cleaned
+
+    def validate_guest_food_allergies_other(self, value):
         if value:
-            return bleach.clean(value, tags=[], strip=True)
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_guest_dietary_restrictions(self, value):
+        """Validate guest dietary restrictions are from the known choices list."""
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Dietary restrictions must be a list.')
+        cleaned = []
+        for item in value:
+            item = bleach.clean(str(item), tags=[], strip=True).strip().lower()
+            if item not in DIETARY_RESTRICTION_CHOICES:
+                raise serializers.ValidationError(
+                    f'"{item}" is not a valid dietary restriction choice.'
+                )
+            cleaned.append(item)
+        return cleaned
+
+    def validate_guest_dietary_restrictions_other(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
         return value
 
     def validate_guest_special_requests(self, value):
@@ -400,25 +475,63 @@ class ConventionAccommodationSerializer(serializers.ModelSerializer):
             'food_allergies',
             'dietary_restrictions',
             'other_allergies',
+            'dietary_restrictions_other',
             'room_number',
             'room_confirmation',
             'special_requests',
             'has_room_assignment',
         ]
         read_only_fields = ['room_number', 'room_confirmation']
-    
+
     def get_has_room_assignment(self, obj):
         """Check if room has been assigned"""
         return bool(obj.room_number)
-    
-    def validate_special_requests(self, value):
-        if value:
-            return bleach.clean(value, tags=[], strip=True)
-        return value
+
+    def validate_food_allergies(self, value):
+        """Validate that food_allergies is a list of known allergy keys."""
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Food allergies must be a list.')
+        cleaned = []
+        for item in value:
+            item = bleach.clean(str(item), tags=[], strip=True).strip().lower()
+            if item not in FOOD_ALLERGY_CHOICES:
+                raise serializers.ValidationError(
+                    f'"{item}" is not a valid food allergy choice.'
+                )
+            cleaned.append(item)
+        return cleaned
+
+    def validate_dietary_restrictions(self, value):
+        """Validate that dietary_restrictions is a list of known restriction keys."""
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Dietary restrictions must be a list.')
+        cleaned = []
+        for item in value:
+            item = bleach.clean(str(item), tags=[], strip=True).strip().lower()
+            if item not in DIETARY_RESTRICTION_CHOICES:
+                raise serializers.ValidationError(
+                    f'"{item}" is not a valid dietary restriction choice.'
+                )
+            cleaned.append(item)
+        return cleaned
 
     def validate_other_allergies(self, value):
         if value:
             return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_dietary_restrictions_other(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_special_requests(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True)
         return value
 
     def validate_specific_roommate_name(self, value):
@@ -431,16 +544,43 @@ class ConventionAccommodationSerializer(serializers.ModelSerializer):
             return bleach.clean(value, tags=[], strip=True).strip()
         return value
 
-    def validate_food_allergies(self, value):
-        """Strip HTML tags from food allergies"""
+
+class EmergencyContactSerializer(serializers.ModelSerializer):
+    """
+    Serializer for updating emergency contact information on a registration.
+    """
+    class Meta:
+        model = ConventionRegistration
+        fields = [
+            'emergency_contact_name',
+            'emergency_contact_relationship',
+            'emergency_contact_phone',
+        ]
+
+    def validate_emergency_contact_name(self, value):
         if value:
-            return bleach.clean(value, tags=[], strip=True)
+            return bleach.clean(value, tags=[], strip=True).strip()
         return value
-    
-    def validate_dietary_restrictions(self, value):
-        """Strip HTML tags from dietary restrictions"""
+
+    def validate_emergency_contact_relationship(self, value):
         if value:
-            return bleach.clean(value, tags=[], strip=True)
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_emergency_contact_phone(self, value):
+        if value:
+            import re
+            digits = re.sub(r'\D', '', value.strip())
+            if digits:
+                if len(digits) < 10 or len(digits) > 15:
+                    raise serializers.ValidationError(
+                        'Phone number must be between 10 and 15 digits.'
+                    )
+                if len(set(digits)) == 1:
+                    raise serializers.ValidationError('Please enter a valid phone number.')
+                if len(digits) == 10 and (digits[0] in ('0', '1') or digits[3] in ('0', '1')):
+                    raise serializers.ValidationError('Please enter a valid phone number.')
+                return digits
         return value
 
 
@@ -481,7 +621,12 @@ class ConventionRegistrationDetailSerializer(serializers.ModelSerializer):
             'accommodation',
             'visible_to_recruiters',
             'confirmation_email_sent',
+            'paid',
+            'emergency_contact_name',
+            'emergency_contact_relationship',
+            'emergency_contact_phone',
         ]
+        read_only_fields = ['paid']
 
     def get_member_addresses(self, obj):
         """Get all addresses for the person"""
@@ -492,6 +637,14 @@ class ConventionRegistrationDetailSerializer(serializers.ModelSerializer):
         """Get all phone numbers for the person"""
         phones = PhoneNumber.objects.filter(person=obj.person)
         return PhoneNumberSerializer(phones, many=True).data
+
+    def validate_visible_to_recruiters(self, value):
+        allowed = [choice[0] for choice in ConventionRegistration.VISIBILITY_CHOICES]
+        if value not in allowed:
+            raise serializers.ValidationError(
+                f"Must be one of: {', '.join(allowed)}."
+            )
+        return value
 
 
 class ConventionRegistrationCreateSerializer(serializers.ModelSerializer):
@@ -772,7 +925,9 @@ class CheckInListSerializer(serializers.ModelSerializer):
     primary_address = serializers.SerializerMethodField()
     has_guest = serializers.SerializerMethodField()
     guest_count = serializers.SerializerMethodField()
-    
+    all_addresses = serializers.SerializerMethodField()
+    cell_phone = serializers.SerializerMethodField()
+
     class Meta:
         model = ConventionRegistration
         fields = [
@@ -790,6 +945,8 @@ class CheckInListSerializer(serializers.ModelSerializer):
             'has_guest',
             'guest_count',
             'is_guest',
+            'all_addresses',
+            'cell_phone',
         ]
     
     def get_primary_address(self, obj):
@@ -810,6 +967,22 @@ class CheckInListSerializer(serializers.ModelSerializer):
         """Count number of guests"""
         return obj.guest_details.count()
 
+    def get_all_addresses(self, obj):
+        """Get all addresses for the person"""
+        try:
+            return AddressSerializer(obj.person.addresses.all(), many=True).data
+        except Exception:
+            return []
+
+    def get_cell_phone(self, obj):
+        """Get the person's Mobile phone number"""
+        try:
+            phone = obj.person.phone_numbers.filter(phone_type='Mobile').first()
+            if phone:
+                return PhoneNumberSerializer(phone).data
+        except Exception:
+            pass
+        return None
 
 
 # NOTE: AddressUpdateSerializer has been removed.

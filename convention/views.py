@@ -30,6 +30,7 @@ from .models import (
     ConventionRegistration,
     ConventionCommitteePreference,
     ConventionGuest,
+    ConventionMeal,
     ConventionTravel,
     ConventionAccommodation,
     Airport,
@@ -41,8 +42,10 @@ from .serializers import (
     MemberPersonalInfoSerializer,
     ConventionCommitteePreferenceSerializer,
     ConventionGuestSerializer,
+    ConventionMealSerializer,
     ConventionTravelSerializer,
     ConventionAccommodationSerializer,
+    EmergencyContactSerializer,
     AirportSerializer,
     AdminConventionTravelListSerializer,
     AdminConventionTravelUpdateSerializer,
@@ -83,6 +86,22 @@ def current_convention(request):
             {'message': 'No active convention found'},
             status=status.HTTP_404_NOT_FOUND
         )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_convention_meals(request):
+    """
+    Get active meal options for the current convention.
+    """
+    try:
+        convention = Convention.objects.filter(is_active=True).latest('year')
+    except Convention.DoesNotExist:
+        return Response([], status=status.HTTP_200_OK)
+
+    meals = ConventionMeal.objects.filter(convention=convention, is_active=True)
+    serializer = ConventionMealSerializer(meals, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET', 'POST'])
@@ -458,6 +477,30 @@ def update_accommodation(request, registration_id):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_emergency_contact(request, registration_id):
+    """
+    Update emergency contact information for a registration.
+    """
+    registration = get_object_or_404(
+        ConventionRegistration,
+        id=registration_id,
+        person=request.user.person
+    )
+
+    serializer = EmergencyContactSerializer(
+        registration,
+        data=request.data,
+        partial=True
+    )
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_airports(request):
@@ -812,7 +855,7 @@ def check_in_list(request):
     registrations = ConventionRegistration.objects.filter(
         convention=convention,
         is_guest=False
-    ).select_related('person').prefetch_related('guest_details', 'person__addresses')
+    ).select_related('person').prefetch_related('guest_details', 'person__addresses', 'person__phone_numbers')
     
     serializer = CheckInListSerializer(registrations, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
@@ -855,12 +898,137 @@ def update_registration_status(request, registration_id):
         # Return updated registration with full details
         updated_registration = ConventionRegistration.objects.select_related(
             'person'
-        ).prefetch_related('guest_details', 'person__addresses').get(id=registration_id)
+        ).prefetch_related('guest_details', 'person__addresses', 'person__phone_numbers').get(id=registration_id)
         
         response_serializer = CheckInListSerializer(updated_registration)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def staff_update_address(request, person_id, address_id):
+    """
+    Staff: update any person's address fields during check-in.
+    Requires hq_staff or member role.
+    """
+    if not any(request.user.has_role(r) for r in ['hq_staff', 'member']):
+        raise PermissionDenied('You do not have permission to update member information.')
+
+    person = get_object_or_404(Person, id=person_id)
+    address = get_object_or_404(Address, id=address_id, person=person)
+
+    # Block add_type changes: the accounts AddressSerializer's uniqueness check requires
+    # request context (which we omit for staff), so a type change would bypass validation
+    # and raise an IntegrityError at the DB level instead of a clean 400.
+    if 'add_type' in request.data and request.data['add_type'] != address.add_type:
+        return Response({'error': 'Address type cannot be changed here.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Use accounts AddressSerializer for full bleach + state validation
+    from accounts.serializers import AddressSerializer as AccountsAddressSerializer
+    from accounts.db_sync import sync_address_to_sql
+    serializer = AccountsAddressSerializer(address, data=request.data, partial=True)
+    if serializer.is_valid():
+        # Capture pre-save data for SQL Server update matching
+        old_address_data = {
+            'add_line1': address.add_line1,
+            'add_line2': address.add_line2,
+            'add_city': address.add_city,
+            'add_state': address.add_state,
+            'add_zip': address.add_zip,
+            'add_type': address.add_type,
+        }
+        with transaction.atomic():
+            serializer.save()
+        address.refresh_from_db()
+        # Sync to legacy SQL Server database
+        member_id = getattr(getattr(person, 'member', None), 'member_id', None)
+        if member_id:
+            new_address_data = {
+                'add_line1': address.add_line1,
+                'add_line2': address.add_line2,
+                'add_city': address.add_city,
+                'add_state': address.add_state,
+                'add_zip': address.add_zip,
+                'add_type': address.add_type,
+            }
+            sync_address_to_sql('update', member_id, new_address_data, old_address_data)
+        from .serializers import AddressSerializer as ConventionAddressSerializer
+        return Response(ConventionAddressSerializer(address).data, status=status.HTTP_200_OK)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def staff_set_primary_address(request, person_id, address_id):
+    """
+    Staff: set one of a person's addresses as primary.
+    Requires hq_staff or member role.
+    """
+    if not any(request.user.has_role(r) for r in ['hq_staff', 'member']):
+        raise PermissionDenied('You do not have permission to update member information.')
+
+    person = get_object_or_404(Person, id=person_id)
+    address = get_object_or_404(Address, id=address_id, person=person)
+
+    with transaction.atomic():
+        person.addresses.update(is_primary=False)
+        address.is_primary = True
+        address.save()
+
+    from .serializers import AddressSerializer as ConventionAddressSerializer
+    return Response(ConventionAddressSerializer(address).data, status=status.HTTP_200_OK)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def staff_update_mobile_phone(request, person_id):
+    """
+    Staff: update or create a person's Mobile phone number during check-in.
+    Requires hq_staff or member role.
+    """
+    if not any(request.user.has_role(r) for r in ['hq_staff', 'member']):
+        raise PermissionDenied('You do not have permission to update member information.')
+
+    person = get_object_or_404(Person, id=person_id)
+
+    country_code = bleach.clean(str(request.data.get('country_code', '1')), tags=[], strip=True).strip() or '1'
+    phone_number = bleach.clean(str(request.data.get('phone_number', '')), tags=[], strip=True).strip()
+
+    clean_digits = re.sub(r'\D', '', phone_number)
+    if not clean_digits:
+        return Response({'phone_number': 'Phone number must contain digits.'}, status=status.HTTP_400_BAD_REQUEST)
+    if len(clean_digits) < 10 or len(clean_digits) > 15:
+        return Response({'phone_number': 'Phone number must be between 10 and 15 digits.'}, status=status.HTTP_400_BAD_REQUEST)
+    if len(set(clean_digits)) == 1:
+        return Response({'phone_number': 'Phone number appears invalid (all identical digits).'}, status=status.HTTP_400_BAD_REQUEST)
+    if len(clean_digits) == 10:
+        if clean_digits[0] in ('0', '1') or clean_digits[3] in ('0', '1'):
+            return Response({'phone_number': 'Please enter a valid US phone number.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    with transaction.atomic():
+        phone, created = PhoneNumber.objects.get_or_create(
+            person=person,
+            phone_type='Mobile',
+            defaults={'country_code': country_code, 'phone_number': clean_digits},
+        )
+        if not created:
+            phone.country_code = country_code
+            phone.phone_number = clean_digits
+            phone.save()
+
+    # Sync to legacy SQL Server database
+    from accounts.db_sync import sync_phone_to_sql
+    member_id = getattr(getattr(person, 'member', None), 'member_id', None)
+    if member_id:
+        sync_phone_to_sql('create' if created else 'update', member_id, 'Mobile', clean_digits)
+
+    from .serializers import PhoneNumberSerializer as ConventionPhoneSerializer
+    return Response(ConventionPhoneSerializer(phone).data, status=status.HTTP_200_OK)
 
 
 @api_view(['PUT'])
@@ -881,9 +1049,15 @@ def update_recruiter_visibility(request, registration_id):
         person=request.user.person
     )
 
-    visible = request.data.get('visible_to_recruiters')
-    if visible is not None:
-        registration.visible_to_recruiters = bool(visible)
+    value = request.data.get('visible_to_recruiters')
+    if value is not None:
+        allowed = [c[0] for c in ConventionRegistration.VISIBILITY_CHOICES]
+        if value not in allowed:
+            return Response(
+                {'error': f"visible_to_recruiters must be one of: {', '.join(allowed)}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        registration.visible_to_recruiters = value
         registration.save(update_fields=['visible_to_recruiters'])
 
     return Response({'visible_to_recruiters': registration.visible_to_recruiters})

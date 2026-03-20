@@ -202,6 +202,9 @@ class AddressSerializer(serializers.ModelSerializer):
             request = self.context['request']
             if hasattr(request.user, 'person') and request.user.person is not None:
                 person = request.user.person
+        # Admin views inject target_person directly — takes precedence over request.user.person
+        if self.context and 'target_person' in self.context:
+            person = self.context['target_person']
 
         country = data.get('add_country', 'United States')
         state = data.get('add_state')
@@ -315,6 +318,9 @@ class PhoneNumberSerializer(serializers.ModelSerializer):
             request = self.context['request']
             if hasattr(request.user, 'person') and request.user.person is not None:
                 person = request.user.person
+        # Admin views inject target_person directly — takes precedence over request.user.person
+        if self.context and 'target_person' in self.context:
+            person = self.context['target_person']
 
         if person and 'phone_type' in data:
             phone_type = data['phone_type']
@@ -349,6 +355,36 @@ class UserAccountSerializer(serializers.ModelSerializer):
         if value and User.objects.filter(email=value).exists():
             raise serializers.ValidationError('This email is already in use as a primary email.')
         return value
+
+
+class AdminUserListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for the admin user list/search endpoint."""
+    first_name = serializers.CharField(source='person.first_name', read_only=True, default='')
+    last_name = serializers.CharField(source='person.last_name', read_only=True, default='')
+    person_id = serializers.SerializerMethodField()
+    member_id = serializers.SerializerMethodField()
+    chapter = serializers.SerializerMethodField()
+    roles = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'person_id', 'email', 'first_name', 'last_name', 'member_id', 'chapter', 'roles']
+
+    def get_person_id(self, obj):
+        return obj.person.id if hasattr(obj, 'person') and obj.person else None
+
+    def get_member_id(self, obj):
+        if hasattr(obj, 'person') and obj.person and hasattr(obj.person, 'member'):
+            return getattr(obj.person.member, 'member_id', None)
+        return None
+
+    def get_chapter(self, obj):
+        if hasattr(obj, 'person') and obj.person and hasattr(obj.person, 'member'):
+            return getattr(obj.person.member, 'chapter', None)
+        return None
+
+    def get_roles(self, obj):
+        return list(obj.groups.values_list('name', flat=True))
 
 
 class UserSerializer(serializers.ModelSerializer):

@@ -67,6 +67,15 @@ class Person(models.Model):
         null=True,
         blank=True,
         related_name='persons',
+        db_column='gender',
+    )
+    pronoun = models.ForeignKey(
+        'Pronoun',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='persons',
+        db_column='pronoun',
     )
     birth_date = models.DateField(null=True, blank=True)
     initiation_date = models.DateField(null=True, blank=True)
@@ -318,6 +327,18 @@ class Gender(models.Model):
 
     class Meta:
         db_table = 'gender'
+        ordering = ['id']
+
+    def __str__(self):
+        return self.gender
+
+
+class Pronoun(models.Model):
+    gender = models.CharField(max_length=50)
+    title = models.CharField(max_length=50, blank=True, null=True)
+
+    class Meta:
+        db_table = 'pronoun'
         ordering = ['id']
 
     def __str__(self):

@@ -1,6 +1,7 @@
 from django.urls import path, include
 from . import views
 from .views import AddressViewSet, VerifyMemberAPIView, ChapterListAPIView, PhoneNumberViewSet
+from .views import AdminAddressViewSet, AdminPhoneNumberViewSet
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -21,4 +22,14 @@ urlpatterns = [
     path('accounts/password-reset-confirm/<str:uidb64>/<str:token>/', views.password_reset_confirm, name='password_reset_confirm'),
     path('accounts/user-account', views.user_account_view, name='user_account'),
     path('accounts/states-provinces', views.state_province_list, name='state_province_list'),
+
+    # Admin user management
+    path('accounts/admin/users/', views.admin_list_users, name='admin_list_users'),
+    path('accounts/admin/users/<int:user_id>/user-account/', views.admin_user_account_view, name='admin_user_account'),
+    path('accounts/admin/users/<int:user_id>/addresses/', AdminAddressViewSet.as_view({'get': 'list', 'post': 'create'}), name='admin-addresses-list'),
+    path('accounts/admin/users/<int:user_id>/addresses/<int:pk>/', AdminAddressViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name='admin-addresses-detail'),
+    path('accounts/admin/users/<int:user_id>/addresses/<int:pk>/set_primary/', AdminAddressViewSet.as_view({'post': 'set_primary'}), name='admin-addresses-set-primary'),
+    path('accounts/admin/users/<int:user_id>/phone-numbers/', AdminPhoneNumberViewSet.as_view({'get': 'list', 'post': 'create'}), name='admin-phones-list'),
+    path('accounts/admin/users/<int:user_id>/phone-numbers/<int:pk>/', AdminPhoneNumberViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name='admin-phones-detail'),
+    path('accounts/admin/users/<int:user_id>/phone-numbers/<int:pk>/set_primary/', AdminPhoneNumberViewSet.as_view({'post': 'set_primary'}), name='admin-phones-set-primary'),
 ] + router.urls  # Add router URLs to existing patterns

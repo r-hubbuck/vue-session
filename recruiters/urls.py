@@ -6,6 +6,7 @@ urlpatterns = [
     path('register/', views.recruiter_register, name='recruiter_register'),
     path('profile/', views.recruiter_profile_view, name='recruiter_profile'),
     path('organization/', views.update_organization, name='update_organization'),
+    path('organization/logo/', views.organization_logo, name='organization_logo'),
 
     # Admin: approve recruiters
     path('admin/pending/', views.admin_pending_recruiters, name='admin_pending_recruiters'),

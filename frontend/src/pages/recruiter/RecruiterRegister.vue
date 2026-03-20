@@ -19,8 +19,93 @@
           <i class="bi bi-exclamation-triangle me-2"></i>{{ errorMessage }}
         </div>
 
-        <!-- Personal Information -->
-        <h5 class="fw-bold mb-3">Personal Information</h5>
+        <!-- Organization Information -->
+        <h5 class="fw-bold mb-3 mt-5">Organization Information</h5>
+        <div class="row g-3 mb-4">
+          <div class="col-md-8">
+            <label class="form-label">Organization Name *</label>
+            <input v-model.trim="form.org_name" type="text" class="form-control" required maxlength="255">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Type *</label>
+            <select v-model="form.org_type" class="form-select" required>
+              <option value="">Select...</option>
+              <option value="business">Business</option>
+              <option value="graduate_school">Graduate School</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Website *</label>
+            <input v-model.trim="form.org_website" type="url" class="form-control" placeholder="https://..." maxlength="200" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Organization Phone</label>
+            <input v-model="form.org_phone" @input="formatPhone('org_phone')" @blur="validatePhoneField('org_phone')" type="tel" class="form-control" :class="{'is-invalid': orgPhoneError}" placeholder="(555) 123-4567" maxlength="14">
+            <div v-if="orgPhoneError" class="text-danger small mt-1">{{ orgPhoneError }}</div>
+          </div>
+          <div class="col-md-8">
+            <label class="form-label">Organization Logo</label>
+            <input
+              type="file"
+              class="form-control"
+              :class="{'is-invalid': logoError}"
+              accept=".png,.jpg,.jpeg"
+              @change="handleLogoChange"
+            >
+            <div v-if="logoError" class="text-danger small mt-1">{{ logoError }}</div>
+            <small class="form-text text-muted">Optional. PNG or JPG only, max 5MB.</small>
+          </div>
+          <div v-if="logoPreview" class="col-md-4 d-flex align-items-center">
+            <img :src="logoPreview" alt="Logo preview" style="max-height: 80px; max-width: 100%; border-radius: 4px;">
+          </div>
+        </div>
+
+        <!-- Billing Information -->
+        <h5 class="fw-bold mb-3 mt-5">Billing Information</h5>
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label">Address Line 1 *</label>
+            <input v-model.trim="form.org_address_line1" type="text" class="form-control" required maxlength="255">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Address Line 2</label>
+            <input v-model.trim="form.org_address_line2" type="text" class="form-control" maxlength="255">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">City *</label>
+            <input v-model.trim="form.org_city" type="text" class="form-control" required maxlength="100">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">State *</label>
+            <select v-if="form.org_country === 'United States'" v-model="form.org_state" class="form-select" required>
+              <option value="">Select state...</option>
+              <option v-for="s in usStates" :key="s.id" :value="s.abbrev">{{ s.name }}</option>
+            </select>
+            <input v-else v-model.trim="form.org_state" type="text" class="form-control" required maxlength="100">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Zip Code *</label>
+            <input v-model.trim="form.org_zip_code" type="text" class="form-control" required maxlength="20">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Invoice Contact First Name *</label>
+            <input v-model.trim="form.org_billing_contact_first_name" type="text" class="form-control" required maxlength="100">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Invoice Contact Last Name *</label>
+            <input v-model.trim="form.org_billing_contact_last_name" type="text" class="form-control" required maxlength="100">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Invoice Email *</label>
+            <input v-model.trim="form.org_billing_email" type="email" class="form-control" :class="{'is-invalid': billingEmailError}" required maxlength="254" @blur="validateBillingEmail" @input="validateBillingEmail">
+            <div v-if="billingEmailError" class="text-danger small mt-1">{{ billingEmailError }}</div>
+          </div>
+        </div>
+
+        <!-- Primary Recruiter Information -->
+        <h5 class="fw-bold mb-3 mt-5">Primary Recruiter Information</h5>
+        <p class="text-muted small mb-3">Important information regarding event details, invoicing, resume bank access, and day-of information will be emailed to this individual to ensure that the recruiters at the event receive all necessary information.</p>
         <div class="row g-3 mb-4">
           <div class="col-md-6">
             <label class="form-label">First Name *</label>
@@ -37,18 +122,18 @@
           </div>
           <div class="col-md-6">
             <label class="form-label">Phone</label>
-            <input v-model="form.phone" @input="formatPhone('phone')" @blur="validatePhoneField('phone', phoneError)" type="tel" class="form-control" :class="{'is-invalid': phoneError}" placeholder="(555) 123-4567" maxlength="14">
+            <input v-model="form.phone" @input="formatPhone('phone')" @blur="validatePhoneField('phone')" type="tel" class="form-control" :class="{'is-invalid': phoneError}" placeholder="(555) 123-4567" maxlength="14">
             <div v-if="phoneError" class="text-danger small mt-1">{{ phoneError }}</div>
           </div>
           <div class="col-md-6">
             <label class="form-label">Cell Phone</label>
-            <input v-model="form.cell_phone" @input="formatPhone('cell_phone')" @blur="validatePhoneField('cell_phone', cellPhoneError)" type="tel" class="form-control" :class="{'is-invalid': cellPhoneError}" placeholder="(555) 123-4567" maxlength="14">
+            <input v-model="form.cell_phone" @input="formatPhone('cell_phone')" @blur="validatePhoneField('cell_phone')" type="tel" class="form-control" :class="{'is-invalid': cellPhoneError}" placeholder="(555) 123-4567" maxlength="14">
             <div v-if="cellPhoneError" class="text-danger small mt-1">{{ cellPhoneError }}</div>
           </div>
         </div>
 
         <!-- Password -->
-        <h5 class="fw-bold mb-3">Create Password</h5>
+        <h5 class="fw-bold mb-3 mt-5">Create Password</h5>
         <div class="row g-3 mb-4">
           <div class="col-md-6">
             <label class="form-label">Password *</label>
@@ -58,79 +143,6 @@
           <div class="col-md-6">
             <label class="form-label">Confirm Password *</label>
             <input v-model="form.password2" type="password" class="form-control" required minlength="8" maxlength="128">
-          </div>
-        </div>
-
-        <!-- Organization Information -->
-        <h5 class="fw-bold mb-3">Organization Information</h5>
-        <div class="row g-3 mb-4">
-          <div class="col-md-8">
-            <label class="form-label">Organization Name *</label>
-            <input v-model.trim="form.org_name" type="text" class="form-control" required maxlength="255">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Type *</label>
-            <select v-model="form.org_type" class="form-select" required>
-              <option value="">Select...</option>
-              <option value="business">Business</option>
-              <option value="graduate_school">Graduate School</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Website</label>
-            <input v-model.trim="form.org_website" type="url" class="form-control" placeholder="https://..." maxlength="200">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Organization Phone</label>
-            <input v-model="form.org_phone" @input="formatPhone('org_phone')" @blur="validatePhoneField('org_phone', orgPhoneError)" type="tel" class="form-control" :class="{'is-invalid': orgPhoneError}" placeholder="(555) 123-4567" maxlength="14">
-            <div v-if="orgPhoneError" class="text-danger small mt-1">{{ orgPhoneError }}</div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Address Line 1 *</label>
-            <input v-model.trim="form.org_address_line1" type="text" class="form-control" required maxlength="255">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Address Line 2</label>
-            <input v-model.trim="form.org_address_line2" type="text" class="form-control" maxlength="255">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">City *</label>
-            <input v-model.trim="form.org_city" type="text" class="form-control" required maxlength="100">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">State</label>
-            <select v-if="form.org_country === 'United States'" v-model="form.org_state" class="form-select">
-              <option value="">Select state...</option>
-              <option v-for="s in usStates" :key="s.id" :value="s.abbrev">{{ s.name }}</option>
-            </select>
-            <input v-else v-model.trim="form.org_state" type="text" class="form-control" maxlength="100">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Zip Code</label>
-            <input v-model.trim="form.org_zip_code" type="text" class="form-control" maxlength="20">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label"># of Recruiters Attending *</label>
-            <input v-model.number="form.org_num_recruiters" type="number" class="form-control" min="1" required>
-          </div>
-        </div>
-
-        <!-- Billing Contact -->
-        <h5 class="fw-bold mb-3">Billing Contact</h5>
-        <div class="row g-3 mb-4">
-          <div class="col-md-6">
-            <label class="form-label">Billing Contact First Name *</label>
-            <input v-model.trim="form.org_billing_contact_first_name" type="text" class="form-control" required maxlength="100">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Billing Contact Last Name *</label>
-            <input v-model.trim="form.org_billing_contact_last_name" type="text" class="form-control" required maxlength="100">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Billing Email *</label>
-            <input v-model.trim="form.org_billing_email" type="email" class="form-control" :class="{'is-invalid': billingEmailError}" required maxlength="254" @blur="validateBillingEmail" @input="validateBillingEmail">
-            <div v-if="billingEmailError" class="text-danger small mt-1">{{ billingEmailError }}</div>
           </div>
         </div>
 
@@ -172,6 +184,9 @@ const billingEmailError = ref('')
 const phoneError = ref('')
 const cellPhoneError = ref('')
 const orgPhoneError = ref('')
+const logoError = ref('')
+const logoFile = ref(null)
+const logoPreview = ref('')
 
 const cleanPhone = (value) => {
   if (!value) return ''
@@ -212,8 +227,36 @@ const form = ref({
   org_billing_email: '',
   org_billing_contact_first_name: '',
   org_billing_contact_last_name: '',
-  org_num_recruiters: 1,
 })
+
+const handleLogoChange = (event) => {
+  const file = event.target.files[0]
+  logoError.value = ''
+  logoFile.value = null
+  logoPreview.value = ''
+
+  if (!file) return
+
+  const ext = file.name.split('.').pop().toLowerCase()
+  if (!['png', 'jpg', 'jpeg'].includes(ext)) {
+    logoError.value = 'Logo must be a PNG or JPG file.'
+    event.target.value = ''
+    return
+  }
+  if (file.type !== 'image/png' && file.type !== 'image/jpeg') {
+    logoError.value = 'Logo must be a PNG or JPG file.'
+    event.target.value = ''
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    logoError.value = 'Logo file size must be under 5MB.'
+    event.target.value = ''
+    return
+  }
+
+  logoFile.value = file
+  logoPreview.value = URL.createObjectURL(file)
+}
 
 const validateEmail = () => {
   emailError.value = form.value.email && !isValidEmail(form.value.email)
@@ -227,7 +270,10 @@ const validateBillingEmail = () => {
     : ''
 }
 
-const validatePhoneField = (field, errorRef) => {
+const phoneErrorMap = { phone: phoneError, cell_phone: cellPhoneError, org_phone: orgPhoneError }
+
+const validatePhoneField = (field) => {
+  const errorRef = phoneErrorMap[field]
   const value = form.value[field]
   if (!value) {
     errorRef.value = ''
@@ -243,11 +289,16 @@ const handleSubmit = async () => {
   // Run validations
   validateEmail()
   validateBillingEmail()
-  validatePhoneField('phone', phoneError)
-  validatePhoneField('cell_phone', cellPhoneError)
-  validatePhoneField('org_phone', orgPhoneError)
+  validatePhoneField('phone')
+  validatePhoneField('cell_phone')
+  validatePhoneField('org_phone')
 
   if (emailError.value || billingEmailError.value || phoneError.value || cellPhoneError.value || orgPhoneError.value) {
+    errorMessage.value = 'Please fix the validation errors above.'
+    return
+  }
+
+  if (logoError.value) {
     errorMessage.value = 'Please fix the validation errors above.'
     return
   }
@@ -258,7 +309,18 @@ const handleSubmit = async () => {
   await authStore.setCsrfToken()
 
   try {
-    await api.post('/api/recruiters/register/', form.value)
+    const payload = new FormData()
+    for (const [key, value] of Object.entries(form.value)) {
+      if (value !== null && value !== undefined) {
+        payload.append(key, value)
+      }
+    }
+    if (logoFile.value) {
+      payload.append('org_logo', logoFile.value)
+    }
+    await api.post('/api/recruiters/register/', payload, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
     submitted.value = true
   } catch (error) {
     const data = error.response?.data

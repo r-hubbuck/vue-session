@@ -39,11 +39,13 @@ class Command(BaseCommand):
         self.seed_groups()
         self.seed_state_provinces()
         self.seed_genders()
+        self.seed_pronouns()
         self.seed_airports()
         convention = self.seed_conventions()
         self.seed_expense_report_types()
         self.seed_booth_packages(convention)
         self.seed_meal_options(convention)
+        self.seed_convention_meals(convention)
         if options['with_test_data']:
             self.seed_test_expense_reports()
         self.stdout.write(self.style.SUCCESS('\nAll seed data loaded successfully.'))
@@ -198,6 +200,30 @@ class Command(BaseCommand):
             else:
                 updated += 1
         self.stdout.write(f'  gender:              {created} created, {updated} updated')
+
+    # -------------------------------------------------------------------------
+    # pronoun
+    # -------------------------------------------------------------------------
+    def seed_pronouns(self):
+        from accounts.models import Pronoun
+
+        data = [
+            (1, 'Female',     None),
+            (2, 'Male',       None),
+            (3, 'Non-Binary', None),
+        ]
+
+        created = updated = 0
+        for pk, gender, title in data:
+            _, c = Pronoun.objects.update_or_create(
+                id=pk,
+                defaults=dict(gender=gender, title=title),
+            )
+            if c:
+                created += 1
+            else:
+                updated += 1
+        self.stdout.write(f'  pronoun:             {created} created, {updated} updated')
 
     # -------------------------------------------------------------------------
     # airport
@@ -523,6 +549,34 @@ class Command(BaseCommand):
             else:
                 updated += 1
         self.stdout.write(f'  meal_option:         {created} created, {updated} updated')
+
+    # -------------------------------------------------------------------------
+    # convention_meal  (guest meal options with pricing)
+    # -------------------------------------------------------------------------
+    def seed_convention_meals(self, convention):
+        from convention.models import ConventionMeal
+        from decimal import Decimal
+
+        data = [
+            dict(name='All Meals',               price=Decimal('500.00'), sort_order=1),
+            dict(name='Friday Lunch',             price=Decimal('150.00'), sort_order=2),
+            dict(name='Friday Banquet',           price=Decimal('200.00'), sort_order=3),
+            dict(name='Saturday Awards Banquet',  price=Decimal('200.00'), sort_order=4),
+        ]
+
+        created = updated = 0
+        for d in data:
+            name = d.pop('name')
+            _, c = ConventionMeal.objects.update_or_create(
+                name=name,
+                convention=convention,
+                defaults={**d, 'is_active': True},
+            )
+            if c:
+                created += 1
+            else:
+                updated += 1
+        self.stdout.write(f'  convention_meal:     {created} created, {updated} updated')
 
     # -------------------------------------------------------------------------
     # test expense reports + details  (--with-test-data only)

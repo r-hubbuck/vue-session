@@ -4,10 +4,11 @@ from . import views
 urlpatterns = [
     # Convention info
     path('current/', views.current_convention, name='current-convention'),
-    
+
     # Reference data
     path('airports/', views.get_airports, name='get-airports'),
     path('states/', views.get_states, name='get-states'),
+    path('meals/', views.get_convention_meals, name='convention-meals'),
     
     # Registration
     path('my-registration/', views.my_registration, name='my-registration'),
@@ -30,6 +31,9 @@ urlpatterns = [
     # Accommodation
     path('registration/<int:registration_id>/accommodation/', views.update_accommodation, name='update-accommodation'),
 
+    # Emergency contact
+    path('registration/<int:registration_id>/emergency-contact/', views.update_emergency_contact, name='update-emergency-contact'),
+
     # Recruiter visibility
     path('registration/<int:registration_id>/visibility/', views.update_recruiter_visibility, name='update-recruiter-visibility'),
     
@@ -40,6 +44,9 @@ urlpatterns = [
     # Check-in endpoints (staff only)
     path('check-in/list/', views.check_in_list, name='check-in-list'),
     path('check-in/registration/<int:registration_id>/status/', views.update_registration_status, name='update-registration-status'),
+    path('check-in/person/<int:person_id>/address/<int:address_id>/', views.staff_update_address, name='staff-update-address'),
+    path('check-in/person/<int:person_id>/address/<int:address_id>/set-primary/', views.staff_set_primary_address, name='staff-set-primary-address'),
+    path('check-in/person/<int:person_id>/phone/mobile/', views.staff_update_mobile_phone, name='staff-update-mobile-phone'),
 
 ]
 

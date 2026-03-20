@@ -37,7 +37,6 @@
                 </p>
                 <p><strong>Package:</strong> {{ registration.booth_package_detail?.name }}</p>
                 <p v-if="registration.booth_id"><strong>Booth ID:</strong> {{ registration.booth_id }}</p>
-                <p v-if="registration.meal_option_detail"><strong>Meal:</strong> {{ registration.meal_option_detail.name }}</p>
                 <router-link to="/recruiter/convention" class="btn btn-outline-custom btn-sm">
                   <i class="bi bi-pencil me-1"></i>View/Edit
                 </router-link>
@@ -107,21 +106,25 @@
 
               <!-- View Mode -->
               <div v-if="profile.organization && !editingOrg">
+                <div v-if="profile.organization.logo_url" class="mb-3">
+                  <img :src="profile.organization.logo_url" alt="Organization logo" style="max-height: 80px; max-width: 200px; border-radius: 4px;">
+                </div>
                 <p class="mb-1"><strong>{{ profile.organization.name }}</strong></p>
-                <p class="text-muted mb-1">{{ profile.organization.org_type }}</p>
+                <p class="text-muted mb-1">{{ { business: 'Business', graduate_school: 'Graduate School', other: 'Other' }[profile.organization.org_type] || profile.organization.org_type }}</p>
                 <p class="text-muted mb-1" v-if="profile.organization.website">
                   <a :href="profile.organization.website" target="_blank" rel="noopener noreferrer">{{ profile.organization.website }}</a>
                 </p>
-                <p class="text-muted mb-1" v-if="profile.organization.phone">
+                <p class="text-muted mb-0" v-if="profile.organization.phone">
                   {{ formatPhone(profile.organization.phone) }}
                 </p>
-                <p class="text-muted mb-0">
+                <hr class="my-2">
+                <p class="small fw-bold mb-1">Billing Information</p>
+                <p class="text-muted mb-1">
                   {{ profile.organization.address_line1 }}<span v-if="profile.organization.address_line2">, {{ profile.organization.address_line2 }}</span><br>
                   {{ profile.organization.city }}<span v-if="profile.organization.state">, {{ profile.organization.state }}</span> {{ profile.organization.zip_code }}
                 </p>
-                <hr class="my-2">
                 <p class="text-muted mb-0 small">
-                  <strong>Billing:</strong> {{ profile.organization.billing_contact_first_name }} {{ profile.organization.billing_contact_last_name }} &mdash; {{ profile.organization.billing_email }}
+                  {{ profile.organization.billing_contact_first_name }} {{ profile.organization.billing_contact_last_name }} &mdash; {{ profile.organization.billing_email }}
                 </p>
               </div>
 
@@ -144,14 +147,10 @@
                     <label class="form-label small">Website</label>
                     <input v-model.trim="orgForm.website" type="url" class="form-control form-control-sm" placeholder="https://..." maxlength="200">
                   </div>
-                  <div class="col-md-6">
+                  <div class="col-12">
                     <label class="form-label small">Phone</label>
                     <input v-model="orgForm.phone" @input="formatOrgPhone" @blur="validateOrgPhone" type="tel" class="form-control form-control-sm" :class="{ 'is-invalid': orgPhoneError }" placeholder="(555) 123-4567" maxlength="14">
                     <div v-if="orgPhoneError" class="invalid-feedback">{{ orgPhoneError }}</div>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label small"># Recruiters Attending *</label>
-                    <input v-model.number="orgForm.num_recruiters" type="number" class="form-control form-control-sm" min="1" required>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label small">Address Line 1 *</label>
@@ -175,7 +174,7 @@
                   </div>
                   <div class="col-12">
                     <hr class="my-2">
-                    <p class="small fw-bold mb-2">Billing Contact</p>
+                    <p class="small fw-bold mb-2">Invoice Contact</p>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label small">First Name *</label>
@@ -186,17 +185,40 @@
                     <input v-model.trim="orgForm.billing_contact_last_name" type="text" class="form-control form-control-sm" required maxlength="100">
                   </div>
                   <div class="col-md-4">
-                    <label class="form-label small">Billing Email *</label>
+                    <label class="form-label small">Invoice Email *</label>
                     <input v-model.trim="orgForm.billing_email" type="email" class="form-control form-control-sm" :class="{ 'is-invalid': billingEmailError }" required maxlength="254" @blur="validateBillingEmail" @input="validateBillingEmail">
                     <div v-if="billingEmailError" class="invalid-feedback">{{ billingEmailError }}</div>
                   </div>
+                  <div class="col-12">
+                    <hr class="my-2">
+                    <p class="small fw-bold mb-1">Organization Logo</p>
+                    <div v-if="currentLogoUrl && !logoRemoved" class="mb-2 d-flex align-items-center gap-2">
+                      <img :src="currentLogoUrl" alt="Current logo" style="max-height: 60px; max-width: 150px; border-radius: 4px;">
+                      <button type="button" class="btn btn-outline-danger btn-sm" @click="removeLogo" :disabled="savingLogo">
+                        <i class="bi bi-trash me-1"></i>Remove
+                      </button>
+                    </div>
+                    <div v-else-if="logoPreview" class="mb-2">
+                      <img :src="logoPreview" alt="New logo preview" style="max-height: 60px; max-width: 150px; border-radius: 4px;">
+                    </div>
+                    <div v-else class="mb-2 text-muted small">No logo set.</div>
+                    <input
+                      type="file"
+                      class="form-control form-control-sm"
+                      :class="{'is-invalid': logoError}"
+                      accept=".png,.jpg,.jpeg"
+                      @change="handleLogoChange"
+                    >
+                    <div v-if="logoError" class="invalid-feedback">{{ logoError }}</div>
+                    <small class="form-text text-muted">PNG or JPG only, max 5MB.</small>
+                  </div>
                 </div>
                 <div class="d-flex gap-2 mt-3">
-                  <button type="submit" class="btn btn-primary btn-sm" :disabled="savingOrg">
+                  <button type="submit" class="btn btn-primary btn-sm" :disabled="savingOrg || savingLogo">
                     <span v-if="savingOrg"><span class="spinner-border spinner-border-sm me-1"></span>Saving...</span>
                     <span v-else><i class="bi bi-check2 me-1"></i>Save</span>
                   </button>
-                  <button type="button" class="btn btn-outline-secondary btn-sm" @click="editingOrg = false" :disabled="savingOrg">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" @click="cancelEditOrg" :disabled="savingOrg || savingLogo">
                     Cancel
                   </button>
                 </div>
@@ -222,9 +244,15 @@ const registration = ref(null)
 const invoices = ref([])
 const editingOrg = ref(false)
 const savingOrg = ref(false)
+const savingLogo = ref(false)
 const orgForm = ref({})
 const billingEmailError = ref('')
 const orgPhoneError = ref('')
+const logoError = ref('')
+const logoFile = ref(null)
+const logoPreview = ref('')
+const currentLogoUrl = ref('')
+const logoRemoved = ref(false)
 
 const formatPhone = (value) => {
   if (!value) return ''
@@ -278,23 +306,101 @@ const startEditOrg = () => {
     billing_email: org.billing_email || '',
     billing_contact_first_name: org.billing_contact_first_name || '',
     billing_contact_last_name: org.billing_contact_last_name || '',
-    num_recruiters: org.num_recruiters || 1,
   }
   billingEmailError.value = ''
   orgPhoneError.value = ''
+  logoError.value = ''
+  logoFile.value = null
+  logoPreview.value = ''
+  logoRemoved.value = false
+  currentLogoUrl.value = org.logo_url || ''
   editingOrg.value = true
+}
+
+const cancelEditOrg = () => {
+  editingOrg.value = false
+  logoFile.value = null
+  logoPreview.value = ''
+  logoRemoved.value = false
+  logoError.value = ''
+}
+
+const handleLogoChange = (event) => {
+  const file = event.target.files[0]
+  logoError.value = ''
+  logoFile.value = null
+  logoPreview.value = ''
+
+  if (!file) return
+
+  const ext = file.name.split('.').pop().toLowerCase()
+  if (!['png', 'jpg', 'jpeg'].includes(ext)) {
+    logoError.value = 'Logo must be a PNG or JPG file.'
+    event.target.value = ''
+    return
+  }
+  if (file.type !== 'image/png' && file.type !== 'image/jpeg') {
+    logoError.value = 'Logo must be a PNG or JPG file.'
+    event.target.value = ''
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    logoError.value = 'Logo file size must be under 5MB.'
+    event.target.value = ''
+    return
+  }
+
+  logoFile.value = file
+  logoPreview.value = URL.createObjectURL(file)
+}
+
+const removeLogo = async () => {
+  if (!currentLogoUrl.value) return
+  savingLogo.value = true
+  try {
+    await api.delete('/api/recruiters/organization/logo/')
+    currentLogoUrl.value = ''
+    logoRemoved.value = true
+    profile.value.organization.logo_url = null
+    toast.success('Logo removed.')
+  } catch {
+    toast.error('Failed to remove logo.')
+  } finally {
+    savingLogo.value = false
+  }
 }
 
 const saveOrg = async () => {
   validateBillingEmail()
   validateOrgPhone()
-  if (billingEmailError.value || orgPhoneError.value) return
+  if (billingEmailError.value || orgPhoneError.value || logoError.value) return
 
   savingOrg.value = true
   try {
     const res = await api.put('/api/recruiters/organization/', orgForm.value)
     profile.value.organization = res.data
+
+    // Upload new logo if one was selected
+    if (logoFile.value) {
+      savingOrg.value = false
+      savingLogo.value = true
+      try {
+        const logoData = new FormData()
+        logoData.append('logo', logoFile.value)
+        const logoRes = await api.post('/api/recruiters/organization/logo/', logoData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        profile.value.organization.logo_url = logoRes.data.logo_url
+      } catch {
+        toast.error('Organization saved, but logo upload failed.')
+      } finally {
+        savingLogo.value = false
+      }
+    }
+
     editingOrg.value = false
+    logoFile.value = null
+    logoPreview.value = ''
     toast.success('Organization updated!')
   } catch (error) {
     const data = error.response?.data

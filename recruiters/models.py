@@ -14,6 +14,7 @@ class BoothPackage(models.Model):
         validators=[MinValueValidator(Decimal('0.01')), MaxValueValidator(Decimal('99999.99'))]
     )
     is_in_person = models.BooleanField(default=False)
+    is_virtual = models.BooleanField(default=False)
     includes_resume_access = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     convention = models.ForeignKey(
@@ -68,7 +69,7 @@ class Organization(models.Model):
     billing_email = models.EmailField()
     billing_contact_first_name = models.CharField(max_length=100)
     billing_contact_last_name = models.CharField(max_length=100)
-    num_recruiters = models.PositiveIntegerField(default=1)
+    logo = models.ImageField(upload_to='org_logos/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -157,6 +158,26 @@ class RecruiterRegistration(models.Model):
 
     def __str__(self):
         return f"{self.recruiter} - {self.convention}"
+
+
+class RecruiterAttendee(models.Model):
+    registration = models.ForeignKey(
+        RecruiterRegistration,
+        on_delete=models.CASCADE,
+        related_name='attendees'
+    )
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField()
+    phone = models.CharField(max_length=20, blank=True)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = 'recruiter_attendee'
+        ordering = ['order']
+
+    def __str__(self):
+        return f'{self.first_name} {self.last_name} ({self.email})'
 
 
 class Invoice(models.Model):

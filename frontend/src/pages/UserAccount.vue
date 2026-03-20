@@ -3,8 +3,13 @@
   <!-- Page Header -->
   <div class="page-header">
     <div class="page-header-content">
-      <h1 class="page-title">Account Settings</h1>
-      <p class="page-subtitle">Manage your contact information and account preferences</p>
+      <div v-if="isAdminMode" class="mb-2">
+        <router-link to="/user-management" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i>Back to User Management
+        </router-link>
+      </div>
+      <h1 class="page-title">{{ pageTitle }}</h1>
+      <p class="page-subtitle">{{ pageSubtitle }}</p>
     </div>
   </div>
 
@@ -457,6 +462,34 @@ export default {
   },
   
   computed: {
+    adminUserId() {
+      const id = this.$route.params.userId
+      return id ? parseInt(id) : null
+    },
+
+    isAdminMode() {
+      return !!this.adminUserId
+    },
+
+    apiBase() {
+      return this.isAdminMode
+        ? `/api/accounts/admin/users/${this.adminUserId}`
+        : '/api/accounts'
+    },
+
+    pageTitle() {
+      if (this.isAdminMode && this.accountData.first_name) {
+        return `${this.accountData.first_name} ${this.accountData.last_name}`
+      }
+      return 'Account Settings'
+    },
+
+    pageSubtitle() {
+      return this.isAdminMode
+        ? 'Viewing and editing on behalf of this user'
+        : 'Manage your contact information and account preferences'
+    },
+
     isPhoneFormValid() {
       if (this.phoneNumbers.length === 0) return false
       
@@ -542,7 +575,7 @@ export default {
     
     async fetchAccountData() {
       try {
-        const response = await api.get('/api/accounts/user-account')
+        const response = await api.get(`${this.apiBase}/user-account`)
         this.accountData = {
           email: response.data.email || '',
           alt_email: response.data.alt_email || '',
@@ -573,7 +606,7 @@ export default {
           alt_email: this.accountData.alt_email?.trim().substring(0, 100) || ''
         }
         
-        await api.put('/api/accounts/user-account', payload)
+        await api.put(`${this.apiBase}/user-account`, payload)
         this.accountSuccess = 'Account information updated successfully!'
         
         setTimeout(() => {
@@ -590,7 +623,7 @@ export default {
     
     async fetchPhoneNumbers() {
       try {
-        const response = await api.get('/api/accounts/phone-numbers/')
+        const response = await api.get(`${this.apiBase}/phone-numbers/`)
         
         this.phoneNumbers = response.data.map(phone => ({
           id: phone.id,
@@ -678,7 +711,7 @@ export default {
       this.phoneError = null
       
       try {
-        await api.delete(`/api/accounts/phone-numbers/${phoneId}/`)
+        await api.delete(`${this.apiBase}/phone-numbers/${phoneId}/`)
         
         this.phoneNumbers.splice(index, 1)
         
@@ -750,9 +783,9 @@ export default {
           }
           
           if (phone.id) {
-            await api.put(`/api/accounts/phone-numbers/${phone.id}/`, payload)
+            await api.put(`${this.apiBase}/phone-numbers/${phone.id}/`, payload)
           } else {
-            const response = await api.post('/api/accounts/phone-numbers/', payload)
+            const response = await api.post(`${this.apiBase}/phone-numbers/`, payload)
             phone.id = response.data.id
           }
         }
@@ -783,7 +816,7 @@ export default {
     
     async fetchAddresses() {
       try {
-        const response = await api.get('/api/accounts/addresses/')
+        const response = await api.get(`${this.apiBase}/addresses/`)
         
         this.addresses = response.data.map(address => ({
           id: address.id,
@@ -869,7 +902,7 @@ export default {
       this.addressError = null
       
       try {
-        await api.delete(`/api/accounts/addresses/${addressId}/`)
+        await api.delete(`${this.apiBase}/addresses/${addressId}/`)
         
         // Refresh addresses to ensure primary state is correct
         await this.fetchAddresses()
@@ -931,9 +964,9 @@ export default {
           
           let response
           if (address.id) {
-            response = await api.put(`/api/accounts/addresses/${address.id}/`, payload)
+            response = await api.put(`${this.apiBase}/addresses/${address.id}/`, payload)
           } else {
-            response = await api.post('/api/accounts/addresses/', payload)
+            response = await api.post(`${this.apiBase}/addresses/`, payload)
             address.id = response.data.id
           }
           savedAddresses.push(response.data)
@@ -943,7 +976,7 @@ export default {
         const primaryAddress = this.addresses[this.primaryAddressIndex]
         
         if (primaryAddress && primaryAddress.id) {
-          await api.post(`/api/accounts/addresses/${primaryAddress.id}/set_primary/`)
+          await api.post(`${this.apiBase}/addresses/${primaryAddress.id}/set_primary/`)
         }
         
         await this.fetchAddresses()
