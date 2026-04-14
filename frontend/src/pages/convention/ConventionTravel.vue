@@ -90,7 +90,7 @@
                     <br>
                     <small class="text-muted">Member #{{ travel.member_number }}</small>
                   </td>
-                  <td>{{ travel.chapter }}</td>
+                  <td>{{ travel.chapter_code }}</td>
                   <td>
                     <span class="badge" :class="getTravelMethodClass(travel.travel_method)">
                       {{ travel.travel_method_display }}
@@ -176,7 +176,7 @@
                   <p class="mb-1"><strong>Member #:</strong> {{ selectedTravel.member.member_number }}</p>
                 </div>
                 <div class="col-md-6">
-                  <p class="mb-1"><strong>Chapter:</strong> {{ selectedTravel.member.chapter }}</p>
+                  <p class="mb-1"><strong>Chapter:</strong> {{ selectedTravel.member.chapter_code }}</p>
                 </div>
               </div>
             </div>
@@ -505,7 +505,7 @@ export default {
         if (this.searchQuery) {
           const query = this.searchQuery.toLowerCase();
           const fullName = `${travel.first_name} ${travel.last_name}`.toLowerCase();
-          const chapter = (travel.chapter || '').toLowerCase();
+          const chapter = (travel.chapter_code || '').toLowerCase();
           
           if (!fullName.includes(query) && !chapter.includes(query)) {
             return false;

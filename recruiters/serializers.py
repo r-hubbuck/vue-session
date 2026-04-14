@@ -3,7 +3,7 @@ from .models import (
     BoothPackage, MealOption, Organization, RecruiterProfile,
     RecruiterRegistration, RecruiterAttendee, Invoice
 )
-from accounts.models import User
+from accounts.models import User, Curriculum
 from accounts.serializers import CreateUserSerializer
 import bleach
 import re
@@ -232,23 +232,49 @@ class MealOptionSerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
 
+VALID_POSITIONS = ['Full-time', 'Part-time', 'Paid Internship']
+
+
 class RecruiterConventionRegistrationSerializer(serializers.ModelSerializer):
     booth_package_detail = BoothPackageSerializer(source='booth_package', read_only=True)
     attendees = RecruiterAttendeeSerializer(many=True)
+    recruiting_majors = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Curriculum.objects.all(),
+        required=False,
+    )
+    recruiting_majors_detail = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = RecruiterRegistration
         fields = [
             'id', 'booth_package', 'booth_package_detail',
-            'booth_id', 'status', 'special_requests', 'attendees', 'created_at', 'updated_at'
+            'booth_id', 'status', 'special_requests',
+            'recruiting_majors', 'recruiting_majors_detail', 'recruiting_positions',
+            'attendees', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'booth_id', 'status', 'created_at', 'updated_at']
+
+    def get_recruiting_majors_detail(self, obj):
+        return [{'id': c.id, 'full_name': c.full_name, 'abbreviated': c.abbreviated}
+                for c in obj.recruiting_majors.all()]
 
     def validate_special_requests(self, value):
         if value:
             value = bleach.clean(value, tags=[], strip=True).strip()
             if len(value) > 500:
                 raise serializers.ValidationError('Special requests must be 500 characters or fewer.')
+        return value
+
+    def validate_recruiting_positions(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Must be a list.')
+        invalid = [v for v in value if v not in VALID_POSITIONS]
+        if invalid:
+            raise serializers.ValidationError(
+                f'Invalid position(s): {", ".join(invalid)}. '
+                f'Must be one of: {", ".join(VALID_POSITIONS)}.'
+            )
         return value
 
     def validate_attendees(self, value):
@@ -277,18 +303,23 @@ class RecruiterConventionRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         attendees_data = validated_data.pop('attendees', [])
+        recruiting_majors = validated_data.pop('recruiting_majors', [])
         instance = super().create(validated_data)
         for i, attendee in enumerate(attendees_data):
             RecruiterAttendee.objects.create(registration=instance, order=i, **attendee)
+        instance.recruiting_majors.set(recruiting_majors)
         return instance
 
     def update(self, instance, validated_data):
         attendees_data = validated_data.pop('attendees', None)
+        recruiting_majors = validated_data.pop('recruiting_majors', None)
         instance = super().update(instance, validated_data)
         if attendees_data is not None:
             instance.attendees.all().delete()
             for i, attendee in enumerate(attendees_data):
                 RecruiterAttendee.objects.create(registration=instance, order=i, **attendee)
+        if recruiting_majors is not None:
+            instance.recruiting_majors.set(recruiting_majors)
         return instance
 
 
@@ -332,25 +363,24 @@ class AttendeeSerializer(serializers.Serializer):
     id = serializers.IntegerField(source='person.id')
     first_name = serializers.SerializerMethodField()
     last_name = serializers.CharField(source='person.last_name')
-    chapter = serializers.SerializerMethodField()
+    chapter_code = serializers.SerializerMethodField()
     has_resume = serializers.SerializerMethodField()
     resume_url = serializers.SerializerMethodField()
 
     def get_first_name(self, obj):
         return obj.person.preferred_first_name or obj.person.first_name
 
-    def get_chapter(self, obj):
+    def get_chapter_code(self, obj):
         if hasattr(obj.person, 'member') and obj.person.member:
-            return obj.person.member.chapter
+            return obj.person.member.chapter_code
         return None
 
     def get_has_resume(self, obj):
-        return bool(hasattr(obj.person, 'member') and obj.person.member and obj.person.member.resume)
+        return bool(obj.resume)
 
     def get_resume_url(self, obj):
         # Return the access-controlled API endpoint, never the raw media path
-        member = obj.person.member if hasattr(obj.person, 'member') else None
-        if self.context.get('includes_resume_access') and member and member.resume:
+        if self.context.get('includes_resume_access') and obj.resume:
             return f'/api/recruiters/convention/attendees/{obj.person.id}/resume/'
         return None
 

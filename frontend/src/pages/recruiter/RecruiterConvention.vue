@@ -71,6 +71,40 @@
                 </div>
               </div>
 
+              <!-- Majors recruiting (edit) -->
+              <div class="row g-3 mt-1">
+                <div class="col-md-6">
+                  <label class="form-label">Majors Recruiting</label>
+                  <div class="border rounded p-2" style="max-height: 160px; overflow-y: auto;">
+                    <div v-for="c in curricula" :key="c.id" class="form-check">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        :id="`edit-major-${c.id}`"
+                        :value="c.id"
+                        v-model="editForm.recruiting_majors"
+                      >
+                      <label class="form-check-label small" :for="`edit-major-${c.id}`">{{ c.full_name }}</label>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Positions Recruiting</label>
+                  <div class="border rounded p-2">
+                    <div v-for="pos in positionOptions" :key="pos" class="form-check">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        :id="`edit-pos-${pos}`"
+                        :value="pos"
+                        v-model="editForm.recruiting_positions"
+                      >
+                      <label class="form-check-label small" :for="`edit-pos-${pos}`">{{ pos }}</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Number of recruiters (edit) -->
               <div class="row g-3 mt-1">
                 <div class="col-md-4">
@@ -129,34 +163,68 @@
         <div v-else class="section-card">
           <h5 class="fw-bold mb-4">Choose Your Booth Package</h5>
 
-          <!-- Package Cards -->
-          <div class="row g-3 mb-4">
-            <div v-for="pkg in packages" :key="pkg.id" class="col-md-6">
-              <div
-                class="p-3 border rounded"
-                :class="{ 'border-primary': newForm.booth_package === pkg.id }"
-                style="cursor: pointer;"
-                @click="selectPackage(pkg)"
-              >
-                <div class="d-flex justify-content-between align-items-start">
-                  <div>
-                    <h6 class="fw-bold mb-1">{{ pkg.name }}</h6>
-                    <p class="text-muted mb-1" v-if="pkg.description">{{ pkg.description }}</p>
-                    <div>
-                      <span v-if="pkg.is_in_person" class="badge bg-info me-1">In-Person</span>
-                      <span v-if="pkg.is_virtual" class="badge bg-secondary me-1">Virtual</span>
-                      <span v-if="pkg.includes_resume_access" class="badge bg-success">Resume Access</span>
-                    </div>
-                  </div>
-                  <div class="text-end">
-                    <strong style="font-size: 1.25rem;">${{ pkg.price }}</strong>
-                  </div>
-                </div>
+          <!-- Package Rows -->
+          <div class="mb-4">
+            <div
+              v-for="pkg in packages"
+              :key="pkg.id"
+              class="d-flex align-items-center gap-2 px-3 py-2 border rounded mb-2"
+              :class="newForm.booth_package === pkg.id ? 'border-primary bg-light' : 'border'"
+              style="cursor: pointer;"
+              @click="selectPackage(pkg)"
+            >
+              <span
+                class="flex-shrink-0"
+                style="width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid #aaa; display: inline-block; box-sizing: border-box;"
+                :style="newForm.booth_package === pkg.id
+                  ? 'border-color: #0d6efd; background: #0d6efd; box-shadow: inset 0 0 0 3px #fff;'
+                  : ''"
+              ></span>
+              <span class="fw-semibold small flex-grow-1">{{ pkg.name }}</span>
+              <div class="d-flex gap-1 flex-shrink-0">
+                <span v-if="pkg.is_in_person" class="badge bg-info">In-Person</span>
+                <span v-if="pkg.is_virtual" class="badge bg-secondary">Virtual</span>
+                <span v-if="pkg.includes_resume_access" class="badge bg-success">Resume Access</span>
               </div>
+              <span class="fw-semibold small flex-shrink-0 ms-2">${{ pkg.price }}</span>
             </div>
           </div>
 
           <form @submit.prevent="createRegistration">
+            <!-- Majors and positions -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Majors Recruiting</label>
+                <div class="border rounded p-2" style="max-height: 160px; overflow-y: auto;">
+                  <div v-for="c in curricula" :key="c.id" class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      :id="`new-major-${c.id}`"
+                      :value="c.id"
+                      v-model="newForm.recruiting_majors"
+                    >
+                    <label class="form-check-label small" :for="`new-major-${c.id}`">{{ c.full_name }}</label>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Positions Recruiting</label>
+                <div class="border rounded p-2">
+                  <div v-for="pos in positionOptions" :key="pos" class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      :id="`new-pos-${pos}`"
+                      :value="pos"
+                      v-model="newForm.recruiting_positions"
+                    >
+                    <label class="form-check-label small" :for="`new-pos-${pos}`">{{ pos }}</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Number of recruiters -->
             <div class="row g-3 mb-3">
               <div class="col-md-4">
@@ -234,6 +302,8 @@ const flattenErrors = (val) => {
 }
 
 const packages = ref([])
+const curricula = ref([])
+const positionOptions = ['Full-time', 'Part-time', 'Paid Internship']
 const registration = ref(null)
 const primaryRecruiter = ref(null)
 
@@ -266,12 +336,16 @@ const blankAttendee = () => ({ first_name: '', last_name: '', email: '', phone: 
 const newForm = ref({
   booth_package: null,
   special_requests: '',
+  recruiting_majors: [],
+  recruiting_positions: [],
   attendees: [blankAttendee()],
 })
 
 const editForm = ref({
   booth_package: null,
   special_requests: '',
+  recruiting_majors: [],
+  recruiting_positions: [],
   attendees: [],
 })
 
@@ -368,16 +442,16 @@ const updateRegistration = async () => {
 
 onMounted(async () => {
   try {
-    const [pkgRes, regRes, profileRes] = await Promise.allSettled([
+    const [pkgRes, regRes, profileRes, curriculaRes] = await Promise.allSettled([
       api.get('/api/recruiters/convention/booth-packages/'),
       api.get('/api/recruiters/convention/my-registration/'),
       api.get('/api/recruiters/profile/'),
+      api.get('/api/accounts/curricula'),
     ])
 
     if (pkgRes.status === 'fulfilled') packages.value = pkgRes.value.data
-    if (profileRes.status === 'fulfilled') {
-      primaryRecruiter.value = profileRes.value.data
-    }
+    if (profileRes.status === 'fulfilled') primaryRecruiter.value = profileRes.value.data
+    if (curriculaRes.status === 'fulfilled') curricula.value = curriculaRes.value.data
 
     if (regRes.status === 'fulfilled' && regRes.value.data.id) {
       registration.value = regRes.value.data
@@ -386,6 +460,8 @@ onMounted(async () => {
       editForm.value = {
         booth_package: regRes.value.data.booth_package,
         special_requests: regRes.value.data.special_requests || '',
+        recruiting_majors: (regRes.value.data.recruiting_majors || []),
+        recruiting_positions: (regRes.value.data.recruiting_positions || []),
         attendees: existingAttendees.length
           ? existingAttendees.map(a => ({
               first_name: a.first_name,

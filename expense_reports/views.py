@@ -89,7 +89,7 @@ def my_expense_reports(request):
         
         if serializer.is_valid():
             # Save with current person; get chapter from member if available
-            chapter = person.member.chapter if hasattr(person, 'member') and person.member else ''
+            chapter = person.member.chapter_code if hasattr(person, 'member') and person.member else ''
             expense_report = serializer.save(
                 person=person,
                 status='submitted',

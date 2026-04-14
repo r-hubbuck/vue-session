@@ -9,6 +9,7 @@ Safe to run multiple times — uses update_or_create on natural keys.
 
 Tables seeded (reference data):
   - state_province      (accounts app)
+  - curriculum          (accounts app)
   - airport             (convention app)
   - convention          (convention app)
   - expense_report_type (expense_reports app)
@@ -40,6 +41,8 @@ class Command(BaseCommand):
         self.seed_state_provinces()
         self.seed_genders()
         self.seed_pronouns()
+        self.seed_ethnicities()
+        self.seed_curricula()
         self.seed_airports()
         convention = self.seed_conventions()
         self.seed_expense_report_types()
@@ -224,6 +227,84 @@ class Command(BaseCommand):
             else:
                 updated += 1
         self.stdout.write(f'  pronoun:             {created} created, {updated} updated')
+
+    # -------------------------------------------------------------------------
+    # ethnicity
+    # -------------------------------------------------------------------------
+    def seed_ethnicities(self):
+        from accounts.models import Ethnicity
+
+        data = [
+            (1, 'African American/Black',                None),
+            (2, 'Asian American/Asian',                  None),
+            (3, 'Hispanic/Latino/a',                     None),
+            (4, 'Middle Eastern/North African',          None),
+            (5, 'Native American/Alaskan Native',        None),
+            (6, 'Native Hawaiian/Other Pacific Islander', None),
+            (7, 'Caribbean',                             None),
+            (8, 'White',                                 None),
+            (9, 'Prefer not to say',                     'Available for those that do not wish to give us an ethnicity.'),
+        ]
+
+        created = updated = 0
+        for pk, ethnicity, comments in data:
+            _, c = Ethnicity.objects.update_or_create(
+                id=pk,
+                defaults=dict(ethnicity=ethnicity, comments=comments),
+            )
+            if c:
+                created += 1
+            else:
+                updated += 1
+        self.stdout.write(f'  ethnicity:           {created} created, {updated} updated')
+
+    # -------------------------------------------------------------------------
+    # curriculum
+    # -------------------------------------------------------------------------
+    def seed_curricula(self):
+        from accounts.models import Curriculum
+
+        data = [
+            (1,  'Aerospace Engineering',              'Aero'),
+            (2,  'Agricultural Engineering',           'Ag'),
+            (3,  'Architectural Engineering',          'Arch'),
+            (4,  'Astronautical Engineering',          'Astro'),
+            (5,  'Biomedical Engineering',             'Biomed'),
+            (6,  'Chemical Engineering',               'Chem'),
+            (7,  'Civil Engineering',                  'Civil'),
+            (8,  'Computer Engineering',               'CompE'),
+            (9,  'Computer Science',                   'CompS'),
+            (10, 'Electrical Engineering',             'Elec'),
+            (11, 'Engineering Physics',                'Engg phys'),
+            (12, 'Engineering Science',                'Engg sci'),
+            (13, 'Environmental Engineering',          'Enviro'),
+            (14, 'Geophysical Engineering',            'Geophys'),
+            (15, 'Geotechnical Engineering',           'Geotech'),
+            (16, 'Industrial Engineering',             'Ind'),
+            (17, 'Marine Engineering',                 'Marine'),
+            (18, 'Materials Science and Engineering',  'Matls'),
+            (19, 'Mechanical Engineering',             'Mech'),
+            (20, 'Manufacturing Engineering',          'Mfg'),
+            (21, 'Engineering Management',             'Mgmt'),
+            (22, 'Mining Engineering',                 'Mining'),
+            (23, 'Nuclear Engineering',                'Nuc'),
+            (24, 'Petroleum Engineering',              'Petrol'),
+            (25, 'Systems Engineering',                'Sys'),
+            (26, 'Transportation Engineering',         'Transp'),
+            (27, 'Biochemical Engineering',            'Biochem'),
+        ]
+
+        created = updated = 0
+        for pk, full_name, abbreviated in data:
+            _, c = Curriculum.objects.update_or_create(
+                id=pk,
+                defaults=dict(full_name=full_name, abbreviated=abbreviated),
+            )
+            if c:
+                created += 1
+            else:
+                updated += 1
+        self.stdout.write(f'  curriculum:          {created} created, {updated} updated')
 
     # -------------------------------------------------------------------------
     # airport

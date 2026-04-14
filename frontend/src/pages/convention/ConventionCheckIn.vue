@@ -114,7 +114,7 @@
                     Preferred: {{ reg.preferred_first_name }}
                   </div>
                 </td>
-                <td>{{ reg.chapter }}</td>
+                <td>{{ reg.chapter_code }}</td>
                 <td>
                   <span v-if="reg.has_guest" class="badge bg-info">
                     <i class="bi bi-person-plus-fill me-1"></i>
@@ -187,7 +187,7 @@
             <!-- Member summary bar -->
             <div class="d-flex flex-wrap gap-2 align-items-center mb-4 pb-3" style="border-bottom: 1px solid #e5e7eb;">
               <span class="badge bg-secondary fs-6">#{{ selectedMember.member_number || 'N/A' }}</span>
-              <span style="font-weight: 600;">{{ selectedMember.chapter }}</span>
+              <span style="font-weight: 600;">{{ selectedMember.chapter_code }}</span>
               <span class="badge" :class="getStatusBadgeClass(selectedMember.status_code)">{{ getStatusDisplay(selectedMember.status_code) }}</span>
             </div>
 
@@ -271,7 +271,7 @@
               <i class="bi bi-person-badge-fill"></i>
               <div class="info-alert-content">
                 <strong>{{ selectedRegistration.first_name }} {{ selectedRegistration.last_name }}</strong> 
-                ({{ selectedRegistration.chapter }})
+                ({{ selectedRegistration.chapter_code }})
                 <span v-if="selectedRegistration.has_guest" class="ms-2">
                   • {{ selectedRegistration.guest_count }} Guest{{ selectedRegistration.guest_count > 1 ? 's' : '' }}
                 </span>
@@ -515,7 +515,7 @@ export default {
         filtered = filtered.filter(reg => 
           reg.first_name.toLowerCase().includes(query) ||
           reg.last_name.toLowerCase().includes(query) ||
-          reg.chapter.toLowerCase().includes(query) ||
+          (reg.chapter_code || '').toLowerCase().includes(query) ||
           (reg.member_number && reg.member_number.toString().includes(query))
         );
       }
@@ -534,7 +534,7 @@ export default {
         if (this.sortBy === 'last_name') {
           return a.last_name.localeCompare(b.last_name);
         } else if (this.sortBy === 'chapter') {
-          return a.chapter.localeCompare(b.chapter);
+          return (a.chapter_code || '').localeCompare(b.chapter_code || '');
         } else if (this.sortBy === 'status') {
           return a.status_code.localeCompare(b.status_code);
         }

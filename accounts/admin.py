@@ -2,7 +2,7 @@ from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserCreationForm
-from .models import User, Member, Address, PhoneNumber, StateProvince, Person, Staff, GuestSpeaker, Gender
+from .models import User, Member, Address, PhoneNumber, StateProvince, Person, Staff, GuestSpeaker, Gender, Ethnicity
 
 
 class UserWithPersonCreationForm(UserCreationForm):
@@ -18,7 +18,7 @@ class UserWithPersonCreationForm(UserCreationForm):
 
 @admin.register(Person)
 class PersonAdmin(admin.ModelAdmin):
-    list_display = ('first_name', 'last_name', 'preferred_first_name', 'gender', 'birth_date', 'initiation_date')
+    list_display = ('first_name', 'last_name', 'preferred_first_name', 'gender', 'birth_date')
     search_fields = ('first_name', 'last_name', 'preferred_first_name')
 
 
@@ -99,18 +99,18 @@ class MemberAdmin(admin.ModelAdmin):
         'member_id',
         'get_first_name',
         'get_last_name',
-        'chapter',
+        'chapter_code',
         'district',
         'get_user_email',
         'get_user_roles'
     )
-    list_filter = ('chapter', 'district')
+    list_filter = ('chapter_code', 'district')
     search_fields = (
         'member_id',
         'person__first_name',
         'person__last_name',
         'person__preferred_first_name',
-        'chapter'
+        'chapter_code'
     )
     raw_id_fields = ('person',)
 
@@ -122,7 +122,7 @@ class MemberAdmin(admin.ModelAdmin):
             'fields': ('member_id',)
         }),
         ('Chapter & District', {
-            'fields': ('chapter', 'district')
+            'fields': ('chapter_code', 'district')
         }),
     )
 
@@ -286,3 +286,9 @@ class StateProvinceAdmin(admin.ModelAdmin):
 class GenderAdmin(admin.ModelAdmin):
     list_display = ('id', 'gender', 'title')
     search_fields = ('gender',)
+
+
+@admin.register(Ethnicity)
+class EthnicityAdmin(admin.ModelAdmin):
+    list_display = ('id', 'ethnicity', 'comments')
+    search_fields = ('ethnicity',)

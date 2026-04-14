@@ -22,6 +22,7 @@ urlpatterns = [
     path('accounts/password-reset-confirm/<str:uidb64>/<str:token>/', views.password_reset_confirm, name='password_reset_confirm'),
     path('accounts/user-account', views.user_account_view, name='user_account'),
     path('accounts/states-provinces', views.state_province_list, name='state_province_list'),
+    path('accounts/curricula', views.curriculum_list, name='curriculum_list'),
 
     # Admin user management
     path('accounts/admin/users/', views.admin_list_users, name='admin_list_users'),

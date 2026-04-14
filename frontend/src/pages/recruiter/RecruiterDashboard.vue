@@ -37,6 +37,12 @@
                 </p>
                 <p><strong>Package:</strong> {{ registration.booth_package_detail?.name }}</p>
                 <p v-if="registration.booth_id"><strong>Booth ID:</strong> {{ registration.booth_id }}</p>
+                <p v-if="registration.recruiting_positions?.length">
+                  <strong>Positions Recruiting:</strong> {{ registration.recruiting_positions.join(', ') }}
+                </p>
+                <p v-if="registration.recruiting_majors_detail?.length">
+                  <strong>Majors Recruiting:</strong> {{ registration.recruiting_majors_detail.map(m => m.full_name).join(', ') }}
+                </p>
                 <router-link to="/recruiter/convention" class="btn btn-outline-custom btn-sm">
                   <i class="bi bi-pencil me-1"></i>View/Edit
                 </router-link>

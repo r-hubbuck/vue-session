@@ -715,21 +715,21 @@ def recruiter_attendee_resume(request, member_id):
     else:
         resume_visibility_filter = ['both']
 
-    reg_exists = ConventionRegistration.objects.filter(
+    member_reg = ConventionRegistration.objects.filter(
         convention=convention,
         person=person,
         visible_to_recruiters__in=resume_visibility_filter,
         status_code__in=['registered', 'confirmed', 'checked_in']
-    ).exists()
+    ).first()
 
-    if not reg_exists:
+    if not member_reg:
         return Response({'error': 'Member not available.'}, status=status.HTTP_404_NOT_FOUND)
 
-    if not hasattr(person, 'member') or not person.member or not person.member.resume:
+    if not member_reg.resume:
         return Response({'error': 'No resume on file.'}, status=status.HTTP_404_NOT_FOUND)
 
     from django.http import FileResponse
-    return FileResponse(person.member.resume.open('rb'), content_type='application/pdf')
+    return FileResponse(member_reg.resume.open('rb'), content_type='application/pdf')
 
 
 # ============================================================
@@ -739,18 +739,28 @@ def recruiter_attendee_resume(request, member_id):
 @api_view(['POST', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def member_resume(request):
-    """Upload or delete member resume."""
+    """Upload or delete member resume for the active convention."""
     user = request.user
-    if not (hasattr(user, 'person') and user.person and hasattr(user.person, 'member') and user.person.member):
+    if not (hasattr(user, 'person') and user.person):
         return Response({'error': 'No member profile.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    member = user.person.member
+    convention = get_active_convention()
+    if not convention:
+        return Response({'error': 'No active convention.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        reg = ConventionRegistration.objects.get(
+            convention=convention,
+            person=user.person,
+        )
+    except ConventionRegistration.DoesNotExist:
+        return Response({'error': 'No convention registration found.'}, status=status.HTTP_400_BAD_REQUEST)
 
     if request.method == 'DELETE':
-        if member.resume:
-            member.resume.delete()
-            member.resume_uploaded_at = None
-            member.save()
+        if reg.resume:
+            reg.resume.delete()
+            reg.resume_uploaded_at = None
+            reg.save(update_fields=['resume_uploaded_at'])
         return Response({'success': 'Resume removed.'})
 
     # POST: upload
@@ -777,17 +787,17 @@ def member_resume(request):
         return Response({'error': 'File size must be under 5MB.'}, status=status.HTTP_400_BAD_REQUEST)
 
     # Delete old resume if exists
-    if member.resume:
-        member.resume.delete(save=False)
+    if reg.resume:
+        reg.resume.delete(save=False)
 
-    member.resume = file
-    member.resume_uploaded_at = timezone.now()
-    member.save()
+    reg.resume = file
+    reg.resume_uploaded_at = timezone.now()
+    reg.save()
 
     return Response({
         'success': 'Resume uploaded.',
-        'resume_url': request.build_absolute_uri(member.resume.url),
-        'uploaded_at': member.resume_uploaded_at.isoformat()
+        'resume_url': request.build_absolute_uri(reg.resume.url),
+        'uploaded_at': reg.resume_uploaded_at.isoformat()
     })
 
 

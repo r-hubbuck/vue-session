@@ -120,7 +120,7 @@ class MemberPersonalInfoSerializer(serializers.ModelSerializer):
     primary_address = serializers.SerializerMethodField()
     resume_url = serializers.SerializerMethodField()
     resume_uploaded_at = serializers.SerializerMethodField()
-    chapter = serializers.SerializerMethodField()
+    chapter_code = serializers.SerializerMethodField()
 
     class Meta:
         model = Person
@@ -130,30 +130,39 @@ class MemberPersonalInfoSerializer(serializers.ModelSerializer):
             'last_name',
             'preferred_first_name',
             'badge_name',
-            'chapter',
+            'chapter_code',
             'primary_phone',
             'primary_address',
             'resume_url',
             'resume_uploaded_at',
         ]
-        read_only_fields = ['first_name', 'last_name', 'chapter', 'badge_name', 'primary_phone', 'primary_address', 'resume_url', 'resume_uploaded_at']
+        read_only_fields = ['first_name', 'last_name', 'chapter_code', 'badge_name', 'primary_phone', 'primary_address', 'resume_url', 'resume_uploaded_at']
+
+    def _get_active_registration(self, obj):
+        from convention.models import Convention
+        convention = Convention.objects.filter(is_active=True).first()
+        if not convention:
+            return None
+        return obj.convention_registrations.filter(convention=convention).first()
 
     def get_resume_url(self, obj):
-        if hasattr(obj, 'member') and obj.member.resume:
+        reg = self._get_active_registration(obj)
+        if reg and reg.resume:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.member.resume.url)
-            return obj.member.resume.url
+                return request.build_absolute_uri(reg.resume.url)
+            return reg.resume.url
         return None
 
     def get_resume_uploaded_at(self, obj):
-        if hasattr(obj, 'member'):
-            return obj.member.resume_uploaded_at
+        reg = self._get_active_registration(obj)
+        if reg:
+            return reg.resume_uploaded_at
         return None
 
-    def get_chapter(self, obj):
+    def get_chapter_code(self, obj):
         if hasattr(obj, 'member'):
-            return obj.member.chapter
+            return obj.member.chapter_code
         return None
 
     def get_badge_name(self, obj):
@@ -622,6 +631,7 @@ class ConventionRegistrationDetailSerializer(serializers.ModelSerializer):
             'visible_to_recruiters',
             'confirmation_email_sent',
             'paid',
+            'guest_attending',
             'emergency_contact_name',
             'emergency_contact_relationship',
             'emergency_contact_phone',
@@ -677,7 +687,7 @@ class AdminConventionTravelListSerializer(serializers.ModelSerializer):
     member_number = serializers.CharField(source='registration.person.member.member_id', read_only=True)
     first_name = serializers.CharField(source='registration.person.first_name', read_only=True)
     last_name = serializers.CharField(source='registration.person.last_name', read_only=True)
-    chapter = serializers.CharField(source='registration.person.member.chapter', read_only=True)
+    chapter_code = serializers.CharField(source='registration.person.member.chapter_code', read_only=True)
     registration_id = serializers.IntegerField(source='registration.id', read_only=True)
     
     # Get state for departure and return airports
@@ -699,7 +709,7 @@ class AdminConventionTravelListSerializer(serializers.ModelSerializer):
             'member_number',
             'first_name',
             'last_name',
-            'chapter',
+            'chapter_code',
             'travel_method',
             'travel_method_display',
             'departure_airport',
@@ -921,7 +931,7 @@ class CheckInListSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='person.first_name', read_only=True)
     last_name = serializers.CharField(source='person.last_name', read_only=True)
     preferred_first_name = serializers.CharField(source='person.preferred_first_name', read_only=True)
-    chapter = serializers.CharField(source='person.member.chapter', read_only=True)
+    chapter_code = serializers.CharField(source='person.member.chapter_code', read_only=True)
     primary_address = serializers.SerializerMethodField()
     has_guest = serializers.SerializerMethodField()
     guest_count = serializers.SerializerMethodField()
@@ -937,7 +947,7 @@ class CheckInListSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
             'preferred_first_name',
-            'chapter',
+            'chapter_code',
             'status_code',
             'checked_in_at',
             'at_convention',

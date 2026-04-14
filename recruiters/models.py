@@ -144,6 +144,12 @@ class RecruiterRegistration(models.Model):
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     special_requests = models.TextField(blank=True)
+    recruiting_majors = models.ManyToManyField(
+        'accounts.Curriculum',
+        blank=True,
+        related_name='recruiter_registrations'
+    )
+    recruiting_positions = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

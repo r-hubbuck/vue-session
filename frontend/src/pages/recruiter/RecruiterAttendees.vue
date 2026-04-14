@@ -62,7 +62,7 @@
               <tbody>
                 <tr v-for="attendee in attendees" :key="attendee.id">
                   <td class="fw-medium">{{ attendee.first_name }} {{ attendee.last_name }}</td>
-                  <td>{{ attendee.chapter }}</td>
+                  <td>{{ attendee.chapter_code }}</td>
                   <td v-if="hasResumeAccess">
                     <button
                       v-if="attendee.resume_url"

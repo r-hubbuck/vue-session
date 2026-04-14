@@ -541,24 +541,41 @@
             </div>
             Guest Information
           </h2>
-          <button v-if="bringingGuest" @click="bringingGuest = true" class="btn btn-gold btn-sm">
-            <i class="bi bi-plus-lg me-1"></i>Add Guest
-          </button>
         </div>
 
-        <div class="form-check mb-4" style="padding: 1rem; background: #fafbfc; border-radius: 8px; border: 1px solid #e2e8f0;">
-          <input 
-            v-model="bringingGuest" 
-            class="form-check-input" 
-            type="checkbox" 
-            id="bringingGuest"
-          >
-          <label class="form-check-label" for="bringingGuest" style="font-weight: 500;">
-            I will be bringing a guest to the convention
-          </label>
+        <div class="mb-4" style="padding: 1rem; background: #fafbfc; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <p class="mb-3" style="font-weight: 500; color: #1a202c; margin-bottom: 0.5rem;">Will you be bringing a guest to the convention?</p>
+          <div class="d-flex flex-column gap-2">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="guestNo"
+                :checked="guestDecision === 'no'"
+                :disabled="saving"
+                @change="selectGuestDecision('no')"
+              >
+              <label class="form-check-label" for="guestNo" style="font-weight: 500;">
+                I will <strong>not</strong> be bringing a guest to the convention
+              </label>
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="guestYes"
+                :checked="guestDecision === 'yes'"
+                :disabled="saving"
+                @change="selectGuestDecision('yes')"
+              >
+              <label class="form-check-label" for="guestYes" style="font-weight: 500;">
+                I will be bringing a guest to the convention
+              </label>
+            </div>
+          </div>
         </div>
 
-        <div v-if="bringingGuest">
+        <div v-if="guestDecision === 'yes'">
           <!-- Existing Guests -->
           <div v-if="guests.length > 0" class="mb-4">
             <h6 style="font-weight: 600; margin-bottom: 1rem;">Registered Guests:</h6>
@@ -735,10 +752,10 @@
             </form>
           </div>
         </div>
-        <div v-else class="info-alert" style="background: #f8fafc; border-left-color: #94a3b8;">
-          <i class="bi bi-info-circle" style="color: #64748b;"></i>
+        <div v-else-if="guestDecision === 'no'" class="info-alert" style="background: #f0fdf4; border-left-color: #22c55e;">
+          <i class="bi bi-check-circle" style="color: #22c55e;"></i>
           <div class="info-alert-content" style="color: #475569;">
-            No guests registered. Check the box above to add a guest.
+            You have indicated you will not be bringing a guest. You can change this selection above.
           </div>
         </div>
       </div>
@@ -1098,7 +1115,8 @@ const committeePreferences = ref({
 const savedCommitteePreferences = ref({ ...committeePreferences.value })
 
 // Guests
-const bringingGuest = ref(false)
+// null = undecided (section incomplete), 'no' = not bringing, 'yes' = bringing
+const guestDecision = ref(null)
 const guests = ref([])
 const availableMeals = ref([])
 
@@ -1241,8 +1259,9 @@ const isAccommodationComplete = computed(() => {
 })
 
 const isGuestInfoComplete = computed(() => {
-  // Guest section is optional, so it's complete if user has made a choice
-  return !bringingGuest.value || guests.value.length > 0
+  if (guestDecision.value === 'no') return true
+  if (guestDecision.value === 'yes') return guests.value.length > 0
+  return false
 })
 
 // Date validation
@@ -1378,7 +1397,11 @@ const loadRegistrationData = async (data) => {
   // Load guests
   if (data.guest_details && data.guest_details.length > 0) {
     guests.value = data.guest_details
-    bringingGuest.value = true
+    guestDecision.value = 'yes'
+  } else if (data.guest_attending === true) {
+    guestDecision.value = 'yes'
+  } else if (data.guest_attending === false) {
+    guestDecision.value = 'no'
   }
 
   // Load travel
@@ -1701,6 +1724,31 @@ const resetNewGuest = () => {
   }
 }
 
+const saveGuestAttending = async (value) => {
+  saving.value = true
+  try {
+    await api.put(
+      `/api/convention/registration/${registration.value.id}/guest-attending/`,
+      { guest_attending: value }
+    )
+    if (!value) {
+      toast.success('Guest information saved!')
+    }
+  } catch (error) {
+    console.error('Error saving guest attending:', error)
+    toast.error('Failed to save guest preference')
+    // Revert on failure
+    guestDecision.value = null
+  } finally {
+    saving.value = false
+  }
+}
+
+const selectGuestDecision = async (decision) => {
+  guestDecision.value = decision
+  await saveGuestAttending(decision === 'yes')
+}
+
 const addGuest = async () => {
   // Validate email if provided
   if (newGuest.value.guest_email && !isValidEmail(newGuest.value.guest_email)) {
@@ -1714,9 +1762,10 @@ const addGuest = async () => {
       `/api/convention/registration/${registration.value.id}/guests/`,
       newGuest.value
     )
+    const isFirstGuest = guests.value.length === 0
     guests.value.push(response.data)
     resetNewGuest()
-    toast.success('Guest added successfully!')
+    toast.success(isFirstGuest ? 'Guest added!' : 'Guest added successfully!')
   } catch (error) {
     console.error('Error adding guest:', error)
     toast.error('Failed to add guest')
@@ -1908,6 +1957,19 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* ─── Section accent stripes ─────────────────────────────────── */
+#personal-info   { border-top: 4px solid #2563eb; }
+#travel-info     { border-top: 4px solid #0d9488; }
+#guest-info      { border-top: 4px solid #d97706; }
+#accommodation   { border-top: 4px solid #16a34a; }
+#committee-prefs { border-top: 4px solid #7c3aed; }
+
+/* ─── Progress bar status cards — matching accent borders ────── */
+.section-status-grid .status-card:nth-child(1) { border-color: #2563eb; }
+.section-status-grid .status-card:nth-child(2) { border-color: #0d9488; }
+.section-status-grid .status-card:nth-child(3) { border-color: #d97706; }
+.section-status-grid .status-card:nth-child(4) { border-color: #16a34a; }
+.section-status-grid .status-card:nth-child(5) { border-color: #7c3aed; }
 /* Progress Section */
 .progress-section {
   margin-top: 2rem;

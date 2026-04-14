@@ -363,12 +363,12 @@ class AdminUserListSerializer(serializers.ModelSerializer):
     last_name = serializers.CharField(source='person.last_name', read_only=True, default='')
     person_id = serializers.SerializerMethodField()
     member_id = serializers.SerializerMethodField()
-    chapter = serializers.SerializerMethodField()
+    chapter_code = serializers.SerializerMethodField()
     roles = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'person_id', 'email', 'first_name', 'last_name', 'member_id', 'chapter', 'roles']
+        fields = ['id', 'person_id', 'email', 'first_name', 'last_name', 'member_id', 'chapter_code', 'roles']
 
     def get_person_id(self, obj):
         return obj.person.id if hasattr(obj, 'person') and obj.person else None
@@ -378,9 +378,9 @@ class AdminUserListSerializer(serializers.ModelSerializer):
             return getattr(obj.person.member, 'member_id', None)
         return None
 
-    def get_chapter(self, obj):
+    def get_chapter_code(self, obj):
         if hasattr(obj, 'person') and obj.person and hasattr(obj.person, 'member'):
-            return getattr(obj.person.member, 'chapter', None)
+            return getattr(obj.person.member, 'chapter_code', None)
         return None
 
     def get_roles(self, obj):
@@ -405,7 +405,7 @@ class UserSerializer(serializers.ModelSerializer):
                 'preferred_first_name': obj.person.preferred_first_name,
                 'middle_name': obj.person.middle_name,
                 'last_name': obj.person.last_name,
-                'chapter': m.chapter,
+                'chapter_code': m.chapter_code,
                 'district': m.district,
             }
         return None

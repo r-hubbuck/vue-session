@@ -77,8 +77,15 @@ class Person(models.Model):
         related_name='persons',
         db_column='pronoun',
     )
+    ethnicity = models.ForeignKey(
+        'Ethnicity',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='persons',
+        db_column='ethnicity',
+    )
     birth_date = models.DateField(null=True, blank=True)
-    initiation_date = models.DateField(null=True, blank=True)
 
     class Meta:
         db_table = 'person'
@@ -178,10 +185,9 @@ class User(AbstractUser):
 class Member(models.Model):
     person = models.OneToOneField('Person', on_delete=models.CASCADE, related_name='member')
     member_id = models.IntegerField(unique=True, null=True, blank=True)
-    chapter = models.CharField(max_length=100)
+    chapter_code = models.CharField(max_length=100)
     district = models.IntegerField(null=True, blank=True)  # For district directors
-    resume = models.FileField(upload_to='resumes/', blank=True, null=True)
-    resume_uploaded_at = models.DateTimeField(null=True, blank=True)
+    initiation_date = models.DateField(null=True, blank=True)
 
     class Meta:
         db_table = 'member'
@@ -343,3 +349,28 @@ class Pronoun(models.Model):
 
     def __str__(self):
         return self.gender
+
+
+class Ethnicity(models.Model):
+    ethnicity = models.CharField(max_length=100)
+    comments = models.TextField(blank=True, null=True)
+
+    class Meta:
+        db_table = 'ethnicity'
+        ordering = ['id']
+        verbose_name_plural = 'ethnicities'
+
+    def __str__(self):
+        return self.ethnicity
+
+
+class Curriculum(models.Model):
+    full_name = models.CharField(max_length=100, unique=True)
+    abbreviated = models.CharField(max_length=20)
+
+    class Meta:
+        db_table = 'curriculum'
+        ordering = ['full_name']
+
+    def __str__(self):
+        return self.full_name

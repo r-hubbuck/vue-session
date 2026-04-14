@@ -49,7 +49,7 @@
                 <td>{{ user.first_name }} {{ user.last_name }}</td>
                 <td>{{ user.email }}</td>
                 <td>{{ user.member_id || '—' }}</td>
-                <td>{{ user.chapter || '—' }}</td>
+                <td>{{ user.chapter_code || '—' }}</td>
                 <td>
                   <span
                     v-for="role in user.roles"

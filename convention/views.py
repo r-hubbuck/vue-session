@@ -716,7 +716,7 @@ def admin_travel_detail(request, travel_id):
                 'member_number': member.member_id if member else None,
                 'first_name': person.first_name,
                 'last_name': person.last_name,
-                'chapter': member.chapter if member else None,
+                'chapter_code': member.chapter_code if member else None,
             },
             'travel': travel_serializer.data,
             'departure_airport_info': departure_airport_info,
@@ -1061,3 +1061,40 @@ def update_recruiter_visibility(request, registration_id):
         registration.save(update_fields=['visible_to_recruiters'])
 
     return Response({'visible_to_recruiters': registration.visible_to_recruiters})
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_guest_attending(request, registration_id):
+    """
+    Update guest_attending for a registration.
+    Accepts: { "guest_attending": true | false }
+    """
+    if not (hasattr(request.user, 'person') and request.user.person is not None):
+        return Response(
+            {'error': 'No person profile.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    registration = get_object_or_404(
+        ConventionRegistration,
+        id=registration_id,
+        person=request.user.person
+    )
+
+    value = request.data.get('guest_attending')
+    if value is None:
+        return Response(
+            {'error': 'guest_attending is required.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if not isinstance(value, bool):
+        return Response(
+            {'error': 'guest_attending must be true or false.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    registration.guest_attending = value
+    registration.save(update_fields=['guest_attending'])
+
+    return Response({'guest_attending': registration.guest_attending})

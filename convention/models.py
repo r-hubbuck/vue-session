@@ -101,8 +101,16 @@ class ConventionRegistration(models.Model):
         choices=VISIBILITY_CHOICES,
         default='both',
     )
+    resume = models.FileField(upload_to='resumes/', blank=True, null=True)
+    resume_uploaded_at = models.DateTimeField(null=True, blank=True)
     confirmation_email_sent = models.BooleanField(default=False)
     paid = models.BooleanField(default=False)
+    guest_attending = models.BooleanField(
+        null=True,
+        blank=True,
+        default=None,
+        help_text="Null=undecided, False=not bringing a guest, True=bringing a guest"
+    )
     emergency_contact_name = models.CharField(max_length=200, blank=True)
     emergency_contact_relationship = models.CharField(max_length=100, blank=True)
     emergency_contact_phone = models.CharField(max_length=20, blank=True)

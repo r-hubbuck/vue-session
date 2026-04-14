@@ -216,6 +216,7 @@ def register(request):
         initiation_date = request.session.get('initiation_date', None)
         gender = request.session.get('gender', None)
         pronoun = request.session.get('pronoun', None)
+        ethnicity = request.session.get('ethnicity', None)
         person = None
         member = None
         if member_first_name and member_last_name and member_chapter:
@@ -227,10 +228,12 @@ def register(request):
                 person.middle_name = member_middle_name
                 person.last_name = member_last_name
                 person.birth_date = birth_date
-                person.initiation_date = initiation_date
                 person.gender_id = gender
                 person.pronoun_id = pronoun
+                person.ethnicity_id = ethnicity
                 person.save()
+                existing_member.initiation_date = initiation_date
+                existing_member.save(update_fields=['initiation_date'])
                 member = existing_member
             else:
                 person = Person.objects.create(
@@ -238,14 +241,15 @@ def register(request):
                     middle_name=member_middle_name,
                     last_name=member_last_name,
                     birth_date=birth_date,
-                    initiation_date=initiation_date,
                     gender_id=gender,
                     pronoun_id=pronoun,
+                    ethnicity_id=ethnicity,
                 )
                 member = Member.objects.create(
                     person=person,
                     member_id=member_id,
-                    chapter=member_chapter,
+                    chapter_code=member_chapter,
+                    initiation_date=initiation_date,
                 )
             user.person = person
 
@@ -439,6 +443,7 @@ class VerifyMemberAPIView(APIView):
                                 ,Memblist.InitiationDate
                                 ,Memblist.Gender
                                 ,Memblist.Pronoun
+                                ,Memblist.Ethnicity
                                 ,Chapters.chp_name
                                 ,Chapters.Chp_Name_Short
                                 ,Chapters.chp_code
@@ -475,12 +480,13 @@ class VerifyMemberAPIView(APIView):
                     'member_first_name': users[0]['mem_fname'],
                     'member_middle_name': users[0]['mem_mname'],
                     'member_last_name': users[0]['mem_lname'],
-                    'member_chapter': users[0]['Chp_Name_Short'],
+                    'member_chapter': users[0]['mem_chpcd'],
                     'member_class_year': users[0]['mem_classy'],
                     'birth_date': to_date_str(users[0]['BirthDate']),
                     'initiation_date': to_date_str(users[0]['InitiationDate']),
                     'gender': users[0]['Gender'],
                     'pronoun': users[0]['Pronoun'],
+                    'ethnicity': users[0]['Ethnicity'],
                 }
 
                 cursor = conn.cursor(as_dict=True)
@@ -1115,6 +1121,15 @@ def state_province_list(request):
         })
     
     return Response(grouped_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def curriculum_list(request):
+    from .models import Curriculum
+    curricula = Curriculum.objects.all()
+    data = [{'id': c.id, 'full_name': c.full_name, 'abbreviated': c.abbreviated} for c in curricula]
+    return Response(data, status=status.HTTP_200_OK)
 
 
 # ============================================================

@@ -34,6 +34,9 @@ urlpatterns = [
     # Emergency contact
     path('registration/<int:registration_id>/emergency-contact/', views.update_emergency_contact, name='update-emergency-contact'),
 
+    # Guest attending decision
+    path('registration/<int:registration_id>/guest-attending/', views.update_guest_attending, name='update-guest-attending'),
+
     # Recruiter visibility
     path('registration/<int:registration_id>/visibility/', views.update_recruiter_visibility, name='update-recruiter-visibility'),
     
