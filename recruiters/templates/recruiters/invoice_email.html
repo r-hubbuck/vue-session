@@ -1,16 +1,74 @@
-<!DOCTYPE html>
-<html>
-<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-    <h2>Invoice from Tau Beta Pi</h2>
-    <p>Hello,</p>
-    <p>An invoice has been issued for <strong>{{ invoice.organization.name }}</strong>.</p>
-    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-        <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Invoice Number:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;">{{ invoice.invoice_number }}</td></tr>
-        <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Amount:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;">${{ invoice.amount }}</td></tr>
-        <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Due Date:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;">{{ invoice.due_date }}</td></tr>
-        <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Description:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;">{{ invoice.description }}</td></tr>
-    </table>
-    <p><a href="{{ frontend_url }}/recruiter/invoices" style="display: inline-block; padding: 12px 24px; background-color: #284080; color: white; text-decoration: none; border-radius: 6px;">View Invoice</a></p>
-    <p>Thank you,<br>Tau Beta Pi</p>
-</body>
-</html>
+{% extends "emails/base_email.html" %}
+
+{% block title %}Invoice {{ invoice.invoice_number }} — Tau Beta Pi{% endblock %}
+
+{% block preheader %}Invoice {{ invoice.invoice_number }} for ${{ invoice.amount }} has been issued for {{ invoice.organization.name }}. Due {{ invoice.due_date }}.{% endblock %}
+
+{% block accent_color %}#284080{% endblock %}
+
+{% block body_header %}
+<p style="margin:0 0 28px 0; font-size:20px; font-weight:bold; color:#1b2342; letter-spacing:-0.3px;">Invoice from Tau Beta Pi</p>
+{% endblock %}
+
+{% block greeting %}{% endblock %}
+
+{# Invoice has no person variable — greeting handled inside content block #}
+{% block content %}
+<p style="margin:0 0 20px 0; font-size:15px; color:#222222; line-height:1.5;">Hello,</p>
+
+<p style="margin:0 0 16px 0; font-size:15px; color:#333344; line-height:1.7;">
+  An invoice has been issued for <strong style="color:#1b2342;">{{ invoice.organization.name }}</strong>. Please review the details below and remit payment by the due date.
+</p>
+
+{# Invoice details table #}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+       style="background-color:#f8f9fc; border:1px solid #dde0e6; border-left:4px solid #284080; border-radius:0 6px 6px 0; margin:0 0 24px 0;">
+  <tr>
+    <td style="padding:20px 24px;">
+      <p style="margin:0 0 10px 0; font-size:12px; font-weight:bold; color:#284080; text-transform:uppercase; letter-spacing:0.1em;">Invoice Details</p>
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+        <tr>
+          <td width="45%" style="padding:6px 0; font-size:13px; color:#6c757d; border-bottom:1px solid #eee;">Invoice Number</td>
+          <td width="55%" style="padding:6px 0; font-size:13px; color:#222222; font-weight:bold; font-family:'Courier New',Courier,monospace; border-bottom:1px solid #eee;">{{ invoice.invoice_number }}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0; font-size:13px; color:#6c757d; border-bottom:1px solid #eee;">Organization</td>
+          <td style="padding:6px 0; font-size:13px; color:#222222; border-bottom:1px solid #eee;">{{ invoice.organization.name }}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0; font-size:13px; color:#6c757d; border-bottom:1px solid #eee;">Description</td>
+          <td style="padding:6px 0; font-size:13px; color:#222222; border-bottom:1px solid #eee;">{{ invoice.description }}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0; font-size:13px; color:#6c757d; border-bottom:1px solid #eee;">Amount Due</td>
+          <td style="padding:6px 0; font-size:18px; color:#1b2342; font-weight:bold; border-bottom:1px solid #eee;">${{ invoice.amount }}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0; font-size:13px; color:#6c757d;">Payment Due</td>
+          <td style="padding:6px 0; font-size:13px; color:#dc3545; font-weight:bold;">{{ invoice.due_date }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0; font-size:14px; color:#333344; line-height:1.7;">
+  If you have questions about this invoice or need to discuss payment arrangements, please contact us at
+  <a href="mailto:tbp@tbp.org" style="color:#284080;">tbp@tbp.org</a>.
+</p>
+{% endblock %}
+
+{% block cta %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:20px 0 0 0;">
+  <tr>
+    <td style="border-radius:6px; background-color:#284080;">
+      <a href="{{ frontend_url }}/recruiter/invoices"
+         style="display:inline-block; padding:14px 32px; font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:6px;">
+        View Invoice
+      </a>
+    </td>
+  </tr>
+</table>
+{% endblock %}
+
+{% block sender %}Tau Beta Pi{% endblock %}

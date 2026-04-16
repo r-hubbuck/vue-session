@@ -1,104 +1,83 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Expense Report Rejected</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .header {
-            background-color: #dc3545;
-            color: white;
-            padding: 20px;
-            text-align: center;
-            border-radius: 5px 5px 0 0;
-        }
-        .content {
-            background-color: #f8f9fa;
-            padding: 30px;
-            border: 1px solid #dee2e6;
-            border-top: none;
-        }
-        .info-box {
-            background-color: white;
-            border-left: 4px solid #dc3545;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .info-box strong {
-            color: #dc3545;
-        }
-        .reason-box {
-            background-color: #fff3cd;
-            border: 1px solid #ffc107;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 5px;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 0.9em;
-            color: #6c757d;
-        }
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #284080;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-top: 15px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h2>Expense Report Rejected</h2>
-        </div>
-        
-        <div class="content">
-            {% if person %}
-                <p>Hi {{ person.first_name }},</p>
-            {% else %}
-                <p>Hello,</p>
-            {% endif %}
-            
-            <p>Unfortunately, your expense report has been rejected and requires revision.</p>
-            
-            <div class="info-box">
-                <p><strong>Report ID:</strong> #{{ report_id }}</p>
-                <p><strong>Report Type:</strong> {{ report_type_name }}</p>
-                <p><strong>Total Amount:</strong> ${{ total_amount }}</p>
-                <p><strong>Submitted Date:</strong> {{ submitted_date }}</p>
-            </div>
-            
-            <div class="reason-box">
-                <p><strong>Rejection Reason:</strong></p>
-                <p>{{ rejection_reason }}</p>
-            </div>
-            
-            <p>Please review the rejection reason above and submit a new expense report with the necessary corrections.</p>
-            
-            <p>If you have any questions about this rejection, please contact the finance department.</p>
-            
-            <a href="http://{{ domain }}/expense-reports" class="btn text-white" style="color:white;">View My Expense Reports</a>
-        </div>
-        
-        <div class="footer">
-            <p>Best regards,<br>TBP Finance Team</p>
-            <p style="font-size: 0.8em; color: #adb5bd;">
-                This is an automated message. Please do not reply to this email.
-            </p>
-        </div>
-    </div>
-</body>
-</html>
+{% extends "emails/base_email.html" %}
+
+{% block title %}Expense Report #{{ report_id }} — Action Required{% endblock %}
+
+{% block preheader %}Your expense report #{{ report_id }} requires revision before it can be approved. Please review the reason below.{% endblock %}
+
+{% block accent_color %}#dc3545{% endblock %}
+
+{% block body_header %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 28px 0;">
+  <tr>
+    <td style="background-color:#fdf0f1; border:1px solid #f5c2c7; border-radius:6px; padding:12px 18px;">
+      <p style="margin:0; font-size:15px; font-weight:bold; color:#842029;">&#8635;&nbsp; Expense Report — Revision Required</p>
+    </td>
+  </tr>
+</table>
+{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 16px 0; font-size:15px; color:#333344; line-height:1.7;">
+  Your expense report has been reviewed and requires revision before it can be approved.
+  Please see the details and rejection reason below, then submit a corrected report.
+</p>
+
+{# Report details #}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+       style="background-color:#f8f9fc; border:1px solid #dde0e6; border-left:4px solid #dc3545; border-radius:0 6px 6px 0; margin:0 0 20px 0;">
+  <tr>
+    <td style="padding:20px 24px;">
+      <p style="margin:0 0 10px 0; font-size:12px; font-weight:bold; color:#dc3545; text-transform:uppercase; letter-spacing:0.1em;">Report Details</p>
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+        <tr>
+          <td width="45%" style="padding:5px 0; font-size:13px; color:#6c757d; border-bottom:1px solid #eee;">Report ID</td>
+          <td width="55%" style="padding:5px 0; font-size:13px; color:#222222; font-weight:bold; border-bottom:1px solid #eee;">#{{ report_id }}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 0; font-size:13px; color:#6c757d; border-bottom:1px solid #eee;">Report Type</td>
+          <td style="padding:5px 0; font-size:13px; color:#222222; border-bottom:1px solid #eee;">{{ report_type_name }}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 0; font-size:13px; color:#6c757d; border-bottom:1px solid #eee;">Total Amount</td>
+          <td style="padding:5px 0; font-size:13px; color:#222222; border-bottom:1px solid #eee;">${{ total_amount }}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 0; font-size:13px; color:#6c757d;">Submitted</td>
+          <td style="padding:5px 0; font-size:13px; color:#222222;">{{ submitted_date }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+{# Rejection reason — prominent callout #}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+       style="background-color:#fff8e1; border:1px solid #ffca28; border-radius:6px; margin:0 0 24px 0;">
+  <tr>
+    <td style="padding:20px 24px;">
+      <p style="margin:0 0 8px 0; font-size:12px; font-weight:bold; color:#7a5a00; text-transform:uppercase; letter-spacing:0.1em;">&#9888;&nbsp; Reason for Rejection</p>
+      <p style="margin:0; font-size:14px; color:#333344; line-height:1.7;">{{ rejection_reason }}</p>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0 0 8px 0; font-size:14px; color:#333344; line-height:1.7;">
+  Please address the issue described above and submit a new expense report with the necessary corrections.
+  If you have any questions about this decision, please contact the finance department.
+</p>
+{% endblock %}
+
+{% block cta %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:20px 0 0 0;">
+  <tr>
+    <td style="border-radius:6px; background-color:#284080;">
+      <a href="http://{{ domain }}/expense-reports"
+         style="display:inline-block; padding:12px 28px; font-size:14px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:6px;">
+        View My Expense Reports
+      </a>
+    </td>
+  </tr>
+</table>
+{% endblock %}
+
+{% block sender %}Tau Beta Pi Finance Team{% endblock %}

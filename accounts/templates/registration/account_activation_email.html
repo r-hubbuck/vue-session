@@ -1,23 +1,49 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Account Activation</title>
-</head>
-<body>
-    <h2>Account Activation</h2>
-    
-    {% if person %}
-        <p>Hi {{ person.first_name }},</p>
-    {% else %}
-        <p>Hello,</p>
-    {% endif %}
-    
-    <p>Please click the link below to activate your account:</p>
-    
-    <p><a href="http://{{domain}}{%url 'activate' uidb64=uid token=token%}">Activate Account</a></p>
-    
-    <p>This link will expire for security reasons.</p>
-    
-    <p>Best regards,<br>TBP Portal Team</p>
-</body>
-</html>
+{% extends "emails/base_email.html" %}
+
+{% block title %}Activate Your TBP Portal Account{% endblock %}
+
+{% block preheader %}Action required: activate your new Tau Beta Pi Portal account.{% endblock %}
+
+{% block accent_color %}#284080{% endblock %}
+
+{% block body_header %}
+<p style="margin:0 0 28px 0; font-size:20px; font-weight:bold; color:#1b2342; letter-spacing:-0.3px;">Activate Your Account</p>
+{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 16px 0; font-size:15px; color:#333344; line-height:1.7;">
+  Welcome to the TBP Portal! Your account has been created and is one step away from being active.
+  Please click the button below to verify your email address and complete your registration.
+</p>
+
+<p style="margin:0 0 28px 0; font-size:15px; color:#333344; line-height:1.7;">
+  This activation link will expire for security reasons. If it has expired, you can request a new one from the portal login page.
+</p>
+{% endblock %}
+
+{% block cta %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 8px 0 24px 0;">
+  <tr>
+    <td style="border-radius:6px; background-color:#284080;">
+      <a href="http://{{ domain }}{% url 'activate' uidb64=uid token=token %}"
+         style="display:inline-block; padding:14px 32px; font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:6px;">
+        Activate Account
+      </a>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0; font-size:12px; color:#8a8fa8; line-height:1.6;">
+  If the button above does not work, copy and paste this URL into your browser:<br>
+  <a href="http://{{ domain }}{% url 'activate' uidb64=uid token=token %}"
+     style="color:#284080; word-break:break-all;">
+    http://{{ domain }}{% url 'activate' uidb64=uid token=token %}
+  </a>
+</p>
+{% endblock %}
+
+{% block sender %}Tau Beta Pi Portal{% endblock %}
+
+{% block footer_extra %}
+  If you did not create a TBP Portal account, you can safely ignore this email.
+{% endblock %}

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>{% block title %}Tau Beta Pi Portal{% endblock %}</title>
+  <!--[if mso]>
+  <noscript>
+    <xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { margin: 0 !important; padding: 0 !important; background-color: #eef0f3; width: 100% !important; }
+    a { color: #284080; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    @media only screen and (max-width: 620px) {
+      .email-container { width: 100% !important; }
+      .fluid { max-width: 100% !important; height: auto !important; }
+      .stack-column, .stack-column-center { display: block !important; width: 100% !important; max-width: 100% !important; direction: ltr !important; }
+      .body-padding { padding: 24px 16px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0; padding:0; background-color:#eef0f3; font-family: Arial, Helvetica, sans-serif;">
+
+  {# ======================================================= #}
+  {# PREHEADER — hidden text shown in email client previews  #}
+  {# ======================================================= #}
+  <div style="display:none; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; color:#eef0f3; line-height:1px;">
+    {% block preheader %}Tau Beta Pi — The Engineering Honor Society{% endblock %}
+    &zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
+  </div>
+
+  {# ======================================================= #}
+  {# OUTER WRAPPER                                           #}
+  {# ======================================================= #}
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#eef0f3;">
+    <tr>
+      <td align="center" style="padding: 32px 16px;">
+
+        {# ================================================= #}
+        {# EMAIL CARD — 600px                                #}
+        {# ================================================= #}
+        <table role="presentation" class="email-container" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width:600px; width:100%;">
+
+          {# ----------------------------------------- #}
+          {# HEADER — dark navy + logo                  #}
+          {# ----------------------------------------- #}
+          <tr>
+            <td align="center" style="background-color:#1b2342; padding: 28px 40px; border-radius: 8px 8px 0 0;">
+              {#
+                Logo note: Horizontal_BLUE2.png has a black background, which blends
+                naturally into this dark navy header. Host the file on your static
+                server and reference it with an absolute URL.
+                Adjust the path below to match your STATIC_ROOT / CDN.
+              #}
+              <img src="http://{{ domain }}/static/img/logo_horizontal_blue.png"
+                   alt="Tau Beta Pi — The Engineering Honor Society"
+                   width="220" height="auto"
+                   style="display:block; height:auto; max-width:220px; width:100%;">
+            </td>
+          </tr>
+
+          {# ----------------------------------------- #}
+          {# ACCENT BAR — override this block in child  #}
+          {# templates to change the bar color.         #}
+          {# Default: TBP navy #284080                  #}
+          {# ----------------------------------------- #}
+          {% block accent_bar %}
+          <tr>
+            <td style="background-color:#284080; height:5px; font-size:0; line-height:0;">&nbsp;</td>
+          </tr>
+          {% endblock %}
+
+          {# ----------------------------------------- #}
+          {# BODY CARD                                  #}
+          {# ----------------------------------------- #}
+          <tr>
+            <td class="body-padding" style="background-color:#ffffff; padding: 40px 48px; border-left: 1px solid #dde0e6; border-right: 1px solid #dde0e6;">
+
+              {# Optional in-body status badge / title #}
+              {% block body_header %}{% endblock %}
+
+              {# Greeting — override this block in child templates to customize or suppress #}
+              {% block greeting %}
+              {% if person %}
+                <p style="margin:0 0 20px 0; font-size:15px; color:#222222; line-height:1.5;">Hi {{ person.first_name }},</p>
+              {% else %}
+                <p style="margin:0 0 20px 0; font-size:15px; color:#222222; line-height:1.5;">Hello,</p>
+              {% endif %}
+              {% endblock %}
+
+              {# ===== MAIN CONTENT BLOCK ===== #}
+              {% block content %}{% endblock %}
+
+              {# ===== OPTIONAL CTA BUTTON ===== #}
+              {% block cta %}{% endblock %}
+
+            </td>
+          </tr>
+
+          {# ----------------------------------------- #}
+          {# FOOTER                                     #}
+          {# ----------------------------------------- #}
+          <tr>
+            <td style="background-color:#f4f5f8; padding: 28px 48px; border: 1px solid #dde0e6; border-top: none; border-radius: 0 0 8px 8px;">
+
+              {# Sender sign-off #}
+              <p style="margin:0 0 16px 0; font-size:13px; color:#4a4a5a; line-height:1.6;">
+                Best regards,<br>
+                <strong style="color:#1b2342;">{% block sender %}Tau Beta Pi{% endblock %}</strong>
+              </p>
+
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="border-top: 1px solid #dde0e6; padding-top: 16px;">
+
+                    {# Footer logo mark #}
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                      <tr>
+                        <td valign="middle" width="32">
+                          <img src="http://{{ domain }}/static/img/logo_circle_blue.png"
+                               alt="TBP"
+                               width="28" height="28"
+                               style="display:block; width:28px; height:28px;">
+                        </td>
+                        <td valign="middle" style="padding-left:10px;">
+                          <p style="margin:0; font-size:11px; color:#8a8fa8; line-height:1.5;">
+                            Tau Beta Pi — The Engineering Honor Society<br>
+                            <a href="http://{{ domain }}" style="color:#284080; text-decoration:none;">{{ domain }}</a>
+                            &nbsp;·&nbsp;
+                            <a href="mailto:tbp@tbp.org" style="color:#284080; text-decoration:none;">tbp@tbp.org</a>
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <p style="margin:12px 0 0 0; font-size:10px; color:#adb1c2; line-height:1.5;">
+                      This is an automated message from the TBP Portal. Please do not reply directly to this email.<br>
+                      {% block footer_extra %}{% endblock %}
+                    </p>
+
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+        </table>
+        {# /EMAIL CARD #}
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

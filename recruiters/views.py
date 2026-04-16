@@ -378,6 +378,7 @@ def admin_approve_recruiter(request, pk):
         message = render_to_string('recruiters/approval_email.html', {
             'profile': profile,
             'frontend_url': FRONTEND_URL,
+            'domain': DOMAIN,
         })
         email_msg = EmailMultiAlternatives(
             subject=mail_subject,
@@ -569,6 +570,7 @@ def admin_update_registration(request, pk):
             message = render_to_string('recruiters/registration_approved_email.html', {
                 'registration': updated,
                 'frontend_url': FRONTEND_URL,
+                'domain': DOMAIN,
             })
             email_msg = EmailMultiAlternatives(
                 subject='Your Convention Registration Has Been Approved',
@@ -846,6 +848,7 @@ def admin_invoices(request):
             message = render_to_string('recruiters/invoice_email.html', {
                 'invoice': invoice,
                 'frontend_url': FRONTEND_URL,
+                'domain': DOMAIN,
             })
             email_msg = EmailMultiAlternatives(
                 subject=mail_subject,
@@ -886,6 +889,7 @@ def admin_update_invoice(request, pk):
             message = render_to_string('recruiters/invoice_email.html', {
                 'invoice': invoice,
                 'frontend_url': FRONTEND_URL,
+                'domain': DOMAIN,
             })
             email_msg = EmailMultiAlternatives(
                 subject=mail_subject,

@@ -137,8 +137,8 @@ def login_view(request):
                 mail_subject = 'TBP Portal Verification Code'
                 message = render_to_string('registration/two_factor_code_email.html', {
                     'user_code': code,
-                    # 'domain': current_site.domain,  # ADD THIS LINE
                     'domain': DOMAIN,
+                    'person': user.person if hasattr(user, 'person') and user.person else None,
                 })
                 to_email = user.email
                 

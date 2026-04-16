@@ -39,7 +39,7 @@ def send_expense_report_email(report, email_type):
             'report_type_name': report.report_type.report_name,
             'total_amount': f"{report.total_amount:.2f}",
             'submitted_date': report.created_at.strftime('%B %d, %Y'),
-            'domain': getattr(settings, 'SITE_DOMAIN', 'localhost:8000'),
+            'domain': getattr(settings, 'DOMAIN', 'localhost:9000'),
         }
         
         # Set email subject and template based on type

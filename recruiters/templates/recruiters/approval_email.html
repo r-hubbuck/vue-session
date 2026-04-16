@@ -1,10 +1,59 @@
-<!DOCTYPE html>
-<html>
-<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-    <h2>Your Recruiter Account Has Been Approved</h2>
-    <p>Hello {{ profile.first_name }},</p>
-    <p>Your recruiter account for <strong>{{ profile.organization.name }}</strong> has been approved. You can now register for the convention and access recruiter features.</p>
-    <p><a href="{{ frontend_url }}/recruiter/dashboard" style="display: inline-block; padding: 12px 24px; background-color: #284080; color: white; text-decoration: none; border-radius: 6px;">Go to Dashboard</a></p>
-    <p>Thank you,<br>Tau Beta Pi</p>
-</body>
-</html>
+{% extends "emails/base_email.html" %}
+
+{% block title %}Your Recruiter Account Has Been Approved{% endblock %}
+
+{% block preheader %}Your recruiter account for {{ profile.organization.name }} has been approved. You can now access the convention portal.{% endblock %}
+
+{% block accent_color %}#28a745{% endblock %}
+
+{% block body_header %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 28px 0;">
+  <tr>
+    <td style="background-color:#eaf7ed; border:1px solid #b7e4c7; border-radius:6px; padding:12px 18px;">
+      <p style="margin:0; font-size:15px; font-weight:bold; color:#1a5c2e;">&#10003;&nbsp; Recruiter Account Approved</p>
+    </td>
+  </tr>
+</table>
+{% endblock %}
+
+{% block greeting %}{% endblock %}
+
+{# Greeting is handled inside content block using profile #}
+{% block content %}
+<p style="margin:0 0 20px 0; font-size:15px; color:#222222; line-height:1.5;">Hello {{ profile.first_name }},</p>
+
+<p style="margin:0 0 16px 0; font-size:15px; color:#333344; line-height:1.7;">
+  Your recruiter account for <strong style="color:#1b2342;">{{ profile.organization.name }}</strong> has been approved.
+  You now have full access to the convention portal and may register for the convention, manage your booth details, and access all recruiter features.
+</p>
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+       style="background-color:#f8f9fc; border:1px solid #dde0e6; border-left:4px solid #28a745; border-radius:0 6px 6px 0; margin:0 0 24px 0;">
+  <tr>
+    <td style="padding:16px 20px;">
+      <p style="margin:0 0 8px 0; font-size:12px; font-weight:bold; color:#28a745; text-transform:uppercase; letter-spacing:0.1em;">What you can do now:</p>
+      <table role="presentation" cellspacing="0" cellpadding="4" border="0" width="100%">
+        <tr><td style="font-size:14px; color:#333344;">&#10003;&nbsp; Register for the convention</td></tr>
+        <tr><td style="font-size:14px; color:#333344;">&#10003;&nbsp; Select your booth package and meal preferences</td></tr>
+        <tr><td style="font-size:14px; color:#333344;">&#10003;&nbsp; View invoices and manage your registration</td></tr>
+        <tr><td style="font-size:14px; color:#333344;">&#10003;&nbsp; Access the recruiter resource library</td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+{% endblock %}
+
+{% block cta %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:8px 0 0 0;">
+  <tr>
+    <td style="border-radius:6px; background-color:#284080;">
+      <a href="{{ frontend_url }}/recruiter/dashboard"
+         style="display:inline-block; padding:14px 32px; font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:6px;">
+        Go to Dashboard
+      </a>
+    </td>
+  </tr>
+</table>
+{% endblock %}
+
+{% block sender %}Tau Beta Pi{% endblock %}
