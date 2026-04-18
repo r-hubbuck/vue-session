@@ -61,11 +61,31 @@
 {% block cta %}
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:20px 0 0 0;">
   <tr>
-    <td style="border-radius:6px; background-color:#284080;">
-      <a href="{{ frontend_url }}/recruiter/invoices"
-         style="display:inline-block; padding:14px 32px; font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:6px;">
-        View Invoice
-      </a>
+    {% if invoice.payment_link %}
+    <td style="padding-right:10px;">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+        <tr>
+          <td style="border-radius:6px; background-color:#198754;">
+            <a href="{{ invoice.payment_link }}"
+               style="display:inline-block; padding:10px 22px; font-size:13px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:6px;">
+              Pay Now
+            </a>
+          </td>
+        </tr>
+      </table>
+    </td>
+    {% endif %}
+    <td>
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+        <tr>
+          <td style="border-radius:6px; background-color:#284080;">
+            <a href="{{ frontend_url }}/recruiter/invoices"
+               style="display:inline-block; padding:10px 22px; font-size:13px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:6px;">
+              View Invoice
+            </a>
+          </td>
+        </tr>
+      </table>
     </td>
   </tr>
 </table>

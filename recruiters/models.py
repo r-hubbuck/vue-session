@@ -214,6 +214,7 @@ class Invoice(models.Model):
     issued_date = models.DateField()
     due_date = models.DateField()
     paid_date = models.DateField(null=True, blank=True)
+    payment_link = models.URLField(blank=True, default='')
     notes = models.TextField(blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

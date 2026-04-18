@@ -86,45 +86,35 @@
             <table class="table table-custom">
               <thead>
                 <tr>
-                  <th>Recruiter</th>
-                  <th>Organization</th>
-                  <th>Package</th>
-                  <th>Booth ID</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th class="sortable-col" @click="setRegSort('name')">Recruiter <i :class="regSortIcon('name')"></i></th>
+                  <th class="sortable-col" @click="setRegSort('org')">Organization <i :class="regSortIcon('org')"></i></th>
+                  <th class="sortable-col" @click="setRegSort('package')">Package <i :class="regSortIcon('package')"></i></th>
+                  <th class="sortable-col" @click="setRegSort('booth_id')">Booth ID <i :class="regSortIcon('booth_id')"></i></th>
+                  <th class="sortable-col" @click="setRegSort('status')">Status <i :class="regSortIcon('status')"></i></th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="reg in registrations" :key="reg.id">
+                <tr v-for="reg in sortedRegistrations" :key="reg.id" :class="regRowClass(reg)">
                   <td class="fw-medium">{{ reg.recruiter.first_name }} {{ reg.recruiter.last_name }}</td>
                   <td>{{ reg.recruiter.organization_name }}</td>
                   <td>{{ reg.booth_package_detail?.name }}</td>
                   <td>
-                    <input
-                      v-model.trim="reg._boothId"
-                      type="text"
-                      class="form-control form-control-sm"
-                      style="width: 100px;"
-                      placeholder="Assign..."
-                      maxlength="50"
-                    >
+                    <span v-if="reg.booth_id" class="text-monospace">{{ reg.booth_id }}</span>
+                    <span v-else class="text-muted fst-italic">Unassigned</span>
                   </td>
                   <td>
-                    <select v-model="reg._status" class="form-select form-select-sm" style="width: 130px;">
-                      <option value="pending">Pending</option>
-                      <option value="approved">Approved</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
+                    <span :class="statusBadgeClass(reg.status)">
+                      {{ reg.status.charAt(0).toUpperCase() + reg.status.slice(1) }}
+                    </span>
                   </td>
                   <td>
                     <button
-                      v-if="reg._status !== reg.status || reg._boothId !== (reg.booth_id || '')"
-                      @click="updateRegistration(reg)"
-                      class="btn btn-primary btn-sm"
-                      :disabled="saving"
+                      class="btn btn-outline-secondary btn-sm"
+                      @click="openRegEdit(reg)"
+                      title="Edit registration"
                     >
-                      <i class="bi bi-check2 me-1"></i>Save
+                      <i class="bi bi-pencil"></i>
                     </button>
                   </td>
                 </tr>
@@ -240,6 +230,69 @@
       </div>
     </div>
   </div>
+
+  <!-- Registration Edit Modal -->
+  <div v-if="selectedReg" class="modal-backdrop-custom" @click.self="closeRegEdit">
+    <div class="modal-dialog-custom" style="max-width: 520px;">
+      <div class="modal-header-custom">
+        <h5 class="modal-title-custom">
+          <i class="bi bi-pencil-square me-2"></i>Edit Registration
+        </h5>
+        <button class="btn-close" @click="closeRegEdit"></button>
+      </div>
+      <div class="modal-body-custom">
+
+        <h6 class="section-label">Recruiter</h6>
+        <div class="detail-grid mb-3">
+          <div class="detail-item">
+            <span class="detail-label">Name</span>
+            <span class="detail-value">{{ selectedReg.recruiter.first_name }} {{ selectedReg.recruiter.last_name }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Organization</span>
+            <span class="detail-value">{{ selectedReg.recruiter.organization_name }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Package</span>
+            <span class="detail-value">{{ selectedReg.booth_package_detail?.name || '—' }}</span>
+          </div>
+        </div>
+
+        <h6 class="section-label">Assignment</h6>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label class="detail-label" for="reg-booth">Booth ID</label>
+            <input
+              id="reg-booth"
+              v-model.trim="regEditForm.boothId"
+              type="text"
+              class="form-control form-control-sm mt-1"
+              placeholder="e.g. B-12"
+              maxlength="50"
+            >
+          </div>
+          <div class="detail-item">
+            <label class="detail-label" for="reg-status">Status</label>
+            <select id="reg-status" v-model="regEditForm.status" class="form-select form-select-sm mt-1">
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer-custom">
+        <button @click="closeRegEdit" class="btn btn-outline-secondary">Cancel</button>
+        <button @click="saveRegEdit" class="btn btn-primary ms-auto" :disabled="saving">
+          <span v-if="saving"><span class="spinner-border spinner-border-sm me-2"></span>Saving...</span>
+          <span v-else><i class="bi bi-check2 me-1"></i>Save Changes</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   </div>
 </template>
 
@@ -257,6 +310,58 @@ const saving = ref(false)
 const pendingRecruiters = ref([])
 const registrations = ref([])
 const selectedRecruiter = ref(null)
+const selectedReg = ref(null)
+const regEditForm = ref({ boothId: '', status: '' })
+
+const regSortKey = ref('')
+const regSortDir = ref(1)
+
+const setRegSort = (key) => {
+  if (regSortKey.value === key) regSortDir.value *= -1
+  else { regSortKey.value = key; regSortDir.value = 1 }
+}
+
+const regSortIcon = (key) => {
+  if (regSortKey.value !== key) return 'bi bi-chevron-expand text-muted small'
+  return regSortDir.value === 1 ? 'bi bi-chevron-up small' : 'bi bi-chevron-down small'
+}
+
+const regSortVal = (reg, key) => {
+  if (key === 'name') return `${reg.recruiter.first_name} ${reg.recruiter.last_name}`.toLowerCase()
+  if (key === 'org') return (reg.recruiter.organization_name || '').toLowerCase()
+  if (key === 'package') return (reg.booth_package_detail?.name || '').toLowerCase()
+  if (key === 'booth_id') return (reg.booth_id || '').toLowerCase()
+  if (key === 'status') return reg.status
+  return ''
+}
+
+const sortedRegistrations = computed(() => {
+  if (!regSortKey.value) return registrations.value
+  return [...registrations.value].sort((a, b) => {
+    const av = regSortVal(a, regSortKey.value)
+    const bv = regSortVal(b, regSortKey.value)
+    if (av < bv) return -regSortDir.value
+    if (av > bv) return regSortDir.value
+    return 0
+  })
+})
+
+const regRowClass = (reg) => {
+  if (reg.status === 'confirmed') return 'row-success'
+  if (reg.status === 'approved') return 'row-info'
+  if (reg.status === 'cancelled') return 'row-danger'
+  return ''
+}
+
+const statusBadgeClass = (status) => {
+  const map = {
+    confirmed: 'badge bg-success',
+    approved: 'badge bg-primary',
+    pending: 'badge bg-warning text-dark',
+    cancelled: 'badge bg-danger',
+  }
+  return map[status] || 'badge bg-secondary'
+}
 
 const formatPhone = (value) => {
   if (!value) return '—'
@@ -291,6 +396,41 @@ const openDetail = (recruiter) => {
 
 const closeDetail = () => {
   selectedRecruiter.value = null
+}
+
+const openRegEdit = (reg) => {
+  selectedReg.value = reg
+  regEditForm.value = {
+    boothId: reg.booth_id || '',
+    status: reg.status,
+  }
+}
+
+const closeRegEdit = () => {
+  selectedReg.value = null
+}
+
+const saveRegEdit = async () => {
+  if (saving.value) return
+  const reg = selectedReg.value
+  if (regEditForm.value.boothId && !/^[A-Za-z0-9-]+$/.test(regEditForm.value.boothId)) {
+    toast.error('Booth ID may only contain letters, numbers, and hyphens.')
+    return
+  }
+  saving.value = true
+  try {
+    const res = await api.put(`/api/recruiters/admin/registrations/${reg.id}/`, {
+      booth_id: regEditForm.value.boothId,
+      status: regEditForm.value.status,
+    })
+    Object.assign(reg, res.data)
+    closeRegEdit()
+    toast.success('Registration updated!')
+  } catch (error) {
+    toast.error(error.response?.data?.error || 'Update failed.')
+  } finally {
+    saving.value = false
+  }
 }
 
 const removeFromPending = (id) => {
@@ -342,29 +482,6 @@ const deleteRecruiter = async (id) => {
   }
 }
 
-const updateRegistration = async (reg) => {
-  if (saving.value) return
-  if (reg._boothId && !/^[A-Za-z0-9-]+$/.test(reg._boothId)) {
-    toast.error('Booth ID may only contain letters, numbers, and hyphens.')
-    return
-  }
-  saving.value = true
-  try {
-    const res = await api.put(`/api/recruiters/admin/registrations/${reg.id}/`, {
-      booth_id: reg._boothId,
-      status: reg._status,
-    })
-    Object.assign(reg, res.data)
-    reg._boothId = res.data.booth_id
-    reg._status = res.data.status
-    toast.success('Registration updated!')
-  } catch (error) {
-    toast.error(error.response?.data?.error || 'Update failed.')
-  } finally {
-    saving.value = false
-  }
-}
-
 onMounted(async () => {
   try {
     const [pendingRes, regRes] = await Promise.allSettled([
@@ -377,11 +494,7 @@ onMounted(async () => {
     }
     if (regRes.status === 'fulfilled') {
       const results = regRes.value.data.results ?? regRes.value.data
-      registrations.value = results.map(r => ({
-        ...r,
-        _boothId: r.booth_id || '',
-        _status: r.status,
-      }))
+      registrations.value = results
     }
   } catch (error) {
     console.error('Error loading admin data:', error)
@@ -398,8 +511,29 @@ onMounted(async () => {
 .clickable-row:hover {
   background-color: #f8fafc;
 }
+.sortable-col {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.sortable-col:hover {
+  background-color: #f1f5f9;
+}
+.row-success td {
+  background-color: #d1fae5 !important;
+}
+.row-info td {
+  background-color: #dbeafe !important;
+}
+.row-danger td {
+  background-color: #fee2e2 !important;
+}
+.text-monospace {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+}
 
-/* Modal */
+/* Recruiter detail modal */
 .modal-backdrop-custom {
   position: fixed;
   inset: 0;

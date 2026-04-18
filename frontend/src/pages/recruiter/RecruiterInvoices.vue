@@ -31,6 +31,7 @@
                 <th>Issued</th>
                 <th>Due</th>
                 <th>Paid</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -44,6 +45,17 @@
                 <td>{{ inv.issued_date }}</td>
                 <td>{{ inv.due_date }}</td>
                 <td>{{ inv.paid_date || '—' }}</td>
+                <td>
+                  <a
+                    v-if="inv.payment_link && inv.status !== 'paid' && inv.status !== 'cancelled'"
+                    :href="inv.payment_link"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-success btn-sm"
+                  >
+                    <i class="bi bi-credit-card me-1"></i>Pay Now
+                  </a>
+                </td>
               </tr>
             </tbody>
           </table>

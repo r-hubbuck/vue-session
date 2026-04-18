@@ -7,6 +7,16 @@
       </div>
     </div>
 
+    <div v-if="convention" class="convention-banner">
+      <div class="convention-banner-content">
+        <span class="fw-semibold">{{ convention.name }}</span>
+        <span class="separator">·</span>
+        <span>{{ convention.location }}</span>
+        <span class="separator">·</span>
+        <span>{{ formatDate(convention.start_date) }} – {{ formatDate(convention.end_date) }}</span>
+      </div>
+    </div>
+
     <div class="content-container">
       <div v-if="loading" class="text-center py-5">
         <div class="spinner-border text-primary" role="status">
@@ -74,7 +84,12 @@
               <!-- Majors recruiting (edit) -->
               <div class="row g-3 mt-1">
                 <div class="col-md-6">
-                  <label class="form-label">Majors Recruiting</label>
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label mb-0">Majors Recruiting</label>
+                    <a href="#" class="small" @click.prevent="toggleAllMajors('edit')">
+                      {{ editForm.recruiting_majors.length === curricula.length ? 'Deselect All' : 'Select All' }}
+                    </a>
+                  </div>
                   <div class="border rounded p-2" style="max-height: 160px; overflow-y: auto;">
                     <div v-for="c in curricula" :key="c.id" class="form-check">
                       <input
@@ -89,7 +104,12 @@
                   </div>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Positions Recruiting</label>
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label mb-0">Positions Recruiting</label>
+                    <a href="#" class="small" @click.prevent="toggleAllPositions('edit')">
+                      {{ editForm.recruiting_positions.length === positionOptions.length ? 'Deselect All' : 'Select All' }}
+                    </a>
+                  </div>
                   <div class="border rounded p-2">
                     <div v-for="pos in positionOptions" :key="pos" class="form-check">
                       <input
@@ -194,7 +214,12 @@
             <!-- Majors and positions -->
             <div class="row g-3 mb-3">
               <div class="col-md-6">
-                <label class="form-label">Majors Recruiting</label>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label class="form-label mb-0">Majors Recruiting</label>
+                  <a href="#" class="small" @click.prevent="toggleAllMajors('new')">
+                    {{ newForm.recruiting_majors.length === curricula.length ? 'Deselect All' : 'Select All' }}
+                  </a>
+                </div>
                 <div class="border rounded p-2" style="max-height: 160px; overflow-y: auto;">
                   <div v-for="c in curricula" :key="c.id" class="form-check">
                     <input
@@ -209,7 +234,12 @@
                 </div>
               </div>
               <div class="col-md-6">
-                <label class="form-label">Positions Recruiting</label>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label class="form-label mb-0">Positions Recruiting</label>
+                  <a href="#" class="small" @click.prevent="toggleAllPositions('new')">
+                    {{ newForm.recruiting_positions.length === positionOptions.length ? 'Deselect All' : 'Select All' }}
+                  </a>
+                </div>
                 <div class="border rounded p-2">
                   <div v-for="pos in positionOptions" :key="pos" class="form-check">
                     <input
@@ -303,9 +333,17 @@ const flattenErrors = (val) => {
 
 const packages = ref([])
 const curricula = ref([])
+const convention = ref(null)
 const positionOptions = ['Full-time', 'Part-time', 'Paid Internship']
 const registration = ref(null)
 const primaryRecruiter = ref(null)
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  const [year, month, day] = dateStr.split('-')
+  const d = new Date(year, month - 1, day)
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+}
 
 const numRecruiters = ref(1)
 const editNumRecruiters = ref(1)
@@ -401,6 +439,17 @@ const selectPackage = (pkg) => {
   newForm.value.booth_package = pkg.id
 }
 
+const toggleAllMajors = (formKey) => {
+  const form = formKey === 'new' ? newForm.value : editForm.value
+  const allIds = curricula.value.map(c => c.id)
+  form.recruiting_majors = form.recruiting_majors.length === allIds.length ? [] : allIds
+}
+
+const toggleAllPositions = (formKey) => {
+  const form = formKey === 'new' ? newForm.value : editForm.value
+  form.recruiting_positions = form.recruiting_positions.length === positionOptions.length ? [] : [...positionOptions]
+}
+
 const createRegistration = async () => {
   if (saving.value) return
   errorMessage.value = ''
@@ -442,16 +491,18 @@ const updateRegistration = async () => {
 
 onMounted(async () => {
   try {
-    const [pkgRes, regRes, profileRes, curriculaRes] = await Promise.allSettled([
+    const [pkgRes, regRes, profileRes, curriculaRes, conventionRes] = await Promise.allSettled([
       api.get('/api/recruiters/convention/booth-packages/'),
       api.get('/api/recruiters/convention/my-registration/'),
       api.get('/api/recruiters/profile/'),
       api.get('/api/accounts/curricula'),
+      api.get('/api/convention/current/'),
     ])
 
     if (pkgRes.status === 'fulfilled') packages.value = pkgRes.value.data
     if (profileRes.status === 'fulfilled') primaryRecruiter.value = profileRes.value.data
     if (curriculaRes.status === 'fulfilled') curricula.value = curriculaRes.value.data
+    if (conventionRes.status === 'fulfilled') convention.value = conventionRes.value.data
 
     if (regRes.status === 'fulfilled' && regRes.value.data.id) {
       registration.value = regRes.value.data
@@ -482,3 +533,25 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+.convention-banner {
+  background: #f0f4ff;
+  border-bottom: 1px solid #d0dbf5;
+  padding: 10px 0;
+}
+.convention-banner-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  font-size: 0.9rem;
+  color: #374151;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+.separator {
+  color: #9ca3af;
+}
+</style>

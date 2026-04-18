@@ -394,7 +394,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'organization', 'organization_name', 'convention',
             'invoice_number', 'amount', 'description', 'status',
-            'issued_date', 'due_date', 'paid_date', 'notes',
+            'issued_date', 'due_date', 'paid_date', 'payment_link', 'notes',
             'created_by', 'created_by_email', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'invoice_number', 'created_by', 'created_at', 'updated_at']
@@ -409,6 +409,11 @@ class InvoiceSerializer(serializers.ModelSerializer):
         return value
 
     def validate_description(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_payment_link(self, value):
         if value:
             return bleach.clean(value, tags=[], strip=True).strip()
         return value
@@ -449,5 +454,5 @@ class RecruiterInvoiceSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'organization_name', 'invoice_number', 'amount',
             'description', 'status', 'issued_date', 'due_date',
-            'paid_date', 'notes'
+            'paid_date', 'payment_link', 'notes'
         ]
