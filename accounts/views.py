@@ -126,32 +126,25 @@ def login_view(request):
         if user:
             request.session['pk'] = user.pk
 
-            # Trigger the code sending logic from code_check
             code = user.code
-            code_user = f"{user.code}"
-            print(f"[DEV] 2FA code for {email}: {code_user}")  # dev convenience — remove in production
-            
-            # Try to send email
-            try:
-                # current_site = get_current_site(request)  # ADD THIS LINE
-                mail_subject = 'TBP Portal Verification Code'
-                message = render_to_string('registration/two_factor_code_email.html', {
-                    'user_code': code,
-                    'domain': DOMAIN,
-                    'person': user.person if hasattr(user, 'person') and user.person else None,
-                })
-                to_email = user.email
-                
-                email_msg = EmailMultiAlternatives(
-                    subject=mail_subject,
-                    body='', 
-                    to=[to_email]
-                )
-                email_msg.attach_alternative(message, "text/html")
-                email_msg.send()
-            except Exception as e:
-                logger.error("Failed to send 2FA email to %s: %s", email, e)
-                # Continue anyway — code is printed in console for dev testing
+
+            if settings.ENVIRONMENT == 'production':
+                try:
+                    mail_subject = 'TBP Portal Verification Code'
+                    message = render_to_string('registration/two_factor_code_email.html', {
+                        'user_code': code,
+                        'domain': DOMAIN,
+                        'person': user.person if hasattr(user, 'person') and user.person else None,
+                    })
+                    email_msg = EmailMultiAlternatives(
+                        subject=mail_subject,
+                        body='',
+                        to=[user.email]
+                    )
+                    email_msg.attach_alternative(message, "text/html")
+                    email_msg.send()
+                except Exception as e:
+                    logger.error("Failed to send 2FA email to %s: %s", email, e)
             
             return Response(
                 {'success': True, 'message': 'Verification code sent to your email'}, 

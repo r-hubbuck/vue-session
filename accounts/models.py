@@ -277,7 +277,10 @@ class Code(models.Model):
         return str(self.number)
 
     def save(self, *args, **kwargs):
-        self.number = ''.join(str(secrets.randbelow(10)) for _ in range(5))
+        if getattr(settings, 'ENVIRONMENT', 'production') == 'production':
+            self.number = ''.join(str(secrets.randbelow(10)) for _ in range(5))
+        else:
+            self.number = '11111'
         super().save(*args, **kwargs)
 
 class UsedToken(models.Model):
