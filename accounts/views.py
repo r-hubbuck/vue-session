@@ -127,6 +127,7 @@ def login_view(request):
             request.session['pk'] = user.pk
 
             code = user.code
+            code.save()
 
             if settings.ENVIRONMENT == 'production':
                 try:
