@@ -19,6 +19,8 @@ export const useAuthStore = defineStore('auth', {
     isVerified: false,
     verificationTimestamp: null,
     verificationEmail: null, // Store the verified email
+    // Recruiter convention registration (fetched on demand, not persisted)
+    recruiterRegistration: null,
   }),
   
   getters: {
@@ -47,10 +49,16 @@ export const useAuthStore = defineStore('auth', {
     isHQStaff: (state) => state.user?.roles?.includes('hq_staff') || false,
     isHQIT: (state) => state.user?.roles?.includes('hq_it') || false,
     isHQFinance: (state) => state.user?.roles?.includes('hq_finance') || false,
+    isHQRecruiting: (state) => state.user?.roles?.includes('hq_recruiting') || false,
+    isHQConventionTravel: (state) => state.user?.roles?.includes('hq_convention_travel') || false,
 
     // Recruiter
     isRecruiter: (state) => state.user?.roles?.includes('recruiter') || false,
     userType: (state) => state.user?.roles?.includes('recruiter') ? 'recruiter' : 'member',
+    canAccessResumes: (state) => {
+      const reg = state.recruiterRegistration
+      return !!(reg && reg.status === 'confirmed' && reg.booth_package_detail?.includes_resume_access)
+    },
     
     // Convenience getters for permission checks
     isAnyMember: (state) => {
@@ -202,6 +210,15 @@ export const useAuthStore = defineStore('auth', {
         this.isAuthenticated = false
       }
       this.saveState()
+    },
+
+    async fetchRecruiterRegistration() {
+      try {
+        const response = await api.get('/api/recruiters/convention/my-registration/')
+        this.recruiterRegistration = response.data?.id ? response.data : null
+      } catch {
+        this.recruiterRegistration = null
+      }
     },
 
     saveState() {

@@ -1,11 +1,17 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../store/auth'
 
 const authStore = useAuthStore()
 const router = useRouter()
 const mobileMenuOpen = ref(false)
+
+onMounted(async () => {
+  if (authStore.isRecruiter) {
+    await authStore.fetchRecruiterRegistration()
+  }
+})
 
 // Get user initials for avatar
 const userInitials = computed(() => {
@@ -64,10 +70,10 @@ const logout = async () => {
               Registration
             </router-link>
           </li>
-          <li>
+          <li v-if="authStore.canAccessResumes">
             <router-link to="/recruiter/attendees" @click="closeMobileMenu">
-              <i class="bi bi-people"></i>
-              Attendees
+              <i class="bi bi-file-earmark-person"></i>
+              Resumes
             </router-link>
           </li>
           <li>

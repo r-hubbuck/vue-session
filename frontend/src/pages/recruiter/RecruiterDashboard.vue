@@ -85,13 +85,13 @@
             </div>
           </div>
 
-          <!-- Attendee List -->
-          <div class="col-md-6" v-if="profile.is_approved">
+          <!-- Resumes -->
+          <div class="col-md-6" v-if="authStore.canAccessResumes">
             <div class="section-card h-100">
-              <h5 class="fw-bold mb-3"><i class="bi bi-people me-2"></i>Convention Attendees</h5>
-              <p class="text-muted">Browse members attending the convention.</p>
+              <h5 class="fw-bold mb-3"><i class="bi bi-file-earmark-person me-2"></i>Resumes</h5>
+              <p class="text-muted">Browse member resumes for the convention.</p>
               <router-link to="/recruiter/attendees" class="btn btn-outline-custom btn-sm">
-                <i class="bi bi-search me-1"></i>View Attendees
+                <i class="bi bi-search me-1"></i>View Resumes
               </router-link>
             </div>
           </div>
@@ -241,6 +241,9 @@
 import { ref, onMounted } from 'vue'
 import api from '../../api'
 import { useToast } from 'vue-toastification'
+import { useAuthStore } from '../../store/auth'
+
+const authStore = useAuthStore()
 import { isValidEmail, validatePhone } from '../../utils/validation'
 
 const toast = useToast()

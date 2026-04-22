@@ -102,7 +102,6 @@ const routes = [
     component: ConventionHome,
     meta: { 
       requiresAuth: true,
-      requiresRoles: ['member', 'alumni']
     }
   },
   {
