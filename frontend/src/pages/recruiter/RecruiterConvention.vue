@@ -38,6 +38,8 @@
             </div>
             <div class="col-md-6">
               <p v-if="registration.booth_id"><strong>Booth ID:</strong> {{ registration.booth_id }}</p>
+              <p v-if="registration.recruiting_positions?.length"><strong>Positions Recruiting:</strong> {{ registration.recruiting_positions.join(', ') }}</p>
+              <p v-if="registration.recruiting_majors_detail?.length"><strong>Majors Recruiting:</strong> {{ registration.recruiting_majors_detail.map(m => m.full_name).join(', ') }}</p>
               <p v-if="registration.special_requests"><strong>Special Requests:</strong> {{ registration.special_requests }}</p>
             </div>
           </div>
@@ -65,12 +67,12 @@
             </div>
           </div>
 
-          <!-- Edit form (only if pending) -->
-          <div v-if="registration.status === 'pending'" class="mt-4">
+          <!-- Edit form -->
+          <div v-if="['pending', 'approved', 'confirmed'].includes(registration.status)" class="mt-4">
             <hr>
             <h6 class="fw-bold">Update Registration</h6>
             <form @submit.prevent="updateRegistration">
-              <div class="row g-3">
+              <div v-if="registration.status === 'pending'" class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label">Booth Package *</label>
                   <select v-model="editForm.booth_package" class="form-select" required>

@@ -496,15 +496,18 @@ def recruiter_my_registration(request):
         serializer = RecruiterConventionRegistrationSerializer(registration)
         return Response(serializer.data)
 
-    # PUT: only allow updates before approval
-    if registration.status not in ('pending',):
+    if registration.status not in ('pending', 'approved', 'confirmed'):
         return Response(
-            {'error': 'Cannot modify registration after approval.'},
+            {'error': 'Cannot modify a cancelled registration.'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    data = request.data.copy()
+    if registration.status != 'pending':
+        data.pop('booth_package', None)
+
     serializer = RecruiterConventionRegistrationSerializer(
-        registration, data=request.data, partial=True
+        registration, data=data, partial=True
     )
     if not serializer.is_valid():
         return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)

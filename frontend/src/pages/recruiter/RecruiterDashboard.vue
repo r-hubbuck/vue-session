@@ -37,12 +37,14 @@
                 </p>
                 <p><strong>Package:</strong> {{ registration.booth_package_detail?.name }}</p>
                 <p v-if="registration.booth_id"><strong>Booth ID:</strong> {{ registration.booth_id }}</p>
-                <p v-if="registration.recruiting_positions?.length">
-                  <strong>Positions Recruiting:</strong> {{ registration.recruiting_positions.join(', ') }}
-                </p>
-                <p v-if="registration.recruiting_majors_detail?.length">
-                  <strong>Majors Recruiting:</strong> {{ registration.recruiting_majors_detail.map(m => m.full_name).join(', ') }}
-                </p>
+                <div v-if="registration.attendees?.length" class="mt-2">
+                  <strong>Recruiter Attendees:</strong>
+                  <ul class="list-unstyled mb-0 mt-1">
+                    <li v-for="a in registration.attendees" :key="a.email" class="small text-muted">
+                      {{ a.first_name }} {{ a.last_name }} &mdash; {{ a.email }}
+                    </li>
+                  </ul>
+                </div>
                 <router-link to="/recruiter/convention" class="btn btn-outline-custom btn-sm">
                   <i class="bi bi-pencil me-1"></i>View/Edit
                 </router-link>
