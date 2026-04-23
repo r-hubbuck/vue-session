@@ -568,6 +568,10 @@ def admin_update_registration(request, pk):
 
     updated = serializer.save()
 
+    if updated.status == 'confirmed' and not updated.paid:
+        updated.paid = True
+        updated.save(update_fields=['paid'])
+
     if old_status != 'approved' and updated.status == 'approved':
         try:
             message = render_to_string('recruiters/registration_approved_email.html', {
@@ -883,7 +887,7 @@ def admin_update_invoice(request, pk):
     if not serializer.is_valid():
         return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-    serializer.save()
+    invoice = serializer.save()
 
     # Send email when status changes to 'sent'
     if old_status != 'sent' and invoice.status == 'sent':

@@ -167,6 +167,10 @@ export const useAuthStore = defineStore('auth', {
           // Fetch user data after successful verification to get role
           await this.fetchUser()
 
+          if (this.user?.roles?.includes('recruiter')) {
+            await this.fetchRecruiterRegistration()
+          }
+
           if (router) {
             // Route recruiters to their dashboard
             if (this.user?.roles?.includes('recruiter')) {

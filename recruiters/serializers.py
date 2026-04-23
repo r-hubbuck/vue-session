@@ -249,11 +249,11 @@ class RecruiterConventionRegistrationSerializer(serializers.ModelSerializer):
         model = RecruiterRegistration
         fields = [
             'id', 'booth_package', 'booth_package_detail',
-            'booth_id', 'status', 'special_requests',
+            'booth_id', 'status', 'paid', 'special_requests',
             'recruiting_majors', 'recruiting_majors_detail', 'recruiting_positions',
             'attendees', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'booth_id', 'status', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'booth_id', 'status', 'paid', 'created_at', 'updated_at']
 
     def get_recruiting_majors_detail(self, obj):
         return [{'id': c.id, 'full_name': c.full_name, 'abbreviated': c.abbreviated}
@@ -331,7 +331,7 @@ class AdminRecruiterRegistrationSerializer(serializers.ModelSerializer):
         model = RecruiterRegistration
         fields = [
             'id', 'recruiter', 'booth_package', 'booth_package_detail',
-            'booth_id', 'status', 'special_requests', 'created_at', 'updated_at'
+            'booth_id', 'status', 'paid', 'special_requests', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'recruiter', 'created_at', 'updated_at']
 

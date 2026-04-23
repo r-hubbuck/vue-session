@@ -143,6 +143,7 @@ class RecruiterRegistration(models.Model):
         related_name='registrations'
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    paid = models.BooleanField(default=False)
     special_requests = models.TextField(blank=True)
     recruiting_majors = models.ManyToManyField(
         'accounts.Curriculum',
