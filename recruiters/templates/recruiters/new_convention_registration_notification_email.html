@@ -1,0 +1,102 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}New Recruiter Convention Registration{% endblock %}
+
+{% block preheader %}{{ registration.recruiter.organization.name }} has submitted a convention registration and is pending review.{% endblock %}
+
+{% block accent_color %}#e8a000{% endblock %}
+
+{% block body_header %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 28px 0;">
+  <tr>
+    <td style="background-color:#fff8e6; border:1px solid #ffd87a; border-radius:6px; padding:12px 18px;">
+      <p style="margin:0; font-size:15px; font-weight:bold; color:#7a4f00;">&#9679;&nbsp; New Convention Registration — Pending Review</p>
+    </td>
+  </tr>
+</table>
+{% endblock %}
+
+{% block greeting %}{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 16px 0; font-size:15px; color:#333344; line-height:1.7;">
+  A recruiter has submitted a new convention registration. Review the details below and approve or update their registration in the admin portal.
+</p>
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+       style="background-color:#f8f9fc; border:1px solid #dde0e6; border-left:4px solid #e8a000; border-radius:0 6px 6px 0; margin:0 0 20px 0;">
+  <tr>
+    <td style="padding:16px 20px;">
+      <p style="margin:0 0 10px 0; font-size:12px; font-weight:bold; color:#e8a000; text-transform:uppercase; letter-spacing:0.1em;">Recruiter</p>
+      <table role="presentation" cellspacing="0" cellpadding="4" border="0" width="100%">
+        <tr>
+          <td style="font-size:13px; color:#6c757d; width:38%;">Organization</td>
+          <td style="font-size:14px; color:#1b2342; font-weight:600;">{{ registration.recruiter.organization.name }}</td>
+        </tr>
+        <tr>
+          <td style="font-size:13px; color:#6c757d;">Name</td>
+          <td style="font-size:14px; color:#1b2342;">{{ registration.recruiter.first_name }} {{ registration.recruiter.last_name }}</td>
+        </tr>
+        <tr>
+          <td style="font-size:13px; color:#6c757d;">Email</td>
+          <td style="font-size:14px; color:#1b2342;">{{ registration.recruiter.email }}</td>
+        </tr>
+        {% if registration.recruiter.phone %}
+        <tr>
+          <td style="font-size:13px; color:#6c757d;">Phone</td>
+          <td style="font-size:14px; color:#1b2342;">{{ registration.recruiter.phone }}</td>
+        </tr>
+        {% endif %}
+      </table>
+    </td>
+  </tr>
+</table>
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+       style="background-color:#f8f9fc; border:1px solid #dde0e6; border-left:4px solid #284080; border-radius:0 6px 6px 0; margin:0 0 24px 0;">
+  <tr>
+    <td style="padding:16px 20px;">
+      <p style="margin:0 0 10px 0; font-size:12px; font-weight:bold; color:#284080; text-transform:uppercase; letter-spacing:0.1em;">Registration Details</p>
+      <table role="presentation" cellspacing="0" cellpadding="4" border="0" width="100%">
+        <tr>
+          <td style="font-size:13px; color:#6c757d; width:38%;">Convention</td>
+          <td style="font-size:14px; color:#1b2342; font-weight:600;">{{ convention.name }} {{ convention.year }}</td>
+        </tr>
+        <tr>
+          <td style="font-size:13px; color:#6c757d;">Booth Package</td>
+          <td style="font-size:14px; color:#1b2342;">{{ registration.booth_package.name }} &mdash; ${{ registration.booth_package.price }}</td>
+        </tr>
+        {% if registration.meal_option %}
+        <tr>
+          <td style="font-size:13px; color:#6c757d;">Meal Option</td>
+          <td style="font-size:14px; color:#1b2342;">{{ registration.meal_option.name }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td style="font-size:13px; color:#6c757d;">Status</td>
+          <td style="font-size:14px; color:#e8a000; font-weight:600;">Pending</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0 0 4px 0; font-size:14px; color:#555566; line-height:1.6;">
+  Log in to the admin portal to approve this registration and assign a booth.
+</p>
+{% endblock %}
+
+{% block cta %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:8px 0 0 0;">
+  <tr>
+    <td style="border-radius:6px; background-color:#284080;">
+      <a href="{{ frontend_url }}/recruiter-admin"
+         style="display:inline-block; padding:10px 22px; font-size:13px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:6px;">
+        Review Registrations
+      </a>
+    </td>
+  </tr>
+</table>
+{% endblock %}
+
+{% block sender %}Tau Beta Pi Portal{% endblock %}

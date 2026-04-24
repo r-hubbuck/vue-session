@@ -20,7 +20,7 @@ from rest_framework.pagination import PageNumberPagination
 
 from accounts.throttles import RegisterThrottle, RecruiterThrottle
 
-from accounts.models import User, Code, ROLE_RECRUITER
+from accounts.models import User, Code, ROLE_RECRUITER, ROLE_HQ_RECRUITING
 from accounts.tokens import account_activation_token
 from convention.models import Convention, ConventionRegistration
 from .models import (
@@ -178,7 +178,7 @@ def recruiter_register(request):
             )
 
     # Create RecruiterProfile
-    RecruiterProfile.objects.update_or_create(
+    profile, _ = RecruiterProfile.objects.update_or_create(
         user=user,
         defaults={
             'organization': org,
@@ -212,6 +212,29 @@ def recruiter_register(request):
         email_msg.send()
     except Exception as e:
         logger.error("Failed to send recruiter activation email to %s: %s", data['email'], e)
+
+    # Notify HQ recruiting staff of pending approval
+    try:
+        hq_emails = list(
+            User.objects.filter(groups__name=ROLE_HQ_RECRUITING, is_active=True)
+            .values_list('email', flat=True)
+        )
+        if hq_emails:
+            message = render_to_string('recruiters/new_recruiter_notification_email.html', {
+                'profile': profile,
+                'org': org,
+                'frontend_url': FRONTEND_URL,
+                'domain': DOMAIN,
+            })
+            email_msg = EmailMultiAlternatives(
+                subject=f'New Recruiter Account Pending Approval — {org.name}',
+                body='',
+                to=hq_emails,
+            )
+            email_msg.attach_alternative(message, "text/html")
+            email_msg.send()
+    except Exception as e:
+        logger.error("Failed to send new recruiter HQ notification for %s: %s", org.name, e)
 
     return Response(
         {'success': 'Recruiter account created. Please check your email to activate.'},
@@ -463,12 +486,35 @@ def recruiter_convention_register(request):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            serializer.save(recruiter=profile, convention=convention, status='pending')
+            registration = serializer.save(recruiter=profile, convention=convention, status='pending')
     except IntegrityError:
         return Response(
             {'error': 'You are already registered for this convention.'},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+    # Notify HQ recruiting staff of new convention registration
+    try:
+        hq_emails = list(
+            User.objects.filter(groups__name=ROLE_HQ_RECRUITING, is_active=True)
+            .values_list('email', flat=True)
+        )
+        if hq_emails:
+            message = render_to_string('recruiters/new_convention_registration_notification_email.html', {
+                'registration': registration,
+                'convention': convention,
+                'frontend_url': FRONTEND_URL,
+                'domain': DOMAIN,
+            })
+            email_msg = EmailMultiAlternatives(
+                subject=f'New Convention Registration — {registration.recruiter.organization.name}',
+                body='',
+                to=hq_emails,
+            )
+            email_msg.attach_alternative(message, "text/html")
+            email_msg.send()
+    except Exception as e:
+        logger.error("Failed to send convention registration HQ notification for %s: %s", registration.recruiter.organization.name, e)
 
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 

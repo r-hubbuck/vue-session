@@ -194,7 +194,7 @@ class RecruiterRegistrationSerializer(serializers.Serializer):
         existing = User.objects.filter(email=data['email'], is_active=True).first()
         if existing:
             raise serializers.ValidationError({
-                'email': 'This email address cannot be used for registration.'
+                'email': 'This email address is already linked to an existing account.'
             })
         return data
 

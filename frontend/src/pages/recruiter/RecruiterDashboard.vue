@@ -37,7 +37,7 @@
                 </p>
                 <p><strong>Package:</strong> {{ registration.booth_package_detail?.name }}</p>
                 <p v-if="registration.booth_id"><strong>Booth ID:</strong> {{ registration.booth_id }}</p>
-                <div v-if="registration.attendees?.length" class="mt-2">
+                <div v-if="registration.attendees?.length" class="my-2">
                   <strong>Recruiter Attendees:</strong>
                   <ul class="list-unstyled mb-0 mt-1">
                     <li v-for="a in registration.attendees" :key="a.email" class="small text-muted">

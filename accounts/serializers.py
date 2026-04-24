@@ -67,7 +67,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
                 return value
             else:
                 raise serializers.ValidationError(
-                    'This email address cannot be used for registration.'
+                    'This email address is already linked to an existing account.'
                 )
 
         return value

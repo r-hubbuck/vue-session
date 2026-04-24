@@ -452,6 +452,25 @@ const toggleAllPositions = (formKey) => {
   form.recruiting_positions = form.recruiting_positions.length === positionOptions.length ? [] : [...positionOptions]
 }
 
+const populateEditForm = (data) => {
+  const attendees = data.attendees || []
+  editNumRecruiters.value = attendees.length || 1
+  editForm.value = {
+    booth_package: data.booth_package,
+    special_requests: data.special_requests || '',
+    recruiting_majors: data.recruiting_majors || [],
+    recruiting_positions: data.recruiting_positions || [],
+    attendees: attendees.length
+      ? attendees.map(a => ({
+          first_name: a.first_name,
+          last_name: a.last_name,
+          email: a.email,
+          phone: a.phone || '',
+        }))
+      : [primaryAttendee()],
+  }
+}
+
 const createRegistration = async () => {
   if (saving.value) return
   errorMessage.value = ''
@@ -459,6 +478,7 @@ const createRegistration = async () => {
   try {
     const res = await api.post('/api/recruiters/convention/register/', newForm.value)
     registration.value = res.data
+    populateEditForm(res.data)
     toast.success('Registration submitted!')
   } catch (error) {
     const data = error.response?.data
@@ -478,6 +498,7 @@ const updateRegistration = async () => {
   try {
     const res = await api.put('/api/recruiters/convention/my-registration/', editForm.value)
     registration.value = res.data
+    populateEditForm(res.data)
     toast.success('Registration updated!')
   } catch (error) {
     const data = error.response?.data
@@ -508,22 +529,7 @@ onMounted(async () => {
 
     if (regRes.status === 'fulfilled' && regRes.value.data.id) {
       registration.value = regRes.value.data
-      const existingAttendees = regRes.value.data.attendees || []
-      editNumRecruiters.value = existingAttendees.length || 1
-      editForm.value = {
-        booth_package: regRes.value.data.booth_package,
-        special_requests: regRes.value.data.special_requests || '',
-        recruiting_majors: (regRes.value.data.recruiting_majors || []),
-        recruiting_positions: (regRes.value.data.recruiting_positions || []),
-        attendees: existingAttendees.length
-          ? existingAttendees.map(a => ({
-              first_name: a.first_name,
-              last_name: a.last_name,
-              email: a.email,
-              phone: a.phone || '',
-            }))
-          : [primaryAttendee()],
-      }
+      populateEditForm(regRes.value.data)
     } else {
       // Pre-populate primary recruiter as first attendee for new registration
       newForm.value.attendees = [primaryAttendee()]
