@@ -9,3 +9,4 @@ CLAUDE.md
 __pycache__/
 *.pyc
 *.pyo
+media/
