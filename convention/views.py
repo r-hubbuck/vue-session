@@ -1065,6 +1065,48 @@ def update_recruiter_visibility(request, registration_id):
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
+def update_resume_curriculum(request, registration_id):
+    """
+    Update resume_curricula (up to 3) for a registration.
+    Requires an active resume to be on file.
+    Accepts: { "resume_curricula": [id, ...] }
+    """
+    from accounts.models import ResumeCurriculum
+
+    if not (hasattr(request.user, 'person') and request.user.person is not None):
+        return Response({'error': 'No person profile.'}, status=status.HTTP_403_FORBIDDEN)
+
+    registration = get_object_or_404(
+        ConventionRegistration,
+        id=registration_id,
+        person=request.user.person,
+    )
+
+    if not registration.resume:
+        return Response(
+            {'error': 'A resume must be uploaded before selecting curricula.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    ids = request.data.get('resume_curricula', [])
+    if not isinstance(ids, list) or len(ids) == 0:
+        return Response({'error': 'At least one curriculum is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if len(ids) > 3:
+        return Response({'error': 'You may select up to 3 curricula.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    curricula = ResumeCurriculum.objects.filter(id__in=ids)
+    if curricula.count() != len(ids):
+        return Response({'error': 'One or more invalid curriculum IDs.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    registration.resume_curricula.set(curricula)
+
+    return Response({
+        'resume_curricula': [{'id': c.id, 'full_name': c.full_name} for c in curricula]
+    })
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
 def update_guest_attending(request, registration_id):
     """
     Update guest_attending for a registration.

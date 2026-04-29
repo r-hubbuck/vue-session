@@ -27,9 +27,11 @@ urlpatterns = [
     path('admin/registrations/', views.admin_registrations, name='admin_registrations'),
     path('admin/registrations/<int:pk>/', views.admin_update_registration, name='admin_update_registration'),
 
-    # Attendees
-    path('convention/attendees/', views.recruiter_attendees, name='recruiter_attendees'),
-    path('convention/attendees/<int:member_id>/resume/', views.recruiter_attendee_resume, name='recruiter_attendee_resume'),
+    # Resumes
+    path('convention/resumes/', views.recruiter_resumes, name='recruiter_resumes'),
+    path('convention/resumes/filters/', views.recruiter_resume_filters, name='recruiter_resume_filters'),
+    path('convention/resumes/bulk-download/', views.recruiter_resumes_bulk_download, name='recruiter_resumes_bulk_download'),
+    path('convention/resumes/<int:member_id>/resume/', views.recruiter_resume_download, name='recruiter_resume_download'),
 
     # Member resume upload (used by members, not recruiters)
     path('member/resume/', views.member_resume, name='member_resume'),

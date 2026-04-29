@@ -190,6 +190,7 @@ class Member(models.Model):
     person = models.OneToOneField('Person', on_delete=models.CASCADE, related_name='member')
     member_id = models.IntegerField(unique=True, null=True, blank=True)
     chapter_code = models.CharField(max_length=100)
+    school_name = models.CharField(max_length=255, default='')
     district = models.IntegerField(null=True, blank=True)  # For district directors
     initiation_date = models.DateField(null=True, blank=True)
 
@@ -371,12 +372,12 @@ class Ethnicity(models.Model):
         return self.ethnicity
 
 
-class Curriculum(models.Model):
+class ResumeCurriculum(models.Model):
     full_name = models.CharField(max_length=100, unique=True)
     abbreviated = models.CharField(max_length=20)
 
     class Meta:
-        db_table = 'curriculum'
+        db_table = 'resume_curriculum'
         ordering = ['full_name']
 
     def __str__(self):

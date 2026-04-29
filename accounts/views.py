@@ -205,6 +205,7 @@ def register(request):
         member_middle_name = request.session.get('member_middle_name', '')
         member_last_name = request.session.get('member_last_name', '')
         member_chapter = request.session.get('member_chapter', '')
+        school_name = request.session.get('school_name', '')
         member_class_year = request.session.get('member_class_year', '')
         birth_date = request.session.get('birth_date', None)
         initiation_date = request.session.get('initiation_date', None)
@@ -227,7 +228,8 @@ def register(request):
                 person.ethnicity_id = ethnicity
                 person.save()
                 existing_member.initiation_date = initiation_date
-                existing_member.save(update_fields=['initiation_date'])
+                existing_member.school_name = school_name
+                existing_member.save(update_fields=['initiation_date', 'school_name'])
                 member = existing_member
             else:
                 person = Person.objects.create(
@@ -243,6 +245,7 @@ def register(request):
                     person=person,
                     member_id=member_id,
                     chapter_code=member_chapter,
+                    school_name=school_name,
                     initiation_date=initiation_date,
                 )
             user.person = person
@@ -442,6 +445,7 @@ class VerifyMemberAPIView(APIView):
                                 ,Chapters.Chp_Name_Short
                                 ,Chapters.chp_code
                                 ,Chapters.PrimaryChapter
+                                ,Schools.sch_school
                                 ,Address.add_memid
                                 ,Address.add_email
                                 ,Address.add_email_alt
@@ -454,6 +458,8 @@ class VerifyMemberAPIView(APIView):
                                 FROM Memblist
                                 INNER JOIN Chapters
                                 ON Memblist.mem_chpcd = Chapters.chp_code
+                                INNER JOIN Schools
+                                ON Chapters.chp_id = Schools.sch_chpid AND Schools.sch_active = 1
                                 INNER JOIN Address
                                 ON Address.add_memid = Memblist.mem_id
                                 WHERE Memblist.mem_classy = %s
@@ -481,6 +487,7 @@ class VerifyMemberAPIView(APIView):
                     'gender': users[0]['Gender'],
                     'pronoun': users[0]['Pronoun'],
                     'ethnicity': users[0]['Ethnicity'],
+                    'school_name': (users[0]['sch_school'] or '').strip(),
                 }
 
                 cursor = conn.cursor(as_dict=True)
@@ -1119,9 +1126,9 @@ def state_province_list(request):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def curriculum_list(request):
-    from .models import Curriculum
-    curricula = Curriculum.objects.all()
+def resume_curriculum_list(request):
+    from .models import ResumeCurriculum
+    curricula = ResumeCurriculum.objects.all()
     data = [{'id': c.id, 'full_name': c.full_name, 'abbreviated': c.abbreviated} for c in curricula]
     return Response(data, status=status.HTTP_200_OK)
 

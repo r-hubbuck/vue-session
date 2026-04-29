@@ -39,6 +39,9 @@ urlpatterns = [
 
     # Recruiter visibility
     path('registration/<int:registration_id>/visibility/', views.update_recruiter_visibility, name='update-recruiter-visibility'),
+
+    # Resume curriculum
+    path('registration/<int:registration_id>/resume-curriculum/', views.update_resume_curriculum, name='update-resume-curriculum'),
     
     # Admin endpoints
     path('admin/travel/', views.admin_travel_list, name='admin-travel-list'),

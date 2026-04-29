@@ -3,7 +3,7 @@ from .models import (
     BoothPackage, MealOption, Organization, RecruiterProfile,
     RecruiterRegistration, RecruiterAttendee, Invoice
 )
-from accounts.models import User, Curriculum
+from accounts.models import User, ResumeCurriculum
 from accounts.serializers import CreateUserSerializer
 import bleach
 import re
@@ -240,7 +240,7 @@ class RecruiterConventionRegistrationSerializer(serializers.ModelSerializer):
     attendees = RecruiterAttendeeSerializer(many=True)
     recruiting_majors = serializers.PrimaryKeyRelatedField(
         many=True,
-        queryset=Curriculum.objects.all(),
+        queryset=ResumeCurriculum.objects.all(),
         required=False,
     )
     recruiting_majors_detail = serializers.SerializerMethodField(read_only=True)
@@ -358,21 +358,34 @@ class AdminRecruiterRegistrationSerializer(serializers.ModelSerializer):
         return value
 
 
-class AttendeeSerializer(serializers.Serializer):
-    """Read-only serializer for attendee list visible to recruiters."""
+class ResumeSerializer(serializers.Serializer):
+    """Read-only serializer for resume list visible to recruiters."""
     id = serializers.IntegerField(source='person.id')
     first_name = serializers.SerializerMethodField()
     last_name = serializers.CharField(source='person.last_name')
+    email = serializers.SerializerMethodField()
     chapter_code = serializers.SerializerMethodField()
+    school_name = serializers.SerializerMethodField()
     has_resume = serializers.SerializerMethodField()
     resume_url = serializers.SerializerMethodField()
+    resume_curricula = serializers.SerializerMethodField()
 
     def get_first_name(self, obj):
         return obj.person.preferred_first_name or obj.person.first_name
 
+    def get_email(self, obj):
+        if hasattr(obj.person, 'user') and obj.person.user:
+            return obj.person.user.email
+        return None
+
     def get_chapter_code(self, obj):
         if hasattr(obj.person, 'member') and obj.person.member:
             return obj.person.member.chapter_code
+        return None
+
+    def get_school_name(self, obj):
+        if hasattr(obj.person, 'member') and obj.person.member:
+            return obj.person.member.school_name or None
         return None
 
     def get_has_resume(self, obj):
@@ -381,8 +394,16 @@ class AttendeeSerializer(serializers.Serializer):
     def get_resume_url(self, obj):
         # Return the access-controlled API endpoint, never the raw media path
         if self.context.get('includes_resume_access') and obj.resume:
-            return f'/api/recruiters/convention/attendees/{obj.person.id}/resume/'
+            return f'/api/recruiters/convention/resumes/{obj.person.id}/resume/'
         return None
+
+    def get_resume_curricula(self, obj):
+        if not self.context.get('includes_resume_access'):
+            return None
+        return [
+            {'id': c.id, 'full_name': c.full_name, 'abbreviated': c.abbreviated}
+            for c in obj.resume_curricula.all()
+        ]
 
 
 class InvoiceSerializer(serializers.ModelSerializer):

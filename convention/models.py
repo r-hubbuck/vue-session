@@ -1,5 +1,10 @@
+from datetime import date
 from django.db import models
 from django.core.validators import MinValueValidator
+
+
+def resume_upload_path(instance, filename):
+    return f'resumes/{date.today().year}/{filename}'
 
 
 class Airport(models.Model):
@@ -101,8 +106,13 @@ class ConventionRegistration(models.Model):
         choices=VISIBILITY_CHOICES,
         default='both',
     )
-    resume = models.FileField(upload_to='resumes/', blank=True, null=True)
+    resume = models.FileField(upload_to=resume_upload_path, blank=True, null=True)
     resume_uploaded_at = models.DateTimeField(null=True, blank=True)
+    resume_curricula = models.ManyToManyField(
+        'accounts.ResumeCurriculum',
+        blank=True,
+        related_name='resume_registrations'
+    )
     confirmation_email_sent = models.BooleanField(default=False)
     paid = models.BooleanField(default=False)
     guest_attending = models.BooleanField(

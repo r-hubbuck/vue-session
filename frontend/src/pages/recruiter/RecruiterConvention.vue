@@ -518,7 +518,7 @@ onMounted(async () => {
       api.get('/api/recruiters/convention/booth-packages/'),
       api.get('/api/recruiters/convention/my-registration/'),
       api.get('/api/recruiters/profile/'),
-      api.get('/api/accounts/curricula'),
+      api.get('/api/accounts/resume-curricula'),
       api.get('/api/convention/current/'),
     ])
 

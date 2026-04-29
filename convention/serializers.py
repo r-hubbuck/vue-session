@@ -120,6 +120,7 @@ class MemberPersonalInfoSerializer(serializers.ModelSerializer):
     primary_address = serializers.SerializerMethodField()
     resume_url = serializers.SerializerMethodField()
     resume_uploaded_at = serializers.SerializerMethodField()
+    resume_curricula = serializers.SerializerMethodField()
     chapter_code = serializers.SerializerMethodField()
 
     class Meta:
@@ -135,8 +136,13 @@ class MemberPersonalInfoSerializer(serializers.ModelSerializer):
             'primary_address',
             'resume_url',
             'resume_uploaded_at',
+            'resume_curricula',
         ]
-        read_only_fields = ['first_name', 'last_name', 'chapter_code', 'badge_name', 'primary_phone', 'primary_address', 'resume_url', 'resume_uploaded_at']
+        read_only_fields = [
+            'first_name', 'last_name', 'chapter_code', 'badge_name',
+            'primary_phone', 'primary_address', 'resume_url', 'resume_uploaded_at',
+            'resume_curricula',
+        ]
 
     def _get_active_registration(self, obj):
         from convention.models import Convention
@@ -159,6 +165,12 @@ class MemberPersonalInfoSerializer(serializers.ModelSerializer):
         if reg:
             return reg.resume_uploaded_at
         return None
+
+    def get_resume_curricula(self, obj):
+        reg = self._get_active_registration(obj)
+        if not reg:
+            return []
+        return [{'id': c.id, 'full_name': c.full_name} for c in reg.resume_curricula.all()]
 
     def get_chapter_code(self, obj):
         if hasattr(obj, 'member'):

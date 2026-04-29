@@ -9,7 +9,7 @@ Safe to run multiple times — uses update_or_create on natural keys.
 
 Tables seeded (reference data):
   - state_province      (accounts app)
-  - curriculum          (accounts app)
+  - resume_curriculum   (accounts app)
   - airport             (convention app)
   - convention          (convention app)
   - expense_report_type (expense_reports app)
@@ -259,10 +259,10 @@ class Command(BaseCommand):
         self.stdout.write(f'  ethnicity:           {created} created, {updated} updated')
 
     # -------------------------------------------------------------------------
-    # curriculum
+    # resume_curriculum
     # -------------------------------------------------------------------------
     def seed_curricula(self):
-        from accounts.models import Curriculum
+        from accounts.models import ResumeCurriculum
 
         data = [
             (1,  'Aerospace Engineering',              'Aero'),
@@ -296,7 +296,7 @@ class Command(BaseCommand):
 
         created = updated = 0
         for pk, full_name, abbreviated in data:
-            _, c = Curriculum.objects.update_or_create(
+            _, c = ResumeCurriculum.objects.update_or_create(
                 id=pk,
                 defaults=dict(full_name=full_name, abbreviated=abbreviated),
             )
@@ -304,7 +304,7 @@ class Command(BaseCommand):
                 created += 1
             else:
                 updated += 1
-        self.stdout.write(f'  curriculum:          {created} created, {updated} updated')
+        self.stdout.write(f'  resume_curriculum:   {created} created, {updated} updated')
 
     # -------------------------------------------------------------------------
     # airport

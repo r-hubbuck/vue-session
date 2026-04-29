@@ -146,7 +146,7 @@ class RecruiterRegistration(models.Model):
     paid = models.BooleanField(default=False)
     special_requests = models.TextField(blank=True)
     recruiting_majors = models.ManyToManyField(
-        'accounts.Curriculum',
+        'accounts.ResumeCurriculum',
         blank=True,
         related_name='recruiter_registrations'
     )

@@ -71,7 +71,7 @@ const logout = async () => {
             </router-link>
           </li>
           <li v-if="authStore.canAccessResumes">
-            <router-link to="/recruiter/attendees" @click="closeMobileMenu">
+            <router-link to="/recruiter/resumes" @click="closeMobileMenu">
               <i class="bi bi-file-earmark-person"></i>
               Resumes
             </router-link>

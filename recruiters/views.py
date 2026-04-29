@@ -32,7 +32,7 @@ from .serializers import (
     BoothPackageSerializer, MealOptionSerializer,
     RecruiterConventionRegistrationSerializer,
     AdminRecruiterRegistrationSerializer,
-    AttendeeSerializer, InvoiceSerializer, RecruiterInvoiceSerializer,
+    ResumeSerializer, InvoiceSerializer, RecruiterInvoiceSerializer,
     OrganizationSerializer
 )
 
@@ -639,10 +639,10 @@ def admin_update_registration(request, pk):
 
 
 # ============================================================
-# Attendee List (for recruiters)
+# Resume List (for recruiters)
 # ============================================================
 
-class AttendeePagination(PageNumberPagination):
+class ResumePagination(PageNumberPagination):
     page_size = 50
     page_size_query_param = 'page_size'
     max_page_size = 200
@@ -654,10 +654,30 @@ class AdminPagination(PageNumberPagination):
     max_page_size = 200
 
 
+_RESUME_ORDERING = {
+    'last_name':    ('person__last_name', 'person__first_name'),
+    '-last_name':   ('-person__last_name', '-person__first_name'),
+    'email':        ('person__user__email',),
+    '-email':       ('-person__user__email',),
+    'school_name':  ('person__member__school_name', 'person__last_name'),
+    '-school_name': ('-person__member__school_name', '-person__last_name'),
+}
+
+
+def _resume_visibility_filter(profile):
+    """Return the visible_to_recruiters values this recruiter's org type can see."""
+    org_type = profile.organization.org_type if profile.organization else None
+    if org_type == 'business':
+        return ['business', 'both']
+    if org_type == 'graduate_school':
+        return ['graduate_school', 'both']
+    return ['both']
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 @throttle_classes([RecruiterThrottle])
-def recruiter_attendees(request):
+def recruiter_resumes(request):
     """List members attending the convention (visible to recruiters)."""
     if not is_approved_recruiter(request.user):
         return Response({'error': 'Access denied.'}, status=status.HTTP_403_FORBIDDEN)
@@ -671,7 +691,6 @@ def recruiter_attendees(request):
     except RecruiterProfile.DoesNotExist:
         return Response({'error': 'Recruiter profile not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Check for active convention registration
     try:
         reg = RecruiterRegistration.objects.select_related('booth_package').get(
             recruiter=profile, convention=convention,
@@ -679,26 +698,22 @@ def recruiter_attendees(request):
         )
     except RecruiterRegistration.DoesNotExist:
         return Response(
-            {'error': 'You must be registered for the convention to view attendees.'},
+            {'error': 'You must be registered for the convention to view resumes.'},
             status=status.HTTP_403_FORBIDDEN
         )
 
     includes_resume = reg.booth_package.includes_resume_access
+    visibility_filter = _resume_visibility_filter(profile)
 
-    # Determine which visibility values the recruiter's org type can see
-    org_type = profile.organization.org_type if profile.organization else None
-    if org_type == 'business':
-        visibility_filter = ['business', 'both']
-    elif org_type == 'graduate_school':
-        visibility_filter = ['graduate_school', 'both']
-    else:
-        visibility_filter = ['both']
-
-    attendees = ConventionRegistration.objects.filter(
+    resumes = ConventionRegistration.objects.filter(
         convention=convention,
         visible_to_recruiters__in=visibility_filter,
         status_code__in=['registered', 'confirmed', 'checked_in']
-    ).select_related('person').order_by('person__last_name', 'person__first_name')
+    ).select_related(
+        'person', 'person__user', 'person__member'
+    ).prefetch_related(
+        'resume_curricula'
+    )
 
     # Search filter — require at least 2 characters to prevent enumeration
     search = request.query_params.get('search', '').strip()
@@ -709,17 +724,36 @@ def recruiter_attendees(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         from django.db.models import Q
-        attendees = attendees.filter(
+        resumes = resumes.filter(
             Q(person__first_name__icontains=search) |
             Q(person__last_name__icontains=search) |
             Q(person__preferred_first_name__icontains=search) |
-            Q(person__member__chapter__icontains=search)
+            Q(person__member__school_name__icontains=search)
         )
 
-    paginator = AttendeePagination()
-    page = paginator.paginate_queryset(attendees, request)
+    # Exact school filter
+    school = request.query_params.get('school', '').strip()
+    if school:
+        resumes = resumes.filter(person__member__school_name=school)
 
-    serializer = AttendeeSerializer(
+    # Curriculum filter
+    curriculum_id = request.query_params.get('curriculum', '').strip()
+    if curriculum_id:
+        try:
+            resumes = resumes.filter(resume_curricula__id=int(curriculum_id))
+        except ValueError:
+            return Response({'error': 'Invalid curriculum ID.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    ordering = _RESUME_ORDERING.get(
+        request.query_params.get('ordering', '').strip(),
+        _RESUME_ORDERING['last_name']
+    )
+    resumes = resumes.order_by(*ordering)
+
+    paginator = ResumePagination()
+    page = paginator.paginate_queryset(resumes, request)
+
+    serializer = ResumeSerializer(
         page, many=True,
         context={'request': request, 'includes_resume_access': includes_resume}
     )
@@ -729,7 +763,161 @@ def recruiter_attendees(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 @throttle_classes([RecruiterThrottle])
-def recruiter_attendee_resume(request, member_id):
+def recruiter_resume_filters(request):
+    """Return distinct school and curriculum filter options for the resume pool."""
+    if not is_approved_recruiter(request.user):
+        return Response({'error': 'Access denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+    convention = get_active_convention()
+    if not convention:
+        return Response({'error': 'No active convention.'}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        profile = request.user.recruiter_profile
+    except RecruiterProfile.DoesNotExist:
+        return Response({'error': 'Recruiter profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        RecruiterRegistration.objects.get(
+            recruiter=profile, convention=convention,
+            status__in=['pending', 'approved', 'confirmed']
+        )
+    except RecruiterRegistration.DoesNotExist:
+        return Response({'error': 'No active registration.'}, status=status.HTTP_403_FORBIDDEN)
+
+    visibility_filter = _resume_visibility_filter(profile)
+
+    resume_qs = ConventionRegistration.objects.filter(
+        convention=convention,
+        visible_to_recruiters__in=visibility_filter,
+        status_code__in=['registered', 'confirmed', 'checked_in']
+    )
+
+    schools = list(
+        resume_qs
+        .exclude(person__member__school_name='')
+        .values_list('person__member__school_name', flat=True)
+        .distinct()
+        .order_by('person__member__school_name')
+    )
+
+    from accounts.models import ResumeCurriculum
+    curricula = list(
+        ResumeCurriculum.objects
+        .filter(resume_registrations__in=resume_qs)
+        .values('id', 'full_name', 'abbreviated')
+        .distinct()
+        .order_by('full_name')
+    )
+
+    return Response({'schools': schools, 'curricula': curricula})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([RecruiterThrottle])
+def recruiter_resumes_bulk_download(request):
+    """Download a zip of resumes matching the current filters."""
+    if not is_approved_recruiter(request.user):
+        return Response({'error': 'Access denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+    convention = get_active_convention()
+    if not convention:
+        return Response({'error': 'No active convention.'}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        profile = request.user.recruiter_profile
+    except RecruiterProfile.DoesNotExist:
+        return Response({'error': 'Recruiter profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        reg = RecruiterRegistration.objects.select_related('booth_package').get(
+            recruiter=profile, convention=convention,
+            status__in=['pending', 'approved', 'confirmed']
+        )
+    except RecruiterRegistration.DoesNotExist:
+        return Response({'error': 'No active registration.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if not reg.booth_package.includes_resume_access:
+        return Response(
+            {'error': 'Your booth package does not include resume access.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    visibility_filter = _resume_visibility_filter(profile)
+
+    resumes = ConventionRegistration.objects.filter(
+        convention=convention,
+        visible_to_recruiters__in=visibility_filter,
+        status_code__in=['registered', 'confirmed', 'checked_in']
+    ).exclude(resume='').filter(resume__isnull=False).select_related('person', 'person__member')
+
+    search = request.query_params.get('search', '').strip()
+    if search:
+        if len(search) < 2:
+            return Response(
+                {'error': 'Search query must be at least 2 characters.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        from django.db.models import Q
+        resumes = resumes.filter(
+            Q(person__first_name__icontains=search) |
+            Q(person__last_name__icontains=search) |
+            Q(person__preferred_first_name__icontains=search) |
+            Q(person__member__school_name__icontains=search)
+        )
+
+    school = request.query_params.get('school', '').strip()
+    if school:
+        resumes = resumes.filter(person__member__school_name=school)
+
+    curriculum_id = request.query_params.get('curriculum', '').strip()
+    if curriculum_id:
+        try:
+            resumes = resumes.filter(resume_curricula__id=int(curriculum_id))
+        except ValueError:
+            return Response({'error': 'Invalid curriculum ID.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    resumes = list(resumes.distinct())
+
+    if not resumes:
+        return Response({'error': 'No resumes found matching your filters.'}, status=status.HTTP_404_NOT_FOUND)
+
+    import io
+    import zipfile
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        seen_names = {}
+        for entry in resumes:
+            last = entry.person.last_name
+            first = entry.person.preferred_first_name or entry.person.first_name
+            base = f"{last}_{first}_resume.pdf"
+            # Deduplicate filenames across entries with the same name
+            if base in seen_names:
+                seen_names[base] += 1
+                filename = f"{last}_{first}_{seen_names[base]}_resume.pdf"
+            else:
+                seen_names[base] = 0
+                filename = base
+            try:
+                with entry.resume.open('rb') as f:
+                    zf.writestr(filename, f.read())
+            except Exception:
+                logger.warning('Could not read resume for person %s during bulk download', entry.person_id)
+
+    buf.seek(0)
+    from django.http import HttpResponse
+    zip_filename = f"tbp_resumes_{convention.year}.zip"
+    response = HttpResponse(buf.read(), content_type='application/zip')
+    response['Content-Disposition'] = f'attachment; filename="{zip_filename}"'
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([RecruiterThrottle])
+def recruiter_resume_download(request, member_id):
     """Download a member's resume PDF."""
     if not is_approved_recruiter(request.user):
         return Response({'error': 'Access denied.'}, status=status.HTTP_403_FORBIDDEN)
@@ -816,12 +1004,25 @@ def member_resume(request):
             reg.resume.delete()
             reg.resume_uploaded_at = None
             reg.save(update_fields=['resume_uploaded_at'])
+            reg.resume_curricula.clear()
         return Response({'success': 'Resume removed.'})
 
     # POST: upload
+    from accounts.models import ResumeCurriculum
+
     file = request.FILES.get('resume')
     if not file:
         return Response({'error': 'No file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    curriculum_ids = request.data.getlist('resume_curricula')
+    if not curriculum_ids:
+        return Response({'error': 'At least one curriculum is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if len(curriculum_ids) > 3:
+        return Response({'error': 'You may select up to 3 curricula.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    curricula = ResumeCurriculum.objects.filter(id__in=curriculum_ids)
+    if curricula.count() != len(curriculum_ids):
+        return Response({'error': 'One or more invalid curriculum IDs.'}, status=status.HTTP_400_BAD_REQUEST)
 
     # Validate PDF extension
     if not file.name.lower().endswith('.pdf'):
@@ -848,11 +1049,13 @@ def member_resume(request):
     reg.resume = file
     reg.resume_uploaded_at = timezone.now()
     reg.save()
+    reg.resume_curricula.set(curricula)
 
     return Response({
         'success': 'Resume uploaded.',
         'resume_url': request.build_absolute_uri(reg.resume.url),
-        'uploaded_at': reg.resume_uploaded_at.isoformat()
+        'uploaded_at': reg.resume_uploaded_at.isoformat(),
+        'resume_curricula': [{'id': c.id, 'full_name': c.full_name} for c in curricula],
     })
 
 

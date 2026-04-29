@@ -165,7 +165,9 @@
           <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 0.75rem;">
             Upload your resume for recruiters attending the convention. PDF only, max 5MB.
           </p>
-          <div v-if="resumeUrl" class="mb-2">
+
+          <!-- Existing resume -->
+          <div v-if="resumeUrl" class="mb-3">
             <a :href="resumeUrl" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-custom me-2">
               <i class="bi bi-file-earmark-pdf me-1"></i>View Current Resume
             </a>
@@ -174,14 +176,68 @@
             </button>
             <small v-if="resumeUploadedAt" class="text-muted ms-2">Uploaded: {{ resumeUploadedAt }}</small>
           </div>
-          <input
-            type="file"
-            accept=".pdf"
-            class="form-control form-control-sm"
-            style="max-width: 400px;"
-            @change="uploadResume"
-            :disabled="saving"
-          >
+
+          <!-- Curriculum checkboxes — shown when resume exists OR file is pending upload -->
+          <div v-if="resumeUrl || pendingFile" class="mb-3">
+            <label class="form-label" style="font-size: 0.875rem; font-weight: 500;">
+              Engineering Curriculum <span class="text-danger">*</span>
+              <small class="text-muted fw-normal ms-1">(select up to 3)</small>
+            </label>
+            <div style="max-height: 180px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px; padding: 0.5rem;">
+              <div
+                v-for="opt in resumeCurriculumOptions"
+                :key="opt.id"
+                class="form-check"
+                style="margin-bottom: 0.25rem;"
+              >
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  :id="'curr-' + opt.id"
+                  :value="opt.id"
+                  v-model="resumeCurricula"
+                  :disabled="resumeCurricula.length >= 3 && !resumeCurricula.includes(opt.id)"
+                  @change="resumeUrl ? saveResumeCurricula() : null"
+                >
+                <label class="form-check-label" :for="'curr-' + opt.id" style="font-size: 0.875rem;">
+                  {{ opt.full_name }}
+                </label>
+              </div>
+            </div>
+            <small v-if="resumeCurricula.length >= 3" class="text-muted">
+              Maximum of 3 curricula selected.
+            </small>
+          </div>
+
+          <!-- Pending upload: show upload/cancel buttons -->
+          <div v-if="pendingFile" class="mb-2 d-flex align-items-center gap-2 flex-wrap">
+            <span class="text-muted" style="font-size: 0.875rem;">
+              <i class="bi bi-file-earmark-pdf me-1"></i>{{ pendingFile.name }}
+            </span>
+            <button
+              @click="submitResumeUpload"
+              class="btn btn-sm btn-primary"
+              :disabled="saving || resumeCurricula.length === 0"
+            >
+              <span v-if="saving"><span class="spinner-border spinner-border-sm me-1"></span>Uploading...</span>
+              <span v-else><i class="bi bi-upload me-1"></i>Upload</span>
+            </button>
+            <button @click="cancelResumePending" class="btn btn-sm btn-outline-secondary" :disabled="saving">
+              Cancel
+            </button>
+          </div>
+
+          <!-- File picker — hidden while a file is pending -->
+          <div v-if="!pendingFile">
+            <input
+              type="file"
+              accept=".pdf"
+              class="form-control form-control-sm"
+              style="max-width: 400px;"
+              @change="onFileSelected"
+              :disabled="saving"
+            >
+          </div>
         </div>
 
         <hr class="my-4" style="border-color: #e2e8f0;">
@@ -1049,6 +1105,9 @@ const recruiterVisibilityOptions = [
 const visibleToRecruiters = ref('both')
 const resumeUrl = ref(null)
 const resumeUploadedAt = ref(null)
+const resumeCurricula = ref([])
+const resumeCurriculumOptions = ref([])
+const pendingFile = ref(null)
 
 // Clean phone number - remove all non-digits
 const getCleanPhoneNumber = (phoneNumber) => {
@@ -1325,6 +1384,15 @@ const scrollToSection = (sectionId) => {
   }
 }
 
+const fetchResumeCurriculumOptions = async () => {
+  try {
+    const res = await api.get('/api/accounts/resume-curricula')
+    resumeCurriculumOptions.value = res.data
+  } catch (error) {
+    console.error('Error fetching resume curricula:', error)
+  }
+}
+
 const fetchConvention = async () => {
   try {
     const response = await api.get('/api/convention/current/')
@@ -1364,6 +1432,9 @@ const loadRegistrationData = async (data) => {
   }
   if (data.member_info?.resume_uploaded_at) {
     resumeUploadedAt.value = new Date(data.member_info.resume_uploaded_at).toLocaleDateString()
+  }
+  if (data.member_info?.resume_curricula) {
+    resumeCurricula.value = data.member_info.resume_curricula.map(c => c.id)
   }
 
   // Load member info
@@ -1575,33 +1646,59 @@ const saveRecruiterVisibility = async () => {
   }
 }
 
-const uploadResume = async (event) => {
+const onFileSelected = (event) => {
   const file = event.target.files[0]
   if (!file) return
-
   if (!file.name.toLowerCase().endsWith('.pdf') || file.type !== 'application/pdf') {
     toast.error('Only PDF files are accepted')
+    event.target.value = ''
     return
   }
   if (file.size > 5 * 1024 * 1024) {
     toast.error('File size must be under 5MB')
+    event.target.value = ''
     return
   }
+  pendingFile.value = file
+}
 
+const cancelResumePending = () => {
+  pendingFile.value = null
+}
+
+const submitResumeUpload = async () => {
+  if (resumeCurricula.value.length === 0) {
+    toast.error('Please select at least one engineering curriculum before uploading.')
+    return
+  }
   saving.value = true
   try {
     const formData = new FormData()
-    formData.append('resume', file)
+    formData.append('resume', pendingFile.value)
+    resumeCurricula.value.forEach(id => formData.append('resume_curricula', id))
     const res = await api.post('/api/recruiters/member/resume/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
     resumeUrl.value = res.data.resume_url
     resumeUploadedAt.value = new Date(res.data.uploaded_at).toLocaleDateString()
+    resumeCurricula.value = res.data.resume_curricula.map(c => c.id)
+    pendingFile.value = null
     toast.success('Resume uploaded!')
   } catch (error) {
     toast.error(error.response?.data?.error || 'Failed to upload resume')
   } finally {
     saving.value = false
+  }
+}
+
+const saveResumeCurricula = async () => {
+  if (resumeCurricula.value.length === 0) return
+  try {
+    await api.put(`/api/convention/registration/${registration.value.id}/resume-curriculum/`, {
+      resume_curricula: resumeCurricula.value
+    })
+  } catch (error) {
+    toast.error(error.response?.data?.error || 'Failed to save curricula')
   }
 }
 
@@ -1612,6 +1709,8 @@ const deleteResume = async () => {
     await api.delete('/api/recruiters/member/resume/')
     resumeUrl.value = null
     resumeUploadedAt.value = null
+    resumeCurricula.value = []
+    pendingFile.value = null
     toast.success('Resume removed')
   } catch (error) {
     toast.error('Failed to remove resume')
@@ -1945,7 +2044,7 @@ const saveAccommodation = async () => {
 onMounted(async () => {
   loading.value = true
   try {
-    await Promise.all([fetchStates(), fetchMeals()])
+    await Promise.all([fetchStates(), fetchMeals(), fetchResumeCurriculumOptions()])
     await fetchConvention()
     if (convention.value) {
       await fetchRegistration()

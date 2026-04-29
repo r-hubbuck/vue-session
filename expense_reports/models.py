@@ -1,7 +1,12 @@
+from datetime import date
+from decimal import Decimal
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-from decimal import Decimal
 from accounts.models import User
+
+
+def receipt_upload_path(instance, filename):
+    return f'receipts/{date.today().year}/{filename}'
 
 
 class ExpenseReportType(models.Model):
@@ -186,7 +191,7 @@ class ExpenseReport(models.Model):
     
     # Receipt file (combined PDF)
     receipt = models.FileField(
-        upload_to='receipts/',
+        upload_to=receipt_upload_path,
         blank=True,
         null=True,
         help_text="Combined PDF of all receipt images"

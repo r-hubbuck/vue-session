@@ -18,7 +18,7 @@ import ExpenseReportAdmin from './pages/ExpenseReportAdmin.vue'
 import RecruiterRegister from './pages/recruiter/RecruiterRegister.vue'
 import RecruiterDashboard from './pages/recruiter/RecruiterDashboard.vue'
 import RecruiterConvention from './pages/recruiter/RecruiterConvention.vue'
-import RecruiterAttendees from './pages/recruiter/RecruiterAttendees.vue'
+import RecruiterResumes from './pages/recruiter/RecruiterResumes.vue'
 import RecruiterInvoices from './pages/recruiter/RecruiterInvoices.vue'
 import RecruiterAdmin from './pages/recruiter/RecruiterAdmin.vue'
 import InvoiceAdmin from './pages/recruiter/InvoiceAdmin.vue'
@@ -165,9 +165,9 @@ const routes = [
     }
   },
   {
-    path: '/recruiter/attendees',
-    name: 'recruiter-attendees',
-    component: RecruiterAttendees,
+    path: '/recruiter/resumes',
+    name: 'recruiter-resumes',
+    component: RecruiterResumes,
     meta: {
       requiresAuth: true,
       requiresRoles: ['recruiter']

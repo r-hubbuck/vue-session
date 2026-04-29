@@ -27,77 +27,6 @@
 
         <!-- Dashboard Cards -->
         <div v-if="profile" class="row g-4">
-          <!-- Convention Registration -->
-          <div class="col-md-6">
-            <div class="section-card h-100">
-              <h5 class="fw-bold mb-3"><i class="bi bi-calendar-event me-2"></i>Convention Registration</h5>
-              <div v-if="registration">
-                <p><strong>Status:</strong>
-                  <span class="badge" :class="statusBadgeClass(registration.status)">{{ registration.status.charAt(0).toUpperCase() + registration.status.slice(1) }}</span>
-                </p>
-                <p><strong>Package:</strong> {{ registration.booth_package_detail?.name }}</p>
-                <p v-if="registration.booth_id"><strong>Booth ID:</strong> {{ registration.booth_id }}</p>
-                <div v-if="registration.attendees?.length" class="my-2">
-                  <strong>Recruiter Attendees:</strong>
-                  <ul class="list-unstyled mb-0 mt-1">
-                    <li v-for="a in registration.attendees" :key="a.email" class="small text-muted">
-                      {{ a.first_name }} {{ a.last_name }} &mdash; {{ a.email }}
-                    </li>
-                  </ul>
-                </div>
-                <router-link to="/recruiter/convention" class="btn btn-outline-custom btn-sm">
-                  <i class="bi bi-pencil me-1"></i>View/Edit
-                </router-link>
-              </div>
-              <div v-else>
-                <p class="text-muted">Not yet registered for a convention.</p>
-                <router-link
-                  v-if="profile.is_approved"
-                  to="/recruiter/convention"
-                  class="btn btn-primary btn-sm"
-                >
-                  <i class="bi bi-plus-circle me-1"></i>Register Now
-                </router-link>
-              </div>
-            </div>
-          </div>
-
-          <!-- Invoices -->
-          <div class="col-md-6">
-            <div class="section-card h-100">
-              <h5 class="fw-bold mb-3"><i class="bi bi-receipt me-2"></i>Invoices</h5>
-              <div v-if="invoices.length > 0">
-                <div v-for="inv in invoices.slice(0, 3)" :key="inv.id" class="d-flex justify-content-between align-items-center mb-2 p-2" style="background: #fafbfc; border-radius: 6px;">
-                  <div>
-                    <strong>{{ inv.invoice_number }}</strong>
-                    <span class="text-muted ms-2">${{ inv.amount }}</span>
-                  </div>
-                  <span class="badge" :class="statusBadgeClass(inv.status)">{{ inv.status.charAt(0).toUpperCase() + inv.status.slice(1) }}</span>
-                </div>
-                <router-link to="/recruiter/invoices" class="btn btn-outline-custom btn-sm mt-2">
-                  View All Invoices
-                </router-link>
-              </div>
-              <div v-else>
-                <p class="text-muted">No invoices yet.</p>
-                <router-link to="/recruiter/invoices" class="btn btn-outline-custom btn-sm">
-                  View Invoices
-                </router-link>
-              </div>
-            </div>
-          </div>
-
-          <!-- Resumes -->
-          <div class="col-md-6" v-if="authStore.canAccessResumes">
-            <div class="section-card h-100">
-              <h5 class="fw-bold mb-3"><i class="bi bi-file-earmark-person me-2"></i>Resumes</h5>
-              <p class="text-muted">Browse member resumes for the convention.</p>
-              <router-link to="/recruiter/attendees" class="btn btn-outline-custom btn-sm">
-                <i class="bi bi-search me-1"></i>View Resumes
-              </router-link>
-            </div>
-          </div>
-
           <!-- Organization Info -->
           <div class="col-md-6">
             <div class="section-card h-100">
@@ -231,6 +160,79 @@
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+
+          <!-- Convention Registration -->
+          <div class="col-md-6">
+            <div class="section-card h-100">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-calendar-event me-2"></i>Convention Registration</h5>
+                <router-link v-if="registration" to="/recruiter/convention" class="btn btn-outline-custom btn-sm">
+                  <i class="bi bi-pencil me-1"></i>View/Edit
+                </router-link>
+              </div>
+              <div v-if="registration">
+                <p><strong>Status:</strong>
+                  <span class="badge ms-1" :class="statusBadgeClass(registration.status)">{{ registration.status.charAt(0).toUpperCase() + registration.status.slice(1) }}</span>
+                </p>
+                <p><strong>Package:</strong> {{ registration.booth_package_detail?.name }}</p>
+                <p v-if="registration.booth_id"><strong>Booth ID:</strong> {{ registration.booth_id }}</p>
+                <div v-if="registration.attendees?.length" class="my-2">
+                  <strong>Recruiter Attendees:</strong>
+                  <ul class="list-unstyled mb-0 mt-1">
+                    <li v-for="a in registration.attendees" :key="a.email" class="small text-muted">
+                      {{ a.first_name }} {{ a.last_name }} &mdash; {{ a.email }}
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <div v-else>
+                <p class="text-muted">Not yet registered for a convention.</p>
+                <router-link
+                  v-if="profile.is_approved"
+                  to="/recruiter/convention"
+                  class="btn btn-primary btn-sm"
+                >
+                  <i class="bi bi-plus-circle me-1"></i>Register Now
+                </router-link>
+              </div>
+            </div>
+          </div>
+
+          <!-- Invoices -->
+          <div class="col-md-6">
+            <div class="section-card h-100">
+              <h5 class="fw-bold mb-3"><i class="bi bi-receipt me-2"></i>Invoices</h5>
+              <div v-if="invoices.length > 0">
+                <div v-for="inv in invoices.slice(0, 3)" :key="inv.id" class="d-flex justify-content-between align-items-center mb-2 p-2" style="background: #fafbfc; border-radius: 6px;">
+                  <div>
+                    <strong>{{ inv.invoice_number }}</strong>
+                    <span class="text-muted ms-2">${{ inv.amount }}</span>
+                  </div>
+                  <span class="badge" :class="statusBadgeClass(inv.status)">{{ inv.status.charAt(0).toUpperCase() + inv.status.slice(1) }}</span>
+                </div>
+                <router-link to="/recruiter/invoices" class="btn btn-outline-custom btn-sm mt-2">
+                  View All Invoices
+                </router-link>
+              </div>
+              <div v-else>
+                <p class="text-muted">No invoices yet.</p>
+                <router-link to="/recruiter/invoices" class="btn btn-outline-custom btn-sm">
+                  View Invoices
+                </router-link>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumes -->
+          <div class="col-md-6" v-if="authStore.canAccessResumes">
+            <div class="section-card h-100">
+              <h5 class="fw-bold mb-3"><i class="bi bi-file-earmark-person me-2"></i>Resumes</h5>
+              <p class="text-muted">Browse Tau Beta Pi member resumes.</p>
+              <router-link to="/recruiter/resumes" class="btn btn-outline-custom btn-sm">
+                <i class="bi bi-search me-1"></i>View Resumes
+              </router-link>
             </div>
           </div>
         </div>
