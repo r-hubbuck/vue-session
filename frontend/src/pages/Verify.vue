@@ -18,7 +18,7 @@
                     @blur="validateEmail"
                     @input="validateEmail"
                 >
-                <div v-if="emailError" class="invalid-feedback fw-bold">{{ emailError }}</div>
+                <div class="invalid-feedback fw-bold">{{ emailError }}</div>
             </div>
             <div class="form-group row">
                 <label class="form-label" for="chapter">Chapter:</label>
@@ -36,9 +36,7 @@
                     </option>
                 </select>
             </div> 
-            <div v-if="errorMessage" class="text-danger mt-4 fw-bold">
-                {{ errorMessage }}
-            </div>
+            <div v-if="errorMessage" class="alert alert-danger mt-3">{{ errorMessage }}</div>
             <button class="btn btn-danger mt-5 me-4" type="button" @click="$router.push('/login')">Back</button>
             <button class="btn btn-primary mt-5" type="submit">Verify</button> 
         </form> 

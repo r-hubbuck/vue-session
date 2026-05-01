@@ -537,7 +537,15 @@
               <!-- Return Date -->
               <div class="col-md-6">
                 <label class="form-label">Return Date *</label>
-                <input v-model="travel.return_date" type="date" class="form-control" required>
+                <input
+                  v-model="travel.return_date"
+                  type="date"
+                  :class="['form-control', { 'is-invalid': travel.departure_date && travel.return_date && !isValidTravelDates }]"
+                  required
+                >
+                <div class="invalid-feedback">
+                  Return date must be on or after departure date
+                </div>
               </div>
 
               <!-- Return Time -->
@@ -580,11 +588,6 @@
             <span v-if="saving"><span class="spinner-border spinner-border-sm me-2"></span>Saving...</span>
             <span v-else><i class="bi bi-check2 me-2"></i>Save Travel Information</span>
           </button>
-          
-          <p v-if="travel.travel_method === 'need_booking' && !isValidTravelDates" class="text-danger mt-2 mb-0">
-            <i class="bi bi-exclamation-circle me-1"></i>
-            Return date must be on or after departure date
-          </p>
         </form>
       </div>
 
@@ -858,7 +861,15 @@
               </div>
               <div class="col-md-6">
                 <label class="form-label">Check-Out Date *</label>
-                <input v-model="accommodation.check_out_date" type="date" class="form-control" :required="accommodation.needs_hotel">
+                <input
+                  v-model="accommodation.check_out_date"
+                  type="date"
+                  :class="['form-control', { 'is-invalid': accommodation.check_in_date && accommodation.check_out_date && !isValidAccommodationDates }]"
+                  :required="accommodation.needs_hotel"
+                >
+                <div class="invalid-feedback">
+                  Check-out date must be on or after check-in date
+                </div>
               </div>
 
               <div class="col-12">
@@ -950,11 +961,6 @@
             <span v-if="saving"><span class="spinner-border spinner-border-sm me-2"></span>Saving...</span>
             <span v-else><i class="bi bi-check2 me-2"></i>Save Accommodation Information</span>
           </button>
-          
-          <p v-if="!isValidAccommodationDates" class="text-danger mt-2 mb-0">
-            <i class="bi bi-exclamation-circle me-1"></i>
-            Check-out date must be on or after check-in date
-          </p>
         </form>
       </div>
     </div>

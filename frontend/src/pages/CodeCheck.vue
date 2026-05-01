@@ -9,17 +9,16 @@
         <p class="mt-4 mb-3">Please check your email for a 5-digit verification code.</p>
             <div class="form-group">
                 <label class="form-label" for="code">Code:</label> 
-                <input 
-                    class="form-control" 
-                    v-model="code" 
-                    id="code" 
-                    type ="text" 
-                    required 
-                    @input="resetError" 
+                <input
+                    :class="['form-control', { 'is-invalid': codeError || error }]"
+                    v-model="code"
+                    id="code"
+                    type ="text"
+                    required
+                    @input="resetError"
                     @blur="validateCode"
                 />
-                
-                <div v-if="codeError || error" class="text-danger mt-4 fw-bold">{{ codeError || error }}</div>
+                <div class="invalid-feedback">{{ codeError || error }}</div>
             </div> 
 
             <button class="btn btn-primary mt-5" type="submit">Verify</button> 

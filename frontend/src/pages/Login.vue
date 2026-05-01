@@ -12,7 +12,7 @@
       <div class="form-group">
         <label class="form-label" for="email">Email:</label>
         <input
-          class="form-control"
+          :class="['form-control', { 'is-invalid': emailError }]"
           v-model.trim="email"
           id="email"
           type="email"
@@ -20,26 +20,24 @@
           required
           :disabled="loading"
         />
-        <div v-if="emailError" class="text-danger mt-4 fw-bold">{{ emailError }}</div>
+        <div class="invalid-feedback">{{ emailError }}</div>
       </div>
 
       <!-- Password -->
       <div class="form-group">
         <label class="form-label" for="password">Password:</label>
         <input
-          class="form-control"
+          :class="['form-control', { 'is-invalid': passwordError }]"
           v-model="password"
           id="password"
           type="password"
           required
           :disabled="loading"
         />
-        <div v-if="passwordError" class="text-danger mt-4 fw-bold">{{ passwordError }}</div>
+        <div class="invalid-feedback">{{ passwordError }}</div>
       </div>
 
-      <div v-if="authStore.serverMessage" class="text-danger mt-4 fw-bold">
-        {{ authStore.serverMessage }}
-      </div>
+      <div v-if="authStore.serverMessage" class="alert alert-danger">{{ authStore.serverMessage }}</div>
 
       <button 
         class="btn btn-primary mt-5" 

@@ -68,12 +68,13 @@
           <div class="row g-4">
             <div class="col-12">
               <label class="form-label">Report Type *</label>
-              <select v-model="newReport.report_type" class="form-select" required @change="onReportTypeChange">
+              <select v-model="newReport.report_type" :class="['form-select', { 'is-invalid': reportTypeError }]" @change="onReportTypeChange; reportTypeError = ''">
                 <option value="">Select a report type...</option>
                 <option v-for="type in reportTypes" :key="type.id" :value="type.id">
                   {{ type.report_code }} - {{ type.report_name }}
                 </option>
               </select>
+              <div class="invalid-feedback">{{ reportTypeError }}</div>
               <div v-if="selectedReportType" class="alert-success-custom mt-3">
                 <i class="bi bi-info-circle me-2"></i>
                 <strong>Rate Information:</strong>
@@ -89,7 +90,8 @@
           <div class="row g-4 mt-3">
             <div class="col-md-6">
               <label class="form-label">Event Date *</label>
-              <input v-model="newReport.report_date" type="date" class="form-control" required>
+              <input v-model="newReport.report_date" type="date" :class="['form-control', { 'is-invalid': reportDateError }]" @input="reportDateError = ''">
+              <div class="invalid-feedback">{{ reportDateError }}</div>
             </div>
           </div>
 
@@ -107,12 +109,13 @@
 
             <div class="form-group">
               <label class="form-label">Select Address *</label>
-              <select v-model="newReport.mailing_address" class="form-select" required>
+              <select v-model="newReport.mailing_address" :class="['form-select', { 'is-invalid': mailingAddressError }]" @change="mailingAddressError = ''">
                 <option value="">Choose an address...</option>
                 <option v-for="address in userAddresses" :key="address.id" :value="address.id">
                   {{ address.add_type }}{{ address.is_primary ? ' (Primary)' : '' }} - {{ address.display_name }}
                 </option>
               </select>
+              <div class="invalid-feedback">{{ mailingAddressError }}</div>
             </div>
 
             <div class="mt-2">
@@ -261,14 +264,15 @@
             
             <div class="form-group">
               <label class="form-label">Receipt Files *</label>
-              <input 
-                type="file" 
+              <input
+                type="file"
                 ref="receiptInput"
-                class="form-control" 
-                @change="handleReceiptUpload" 
+                :class="['form-control', { 'is-invalid': receiptError }]"
+                @change="handleReceiptUpload"
                 multiple
                 accept="image/png,image/jpeg,application/pdf"
               >
+              <div class="invalid-feedback">{{ receiptError }}</div>
               <small class="form-text text-muted">
                 Select one or more files (PNG, JPG, or PDF). They will be combined into a single PDF.
               </small>
@@ -689,6 +693,10 @@ export default {
       selectedReport: null,
       detailModal: null,
       selectedReceipts: [],
+      reportTypeError: '',
+      mailingAddressError: '',
+      reportDateError: '',
+      receiptError: '',
       newReport: {
         report_type: '',
         mailing_address: '',
@@ -764,17 +772,33 @@ export default {
       this.loading = true
       this.error = null
       this.success = null
-      
-      // Validate mailing address
-      if (!this.newReport.mailing_address) {
-        this.error = 'Please select a mailing address.'
+
+      // Clear all inline errors before re-validating
+      this.reportTypeError = ''
+      this.mailingAddressError = ''
+      this.reportDateError = ''
+      this.receiptError = ''
+
+      if (!this.newReport.report_type) {
+        this.reportTypeError = 'Please select a report type.'
         this.loading = false
         return
       }
-      
-      // Validate receipts
+
+      if (!this.newReport.mailing_address) {
+        this.mailingAddressError = 'Please select a mailing address for your check.'
+        this.loading = false
+        return
+      }
+
+      if (!this.newReport.report_date) {
+        this.reportDateError = 'Please enter the event date.'
+        this.loading = false
+        return
+      }
+
       if (this.selectedReceipts.length === 0) {
-        this.error = 'Please upload at least one receipt file.'
+        this.receiptError = 'Please upload at least one receipt file.'
         this.loading = false
         return
       }
@@ -853,40 +877,44 @@ export default {
       if (this.$refs.receiptInput) {
         this.$refs.receiptInput.value = ''
       }
+      this.reportTypeError = ''
+      this.mailingAddressError = ''
+      this.reportDateError = ''
+      this.receiptError = ''
     },
     
     handleReceiptUpload(event) {
       const files = Array.from(event.target.files)
-      
+
       // Validate file types
       const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf']
       const invalidFiles = files.filter(f => !allowedTypes.includes(f.type))
-      
+
       if (invalidFiles.length > 0) {
-        this.error = `Invalid file type(s). Only PNG, JPG, and PDF files are allowed.`
+        this.receiptError = `Invalid file type(s). Only PNG, JPG, and PDF files are allowed.`
         return
       }
-      
+
       // Validate file sizes
       const maxFileSize = 10 * 1024 * 1024 // 10MB
       const oversizedFiles = files.filter(f => f.size > maxFileSize)
-      
+
       if (oversizedFiles.length > 0) {
-        this.error = `File(s) too large. Maximum size is 10MB per file.`
+        this.receiptError = `File(s) too large. Maximum size is 10MB per file.`
         return
       }
-      
+
       // Validate total size
       const totalSize = files.reduce((sum, f) => sum + f.size, 0)
       const maxTotalSize = 50 * 1024 * 1024 // 50MB
-      
+
       if (totalSize > maxTotalSize) {
-        this.error = `Total file size too large. Maximum total size is 50MB.`
+        this.receiptError = `Total file size too large. Maximum total size is 50MB.`
         return
       }
-      
+
       this.selectedReceipts = files
-      this.error = null
+      this.receiptError = ''
     },
     
     removeReceipt(index) {

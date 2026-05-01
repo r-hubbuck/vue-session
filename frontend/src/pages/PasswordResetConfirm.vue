@@ -23,7 +23,7 @@
             <input
               v-model="newPassword1"
               type="password"
-              class="form-control"
+              :class="['form-control', { 'is-invalid': passwordError }]"
               id="newPassword1"
               required
               :disabled="loading"
@@ -71,7 +71,7 @@
             <input
               v-model="newPassword2"
               type="password"
-              class="form-control"
+              :class="['form-control', { 'is-invalid': passwordError }]"
               id="newPassword2"
               required
               :disabled="loading"
@@ -112,7 +112,7 @@
                 <span :class="{'text-success': password2Safe, 'text-danger': !password2Safe}"> No invalid characters</span>
               </div>
             </div>
-            <div v-if="passwordError" class="text-danger mt-2 fw-bold">{{ passwordError }}</div>
+            <div class="invalid-feedback">{{ passwordError }}</div>
           </div>
 
           <div v-if="error" class="alert alert-danger">
@@ -237,7 +237,6 @@ export default {
       this.validatePasswords();
 
       if (!this.isFormValid) {
-        this.error = "Please fix the highlighted errors before submitting.";
         return;
       }
 

@@ -56,24 +56,20 @@
             </div>
             <div class="col-md-6">
               <label for="alt_email" class="form-label">Alternate Email</label>
-              <input 
-                type="email" 
-                class="form-control" 
-                id="alt_email" 
+              <input
+                type="email"
+                :class="['form-control', { 'is-invalid': emailValidationError || accountErrors.alt_email }]"
+                id="alt_email"
                 v-model.trim="accountData.alt_email"
-                :disabled="accountSaving" 
+                :disabled="accountSaving"
                 placeholder="Enter alternative email (optional)"
                 maxlength="254"
                 @blur="validateAltEmail"
-                :class="{'is-invalid': emailValidationError}"
               />
+              <div class="invalid-feedback">
+                <i class="bi bi-exclamation-circle me-1"></i>{{ emailValidationError || (accountErrors.alt_email && accountErrors.alt_email[0]) }}
+              </div>
               <small class="form-text">Used for recovery and optionally for notifications</small>
-              <div v-if="emailValidationError" class="text-danger mt-2">
-                <i class="bi bi-exclamation-circle me-1"></i>{{ emailValidationError }}
-              </div>
-              <div v-if="accountErrors.alt_email" class="text-danger mt-2">
-                <i class="bi bi-exclamation-circle me-1"></i>{{ accountErrors.alt_email[0] }}
-              </div>
             </div>
           </div>
 
@@ -158,19 +154,16 @@
                     </select>
                   </td>
                   <td style="min-width: 200px;">
-                    <input 
-                      v-model="phone.phone_number" 
-                      @input="handlePhoneInput(phone, index)" 
+                    <input
+                      v-model="phone.phone_number"
+                      @input="handlePhoneInput(phone, index)"
                       type="tel"
-                      class="form-control form-control-sm"
+                      :class="['form-control', 'form-control-sm', { 'is-invalid': phone.validationError }]"
                       :placeholder="phone.country_code === '+1' ? '(555) 123-4567' : 'Enter phone number'"
                       :maxlength="phone.country_code === '+1' ? 14 : 20"
-                      required 
-                      :class="{'is-invalid': phone.validationError}"
+                      required
                     />
-                    <div v-if="phone.validationError" class="text-danger small mt-1">
-                      {{ phone.validationError }}
-                    </div>
+                    <div class="invalid-feedback">{{ phone.validationError }}</div>
                   </td>
                   <td class="text-center">
                     <div class="form-check d-inline-block">

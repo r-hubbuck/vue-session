@@ -9,7 +9,7 @@
       <div class="form-group">
         <label class="form-label" for="email">Email:</label>
         <input
-          class="form-control"
+          :class="['form-control', { 'is-invalid': emailError }]"
           v-model.trim="email"
           id="email"
           type="email"
@@ -17,7 +17,7 @@
           required
           @blur="validateEmail"
         />
-        <div v-if="emailError" class="text-danger mt-4 fw-bold">{{ emailError }}</div>
+        <div class="invalid-feedback">{{ emailError }}</div>
       </div>
 
       <!-- Phone -->
@@ -38,7 +38,7 @@
       <div class="form-group position-relative">
         <label class="form-label" for="password1">Password:</label>
         <input
-          class="form-control"
+          :class="['form-control', { 'is-invalid': passwordError }]"
           v-model="password1"
           id="password1"
           type="password"
@@ -87,7 +87,7 @@
       <div class="form-group position-relative">
         <label class="form-label" for="password2">Confirm Password:</label>
         <input
-          class="form-control"
+          :class="['form-control', { 'is-invalid': passwordError }]"
           v-model="password2"
           id="password2"
           type="password"
@@ -130,14 +130,14 @@
             <span :class="{'text-success': password2Safe, 'text-danger': !password2Safe}"> No invalid characters</span>
           </div>
         </div>
-        <div v-if="passwordError" class="text-danger mt-4 fw-bold">{{ passwordError }}</div>
+        <div class="invalid-feedback">{{ passwordError }}</div>
       </div>
       <button class="btn btn-danger mt-5 me-4" type="button" @click="$router.push('/login')">Back</button>
       <button class="btn btn-primary mt-5" type="submit">Register</button>
     </form>
 
     <!-- Server messages -->
-    <div v-if="error" class="text-danger mt-4 fw-bold">{{ error }}</div>
+    <div v-if="error" class="alert alert-danger mt-3">{{ error }}</div>
     <div v-if="success" class="text-success mt-4 fw-bold">{{ success }}</div>
   </div>
 </template>

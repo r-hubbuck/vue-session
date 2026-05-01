@@ -19,14 +19,14 @@
               v-model.trim="email"
               type="email"
               maxlength="254"
-              class="form-control"
+              :class="['form-control', { 'is-invalid': emailError }]"
               id="email"
               required
               :disabled="loading"
               @blur="validateEmail"
               @input="validateEmail"
             />
-            <div v-if="emailError" class="text-danger mt-2 fw-bold">{{ emailError }}</div>
+            <div class="invalid-feedback">{{ emailError }}</div>
           </div>
 
           <div v-if="error" class="alert alert-danger">

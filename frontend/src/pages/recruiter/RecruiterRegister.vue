@@ -37,23 +37,24 @@
           </div>
           <div class="col-md-6">
             <label class="form-label">Website *</label>
-            <input v-model.trim="form.org_website" type="url" class="form-control" placeholder="https://..." maxlength="200" required>
+            <input v-model.trim="form.org_website" type="url" class="form-control" placeholder="https://..." maxlength="200" required
+              @invalid="e => e.target.setCustomValidity('Please enter a full URL, e.g. https://example.com')"
+              @input="e => e.target.setCustomValidity('')">
           </div>
           <div class="col-md-6">
             <label class="form-label">Organization Phone</label>
-            <input v-model="form.org_phone" @input="formatPhone('org_phone')" @blur="validatePhoneField('org_phone')" type="tel" class="form-control" :class="{'is-invalid': orgPhoneError}" placeholder="(555) 123-4567" maxlength="14">
-            <div v-if="orgPhoneError" class="text-danger small mt-1">{{ orgPhoneError }}</div>
+            <input v-model="form.org_phone" @input="formatPhone('org_phone')" @blur="validatePhoneField('org_phone')" type="tel" :class="['form-control', { 'is-invalid': orgPhoneError }]" placeholder="(555) 123-4567" maxlength="14">
+            <div class="invalid-feedback">{{ orgPhoneError }}</div>
           </div>
           <div class="col-md-8">
             <label class="form-label">Organization Logo</label>
             <input
               type="file"
-              class="form-control"
-              :class="{'is-invalid': logoError}"
+              :class="['form-control', { 'is-invalid': logoError }]"
               accept=".png,.jpg,.jpeg"
               @change="handleLogoChange"
             >
-            <div v-if="logoError" class="text-danger small mt-1">{{ logoError }}</div>
+            <div class="invalid-feedback">{{ logoError }}</div>
             <small class="form-text text-muted">Optional. PNG or JPG only, max 5MB.</small>
           </div>
           <div v-if="logoPreview" class="col-md-4 d-flex align-items-center">
@@ -98,8 +99,8 @@
           </div>
           <div class="col-md-6">
             <label class="form-label">Invoice Email *</label>
-            <input v-model.trim="form.org_billing_email" type="email" class="form-control" :class="{'is-invalid': billingEmailError}" required maxlength="254" @blur="validateBillingEmail" @input="validateBillingEmail">
-            <div v-if="billingEmailError" class="text-danger small mt-1">{{ billingEmailError }}</div>
+            <input v-model.trim="form.org_billing_email" type="email" :class="['form-control', { 'is-invalid': billingEmailError }]" required maxlength="254" @blur="validateBillingEmail" @input="validateBillingEmail">
+            <div class="invalid-feedback">{{ billingEmailError }}</div>
           </div>
         </div>
 
@@ -117,18 +118,18 @@
           </div>
           <div class="col-md-6">
             <label class="form-label">Email *</label>
-            <input v-model.trim="form.email" type="email" class="form-control" :class="{'is-invalid': emailError}" required maxlength="254" @blur="validateEmail" @input="validateEmail">
-            <div v-if="emailError" class="text-danger small mt-1">{{ emailError }}</div>
+            <input v-model.trim="form.email" type="email" :class="['form-control', { 'is-invalid': emailError }]" required maxlength="254" @blur="validateEmail" @input="validateEmail">
+            <div class="invalid-feedback">{{ emailError }}</div>
           </div>
           <div class="col-md-6">
             <label class="form-label">Phone</label>
-            <input v-model="form.phone" @input="formatPhone('phone')" @blur="validatePhoneField('phone')" type="tel" class="form-control" :class="{'is-invalid': phoneError}" placeholder="(555) 123-4567" maxlength="14">
-            <div v-if="phoneError" class="text-danger small mt-1">{{ phoneError }}</div>
+            <input v-model="form.phone" @input="formatPhone('phone')" @blur="validatePhoneField('phone')" type="tel" :class="['form-control', { 'is-invalid': phoneError }]" placeholder="(555) 123-4567" maxlength="14">
+            <div class="invalid-feedback">{{ phoneError }}</div>
           </div>
           <div class="col-md-6">
             <label class="form-label">Cell Phone</label>
-            <input v-model="form.cell_phone" @input="formatPhone('cell_phone')" @blur="validatePhoneField('cell_phone')" type="tel" class="form-control" :class="{'is-invalid': cellPhoneError}" placeholder="(555) 123-4567" maxlength="14">
-            <div v-if="cellPhoneError" class="text-danger small mt-1">{{ cellPhoneError }}</div>
+            <input v-model="form.cell_phone" @input="formatPhone('cell_phone')" @blur="validatePhoneField('cell_phone')" type="tel" :class="['form-control', { 'is-invalid': cellPhoneError }]" placeholder="(555) 123-4567" maxlength="14">
+            <div class="invalid-feedback">{{ cellPhoneError }}</div>
           </div>
         </div>
 
@@ -137,12 +138,102 @@
         <div class="row g-3 mb-4">
           <div class="col-md-6">
             <label class="form-label">Password *</label>
-            <input v-model="form.password1" type="password" class="form-control" required minlength="8" maxlength="128">
-            <small class="form-text text-muted">Min 8 chars, uppercase, lowercase, number, special character</small>
+            <div class="position-relative">
+              <input
+                v-model="form.password1"
+                type="password"
+                class="form-control"
+                required
+                maxlength="128"
+                autocomplete="new-password"
+                pattern="[A-Za-z0-9!@#$%^&*_=+\-.]{8,}"
+                @focus="showPasswordReq = true"
+                @blur="onPasswordBlur"
+                @input="validatePasswords"
+              >
+              <div v-if="showPasswordReq" class="password-req-box bg-light border rounded p-2" style="text-align:left; z-index:100; position:absolute; left:0; top:100%; min-width:320px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                <div class="small">
+                  <span v-if="passwordLength" style="color:#28a745; font-weight:bold;">✓</span>
+                  <span v-else style="color:red; margin-right:5px;">✗</span>
+                  <span :class="{'text-success': passwordLength, 'text-danger': !passwordLength}"> At least 8 characters</span>
+                </div>
+                <div class="small">
+                  <span v-if="passwordUpper" style="color:#28a745; font-weight:bold;">✓</span>
+                  <span v-else style="color:red; margin-right:5px;">✗</span>
+                  <span :class="{'text-success': passwordUpper, 'text-danger': !passwordUpper}"> At least one uppercase letter</span>
+                </div>
+                <div class="small">
+                  <span v-if="passwordLower" style="color:#28a745; font-weight:bold;">✓</span>
+                  <span v-else style="color:red; margin-right:5px;">✗</span>
+                  <span :class="{'text-success': passwordLower, 'text-danger': !passwordLower}"> At least one lowercase letter</span>
+                </div>
+                <div class="small">
+                  <span v-if="passwordNumber" style="color:#28a745; font-weight:bold;">✓</span>
+                  <span v-else style="color:red; margin-right:5px;">✗</span>
+                  <span :class="{'text-success': passwordNumber, 'text-danger': !passwordNumber}"> At least one number</span>
+                </div>
+                <div class="small">
+                  <span v-if="passwordSpecial" style="color:#28a745; font-weight:bold;">✓</span>
+                  <span v-else style="color:red; margin-right:5px;">✗</span>
+                  <span :class="{'text-success': passwordSpecial, 'text-danger': !passwordSpecial}"> At least one special character (!@#$%^&*_=+-.)</span>
+                </div>
+                <div class="small">
+                  <span v-if="passwordSafe" style="color:#28a745; font-weight:bold;">✓</span>
+                  <span v-else style="color:red; margin-right:5px;">✗</span>
+                  <span :class="{'text-success': passwordSafe, 'text-danger': !passwordSafe}"> No invalid characters</span>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="col-md-6">
             <label class="form-label">Confirm Password *</label>
-            <input v-model="form.password2" type="password" class="form-control" required minlength="8" maxlength="128">
+            <div class="position-relative">
+              <input
+                v-model="form.password2"
+                type="password"
+                :class="['form-control', { 'is-invalid': passwordError }]"
+                required
+                maxlength="128"
+                autocomplete="new-password"
+                pattern="[A-Za-z0-9!@#$%^&*_=+\-.]{8,}"
+                @focus="showPassword2Req = true"
+                @blur="onPassword2Blur"
+                @input="validatePasswords"
+              >
+              <div v-if="showPassword2Req" class="password-req-box bg-light border rounded p-2" style="text-align:left; z-index:100; position:absolute; left:0; top:100%; min-width:320px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                <div class="small">
+                  <span v-if="password2Length" style="color:#28a745; font-weight:bold;">✓</span>
+                  <span v-else style="color:red; margin-right:5px;">✗</span>
+                  <span :class="{'text-success': password2Length, 'text-danger': !password2Length}"> At least 8 characters</span>
+                </div>
+                <div class="small">
+                  <span v-if="password2Upper" style="color:#28a745; font-weight:bold;">✓</span>
+                  <span v-else style="color:red; margin-right:5px;">✗</span>
+                  <span :class="{'text-success': password2Upper, 'text-danger': !password2Upper}"> At least one uppercase letter</span>
+                </div>
+                <div class="small">
+                  <span v-if="password2Lower" style="color:#28a745; font-weight:bold;">✓</span>
+                  <span v-else style="color:red; margin-right:5px;">✗</span>
+                  <span :class="{'text-success': password2Lower, 'text-danger': !password2Lower}"> At least one lowercase letter</span>
+                </div>
+                <div class="small">
+                  <span v-if="password2Number" style="color:#28a745; font-weight:bold;">✓</span>
+                  <span v-else style="color:red; margin-right:5px;">✗</span>
+                  <span :class="{'text-success': password2Number, 'text-danger': !password2Number}"> At least one number</span>
+                </div>
+                <div class="small">
+                  <span v-if="password2Special" style="color:#28a745; font-weight:bold;">✓</span>
+                  <span v-else style="color:red; margin-right:5px;">✗</span>
+                  <span :class="{'text-success': password2Special, 'text-danger': !password2Special}"> At least one special character (!@#$%^&*_=+-.)</span>
+                </div>
+                <div class="small">
+                  <span v-if="password2Safe" style="color:#28a745; font-weight:bold;">✓</span>
+                  <span v-else style="color:red; margin-right:5px;">✗</span>
+                  <span :class="{'text-success': password2Safe, 'text-danger': !password2Safe}"> No invalid characters</span>
+                </div>
+              </div>
+              <div class="invalid-feedback fw-bold">{{ passwordError }}</div>
+            </div>
           </div>
         </div>
 
@@ -160,7 +251,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import api from '../../api'
 import { useAuthStore } from '../../store/auth'
 import { isValidEmail, validatePhone } from '../../utils/validation'
@@ -179,6 +270,44 @@ onMounted(async () => {
 const saving = ref(false)
 const submitted = ref(false)
 const errorMessage = ref('')
+const passwordError = ref('')
+const showPasswordReq = ref(false)
+const showPassword2Req = ref(false)
+
+const passwordLength  = computed(() => form.value.password1.length >= 8)
+const passwordUpper   = computed(() => /[A-Z]/.test(form.value.password1))
+const passwordLower   = computed(() => /[a-z]/.test(form.value.password1))
+const passwordNumber  = computed(() => /[0-9]/.test(form.value.password1))
+const passwordSpecial = computed(() => /[!@#$%^&*_=+\-.]/.test(form.value.password1))
+const passwordSafe    = computed(() => !/[^A-Za-z0-9!@#$%^&*_=+\-.]/.test(form.value.password1))
+
+const password2Length  = computed(() => form.value.password2.length >= 8)
+const password2Upper   = computed(() => /[A-Z]/.test(form.value.password2))
+const password2Lower   = computed(() => /[a-z]/.test(form.value.password2))
+const password2Number  = computed(() => /[0-9]/.test(form.value.password2))
+const password2Special = computed(() => /[!@#$%^&*_=+\-.]/.test(form.value.password2))
+const password2Safe    = computed(() => !/[^A-Za-z0-9!@#$%^&*_=+\-.]/.test(form.value.password2))
+
+const onPasswordBlur  = () => setTimeout(() => { showPasswordReq.value  = false }, 200)
+const onPassword2Blur = () => setTimeout(() => { showPassword2Req.value = false }, 200)
+
+const validatePasswords = () => {
+  const p1 = form.value.password1
+  const p2 = form.value.password2
+  if (p1 && p2 && p1 !== p2) {
+    passwordError.value = 'Passwords do not match.'
+  } else {
+    passwordError.value = ''
+  }
+  return (
+    p1.length >= 8 &&
+    /[A-Z]/.test(p1) &&
+    /[a-z]/.test(p1) &&
+    /[0-9]/.test(p1) &&
+    /[!@#$%^&*_=+\-.]/.test(p1) &&
+    !/[^A-Za-z0-9!@#$%^&*_=+\-.]/.test(p1)
+  )
+}
 const emailError = ref('')
 const billingEmailError = ref('')
 const phoneError = ref('')
@@ -293,8 +422,15 @@ const handleSubmit = async () => {
   validatePhoneField('cell_phone')
   validatePhoneField('org_phone')
 
+  const passwordsValid = validatePasswords()
+
   if (emailError.value || billingEmailError.value || phoneError.value || cellPhoneError.value || orgPhoneError.value) {
     errorMessage.value = 'Please fix the validation errors above.'
+    return
+  }
+
+  if (passwordError.value || !passwordsValid) {
+    showPasswordReq.value = true
     return
   }
 

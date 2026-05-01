@@ -258,7 +258,7 @@
                             maxlength="100"
                             @blur="validateField('outbound_airline')"
                           >
-                          <div class="invalid-feedback" v-if="validationErrors.outbound_airline">
+                          <div class="invalid-feedback">
                             {{ validationErrors.outbound_airline }}
                           </div>
                         </div>
@@ -273,7 +273,7 @@
                             maxlength="20"
                             @blur="validateField('outbound_flight_number')"
                           >
-                          <div class="invalid-feedback" v-if="validationErrors.outbound_flight_number">
+                          <div class="invalid-feedback">
                             {{ validationErrors.outbound_flight_number }}
                           </div>
                         </div>
@@ -285,7 +285,7 @@
                             class="form-control"
                             :class="{'is-invalid': validationErrors.outbound_departure_time}"
                           >
-                          <div class="invalid-feedback" v-if="validationErrors.outbound_departure_time">
+                          <div class="invalid-feedback">
                             {{ validationErrors.outbound_departure_time }}
                           </div>
                         </div>
@@ -298,7 +298,7 @@
                             :class="{'is-invalid': validationErrors.outbound_arrival_time}"
                             @blur="validateField('outbound_arrival_time')"
                           >
-                          <div class="invalid-feedback" v-if="validationErrors.outbound_arrival_time">
+                          <div class="invalid-feedback">
                             {{ validationErrors.outbound_arrival_time }}
                           </div>
                         </div>
@@ -312,7 +312,7 @@
                             placeholder="Confirmation #"
                             maxlength="50"
                           >
-                          <div class="invalid-feedback" v-if="validationErrors.outbound_confirmation">
+                          <div class="invalid-feedback">
                             {{ validationErrors.outbound_confirmation }}
                           </div>
                         </div>
@@ -337,7 +337,7 @@
                             maxlength="100"
                             @blur="validateField('return_airline')"
                           >
-                          <div class="invalid-feedback" v-if="validationErrors.return_airline">
+                          <div class="invalid-feedback">
                             {{ validationErrors.return_airline }}
                           </div>
                         </div>
@@ -352,7 +352,7 @@
                             maxlength="20"
                             @blur="validateField('return_flight_number')"
                           >
-                          <div class="invalid-feedback" v-if="validationErrors.return_flight_number">
+                          <div class="invalid-feedback">
                             {{ validationErrors.return_flight_number }}
                           </div>
                         </div>
@@ -364,7 +364,7 @@
                             class="form-control"
                             :class="{'is-invalid': validationErrors.return_departure_time}"
                           >
-                          <div class="invalid-feedback" v-if="validationErrors.return_departure_time">
+                          <div class="invalid-feedback">
                             {{ validationErrors.return_departure_time }}
                           </div>
                         </div>
@@ -377,7 +377,7 @@
                             :class="{'is-invalid': validationErrors.return_arrival_time}"
                             @blur="validateField('return_arrival_time')"
                           >
-                          <div class="invalid-feedback" v-if="validationErrors.return_arrival_time">
+                          <div class="invalid-feedback">
                             {{ validationErrors.return_arrival_time }}
                           </div>
                         </div>
@@ -391,7 +391,7 @@
                             placeholder="Confirmation #"
                             maxlength="50"
                           >
-                          <div class="invalid-feedback" v-if="validationErrors.return_confirmation">
+                          <div class="invalid-feedback">
                             {{ validationErrors.return_confirmation }}
                           </div>
                         </div>
@@ -410,7 +410,7 @@
                     placeholder="Additional notes about the booking..."
                     maxlength="1000"
                   ></textarea>
-                  <div class="invalid-feedback" v-if="validationErrors.flight_notes">
+                  <div class="invalid-feedback">
                     {{ validationErrors.flight_notes }}
                   </div>
                 </div>

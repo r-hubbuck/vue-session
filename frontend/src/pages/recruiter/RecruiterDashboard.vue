@@ -87,7 +87,7 @@
                   <div class="col-12">
                     <label class="form-label small">Phone</label>
                     <input v-model="orgForm.phone" @input="formatOrgPhone" @blur="validateOrgPhone" type="tel" class="form-control form-control-sm" :class="{ 'is-invalid': orgPhoneError }" placeholder="(555) 123-4567" maxlength="14">
-                    <div v-if="orgPhoneError" class="invalid-feedback">{{ orgPhoneError }}</div>
+                    <div class="invalid-feedback">{{ orgPhoneError }}</div>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label small">Address Line 1 *</label>
@@ -124,7 +124,7 @@
                   <div class="col-md-4">
                     <label class="form-label small">Invoice Email *</label>
                     <input v-model.trim="orgForm.billing_email" type="email" class="form-control form-control-sm" :class="{ 'is-invalid': billingEmailError }" required maxlength="254" @blur="validateBillingEmail" @input="validateBillingEmail">
-                    <div v-if="billingEmailError" class="invalid-feedback">{{ billingEmailError }}</div>
+                    <div class="invalid-feedback">{{ billingEmailError }}</div>
                   </div>
                   <div class="col-12">
                     <hr class="my-2">
@@ -146,7 +146,7 @@
                       accept=".png,.jpg,.jpeg"
                       @change="handleLogoChange"
                     >
-                    <div v-if="logoError" class="invalid-feedback">{{ logoError }}</div>
+                    <div class="invalid-feedback">{{ logoError }}</div>
                     <small class="form-text text-muted">PNG or JPG only, max 5MB.</small>
                   </div>
                 </div>

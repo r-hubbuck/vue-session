@@ -405,24 +405,26 @@
                   <div class="row">
                     <div class="col-md-4 mb-3">
                       <label class="form-label">Status *</label>
-                      <select v-model="updateForm.status" class="form-select" required>
+                      <select v-model="updateForm.status" :class="['form-select', { 'is-invalid': updateFormErrors.status }]" @change="updateFormErrors.status = ''">
                         <option value="submitted">Submitted</option>
                         <option value="reviewed">Reviewed</option>
                         <option value="approved">Approved</option>
                         <option value="paid">Paid</option>
                         <option value="rejected">Rejected</option>
                       </select>
+                      <div class="invalid-feedback">{{ updateFormErrors.status }}</div>
                     </div>
                     
                     <div class="col-md-4 mb-3" v-if="updateForm.status === 'paid'">
-                      <label class="form-label">Payment Method</label>
-                      <select v-model="updateForm.payment_method" class="form-select">
+                      <label class="form-label">Payment Method *</label>
+                      <select v-model="updateForm.payment_method" :class="['form-select', { 'is-invalid': updateFormErrors.payment_method }]" @change="updateFormErrors.payment_method = ''">
                         <option value="">Select...</option>
                         <option value="check">Check</option>
                         <option value="direct_deposit">Direct Deposit</option>
                         <option value="credit">Credit to Account</option>
                         <option value="other">Other</option>
                       </select>
+                      <div class="invalid-feedback">{{ updateFormErrors.payment_method }}</div>
                     </div>
                     
                     <div class="col-md-4 mb-3" v-if="updateForm.status === 'paid' && updateForm.payment_method === 'check'">
@@ -449,7 +451,8 @@
 
                   <div class="mb-3" v-if="updateForm.status === 'rejected'">
                     <label class="form-label">Rejection Reason *</label>
-                    <textarea v-model="updateForm.rejection_reason" class="form-control" rows="3" required></textarea>
+                    <textarea v-model="updateForm.rejection_reason" :class="['form-control', { 'is-invalid': updateFormErrors.rejection_reason }]" rows="3" @input="updateFormErrors.rejection_reason = ''"></textarea>
+                    <div class="invalid-feedback">{{ updateFormErrors.rejection_reason }}</div>
                   </div>
 
                   <div class="d-flex justify-content-end gap-2">
@@ -573,6 +576,11 @@ export default {
         paid_date: '',
         notes: '',
         rejection_reason: ''
+      },
+      updateFormErrors: {
+        status: '',
+        payment_method: '',
+        rejection_reason: ''
       }
     }
   },
@@ -647,6 +655,7 @@ export default {
           notes: this.selectedReport.notes || '',
           rejection_reason: this.selectedReport.rejection_reason || ''
         }
+        this.updateFormErrors = { status: '', payment_method: '', rejection_reason: '' }
         
         // Show modal
         this.detailModal = new window.bootstrap.Modal(this.$refs.detailModal)
@@ -659,10 +668,30 @@ export default {
     
     async updateReportStatus() {
       if (this.updateLoading) return
+
+      // Clear inline errors
+      this.updateFormErrors.status = ''
+      this.updateFormErrors.payment_method = ''
+      this.updateFormErrors.rejection_reason = ''
+
+      // Inline validation
+      if (!this.updateForm.status) {
+        this.updateFormErrors.status = 'Status is required.'
+        return
+      }
+      if (this.updateForm.status === 'paid' && !this.updateForm.payment_method) {
+        this.updateFormErrors.payment_method = 'Payment method is required when marking as paid.'
+        return
+      }
+      if (this.updateForm.status === 'rejected' && !this.updateForm.rejection_reason.trim()) {
+        this.updateFormErrors.rejection_reason = 'Rejection reason is required when rejecting a report.'
+        return
+      }
+
       this.updateLoading = true
       this.error = null
       this.success = null
-      
+
       try {
         // Prepare data - only send fields that are set
         const updateData = {

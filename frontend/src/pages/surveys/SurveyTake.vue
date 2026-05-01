@@ -49,7 +49,7 @@
         <div v-if="submitError" class="alert alert-danger">{{ submitError }}</div>
 
         <!-- Questions -->
-        <div v-for="question in survey.questions" :key="question.id" class="card mb-3">
+        <div v-for="question in survey.questions" :key="question.id" class="card mb-3" :class="{ 'border-danger': questionErrors[question.id] }" :data-question-id="question.id">
           <div class="card-body">
             <p class="fw-semibold mb-1">
               {{ question.order + 1 }}. {{ question.question_text }}
@@ -183,6 +183,10 @@
               :disabled="responseData?.is_complete"
               @change="onAnswerChange()"
             />
+
+            <div v-if="questionErrors[question.id]" class="invalid-feedback d-block mt-1">
+              {{ questionErrors[question.id] }}
+            </div>
           </div>
         </div>
 
@@ -217,6 +221,7 @@ const submitting = ref(false)
 const loadError = ref(null)
 const submitError = ref(null)
 const submitMsg = ref(null)
+const questionErrors = ref({})
 let debounceTimer = null
 
 // --- Answer helpers ---
@@ -247,6 +252,34 @@ function toggleChoice(questionId, choiceId) {
   const idx = arr.indexOf(choiceId)
   if (idx === -1) arr.push(choiceId)
   else arr.splice(idx, 1)
+}
+
+// --- Validation ---
+
+function validateRequired() {
+  if (!survey.value) return true
+  let allAnswered = true
+  for (const q of survey.value.questions) {
+    if (!q.is_required) continue
+    let answered = false
+    const choiceBased = ['multiple_choice', 'dropdown', 'true_false', 'yes_no']
+    if (choiceBased.includes(q.question_type)) {
+      answered = getSingleChoice(q.id) !== null
+    } else if (q.question_type === 'checkbox') {
+      answered = (answers[q.id]?.selected_choices?.length ?? 0) > 0
+    } else if (q.question_type === 'short_answer' || q.question_type === 'essay') {
+      answered = (answers[q.id]?.text_answer?.trim().length ?? 0) > 0
+    } else if (q.question_type === 'number') {
+      answered = answers[q.id]?.number_answer !== null && answers[q.id]?.number_answer !== ''
+    } else if (q.question_type === 'date') {
+      answered = !!answers[q.id]?.date_answer
+    } else if (q.question_type === 'rating') {
+      answered = true
+    }
+    questionErrors.value[q.id] = answered ? '' : 'This question is required.'
+    if (!answered) allAnswered = false
+  }
+  return allAnswered
 }
 
 // --- Load ---
@@ -322,6 +355,8 @@ async function saveDraft() {
 }
 
 function onAnswerChange() {
+  // Re-run validation silently to clear errors for newly-answered questions
+  if (Object.keys(questionErrors.value).length > 0) validateRequired()
   clearTimeout(debounceTimer)
   debounceTimer = setTimeout(saveDraft, 1500)
 }
@@ -329,6 +364,13 @@ function onAnswerChange() {
 // --- Submit ---
 
 async function submitSurvey() {
+  if (!validateRequired()) {
+    const firstErrorId = survey.value.questions.find(q => questionErrors.value[q.id])?.id
+    if (firstErrorId) {
+      document.querySelector(`[data-question-id="${firstErrorId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+    return
+  }
   if (!confirm('Submit your answers? You will not be able to change them after submitting.')) return
   submitting.value = true
   submitError.value = null
@@ -338,6 +380,7 @@ async function submitSurvey() {
       buildPayload()
     )
     responseData.value = res.data
+    questionErrors.value = {}
     if (survey.value.is_graded && res.data.score !== null) {
       submitMsg.value = `Submitted! Your score: ${res.data.score} / ${res.data.total_possible_points}`
     } else {

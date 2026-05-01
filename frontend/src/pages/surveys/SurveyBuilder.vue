@@ -15,7 +15,7 @@
 
     <template v-else>
       <div v-if="saveError" class="alert alert-danger mb-3">
-        <strong>Save failed:</strong> {{ saveError }}
+        {{ saveError }}
       </div>
 
       <!-- Survey Metadata -->
@@ -25,7 +25,8 @@
           <div class="row g-3">
             <div class="col-md-8">
               <label class="form-label">Title <span class="text-danger">*</span></label>
-              <input v-model="form.title" type="text" class="form-control" placeholder="Survey title" />
+              <input v-model="form.title" type="text" :class="['form-control', { 'is-invalid': titleError }]" placeholder="Survey title" @input="titleError = ''" />
+              <div class="invalid-feedback">{{ titleError }}</div>
             </div>
             <div class="col-md-4">
               <label class="form-label">Type</label>
@@ -48,8 +49,9 @@
             </div>
             <div class="col-md-4">
               <label class="form-label">Close Date</label>
-              <input v-model="form.close_date" type="datetime-local" class="form-control" />
-              <div class="form-text">Leave blank for no end date.</div>
+              <input v-model="form.close_date" type="datetime-local" :class="['form-control', { 'is-invalid': dateError }]" @input="dateError = ''" />
+              <div class="invalid-feedback">{{ dateError }}</div>
+              <div v-if="!dateError" class="form-text">Leave blank for no end date.</div>
             </div>
             <div class="col-md-4 d-flex align-items-end">
               <div v-if="form.is_graded">
@@ -182,7 +184,8 @@
                 </div>
                 <div class="col-md-8">
                   <label class="form-label small">Question Text <span class="text-danger">*</span></label>
-                  <textarea v-model="q.question_text" class="form-control form-control-sm" rows="2" placeholder="Enter your question..."></textarea>
+                  <textarea v-model="q.question_text" :class="['form-control form-control-sm', { 'is-invalid': questionErrors[qi] }]" rows="2" placeholder="Enter your question..." @input="questionErrors[qi] = ''"></textarea>
+                  <div class="invalid-feedback">{{ questionErrors[qi] }}</div>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label small">Help Text (optional)</label>
@@ -332,6 +335,9 @@ const form = ref({
 const loading = ref(false)
 const saving = ref(false)
 const saveError = ref(null)
+const titleError = ref('')
+const dateError = ref('')
+const questionErrors = ref({})
 
 function hasChoices(type) { return CHOICE_TYPES.has(type) }
 function isAutoChoiceType(type) { return AUTO_CHOICE_TYPES.has(type) }
@@ -430,6 +436,32 @@ function buildPayload() {
 }
 
 async function saveSurvey() {
+  // Client-side validation
+  titleError.value = ''
+  dateError.value = ''
+  questionErrors.value = {}
+
+  let valid = true
+
+  if (!form.value.title.trim()) {
+    titleError.value = 'Survey title is required.'
+    valid = false
+  }
+
+  if (form.value.open_date && form.value.close_date && form.value.close_date < form.value.open_date) {
+    dateError.value = 'Close date must be after open date.'
+    valid = false
+  }
+
+  form.value.questions.forEach((q, i) => {
+    if (!q.question_text.trim()) {
+      questionErrors.value[i] = 'Question text is required.'
+      valid = false
+    }
+  })
+
+  if (!valid) return
+
   saving.value = true
   saveError.value = null
   try {
@@ -451,7 +483,7 @@ async function saveSurvey() {
     } else if (data && typeof data === 'object') {
       saveError.value = Object.values(data).flat().join(' ')
     } else {
-      saveError.value = 'Save failed.'
+      saveError.value = 'An unexpected error occurred. Please try again.'
     }
   } finally {
     saving.value = false
