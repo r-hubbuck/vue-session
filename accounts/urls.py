@@ -23,6 +23,7 @@ urlpatterns = [
     path('accounts/user-account', views.user_account_view, name='user_account'),
     path('accounts/states-provinces', views.state_province_list, name='state_province_list'),
     path('accounts/change-password', views.change_password, name='change_password'),
+    path('accounts/contact-support', views.contact_support, name='contact_support'),
     path('accounts/resume-curricula', views.resume_curriculum_list, name='resume_curriculum_list'),
 
     # Admin user management

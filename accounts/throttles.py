@@ -23,3 +23,7 @@ class RecruiterThrottle(UserRateThrottle):
 class AdminRateThrottle(UserRateThrottle):
     """Limit admin/staff endpoints"""
     scope = 'admin'
+
+class ContactSupportThrottle(UserRateThrottle):
+    """Limit contact support submissions"""
+    scope = 'contact_support'

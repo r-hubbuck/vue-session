@@ -6,7 +6,7 @@
     <h1 class="page-title text-center my-4">Code Verification</h1>
     <div>
       <form @submit.prevent="verify" class="container-md">
-        <p class="mt-4 mb-3">Please check your email for a 5-digit verification code.</p>
+        <p class="mt-4 mb-3">Please check your email for a 5-digit verification code. <br/><small>If you are not recieving these emails, please contact <a href="mailto:tbp.it@tbp.org">tbp.it@tbp.org</a>.</small></p>
         <div class="form-group">
           <label class="form-label" for="code">Code:</label>
           <input

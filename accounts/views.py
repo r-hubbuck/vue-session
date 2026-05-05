@@ -25,7 +25,7 @@ from rest_framework.decorators import throttle_classes
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 
-from .throttles import LoginThrottle, RegisterThrottle, PasswordResetThrottle, CodeCheckThrottle, AdminRateThrottle
+from .throttles import LoginThrottle, RegisterThrottle, PasswordResetThrottle, CodeCheckThrottle, AdminRateThrottle, ContactSupportThrottle
 
 from .tokens import account_activation_token, password_reset_token
 from .models import User, Member, Person, Address, PhoneNumber, StateProvince, Code, ROLE_MEMBER, ROLE_ALUMNI
@@ -1382,3 +1382,59 @@ class AdminPhoneNumberViewSet(PhoneNumberViewSet):
             phone.is_primary = True
             phone.save()
         return Response(self.get_serializer(phone).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([ContactSupportThrottle])
+def contact_support(request):
+    """Submit a support request — emails tbp.it@tbp.org with the user's message."""
+    subject = bleach.clean(request.data.get('subject', '').strip(), tags=[], strip=True).replace('\r', '').replace('\n', '')
+    message = bleach.clean(request.data.get('message', '').strip(), tags=[], strip=True)
+
+    if not subject:
+        return Response({'error': 'Subject is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not message:
+        return Response({'error': 'Message is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if len(subject) > 150:
+        return Response({'error': 'Subject cannot exceed 150 characters.'}, status=status.HTTP_400_BAD_REQUEST)
+    if len(message) > 2000:
+        return Response({'error': 'Message cannot exceed 2000 characters.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    person = getattr(request.user, 'person', None)
+    if person:
+        user_name = f"{person.first_name} {person.last_name}"
+    else:
+        recruiter = getattr(request.user, 'recruiter_profile', None)
+        if recruiter:
+            user_name = f"{recruiter.first_name} {recruiter.last_name}"
+        else:
+            user_name = request.user.email
+
+    try:
+        email_body = render_to_string('registration/contact_support_email.html', {
+            'user_name': user_name,
+            'user_email': request.user.email,
+            'subject': subject,
+            'message': message,
+        })
+        email_msg = EmailMultiAlternatives(
+            subject=f'[Support] {subject}',
+            body='',
+            to=['tbp.it@tbp.org'],
+            reply_to=[request.user.email],
+        )
+        email_msg.attach_alternative(email_body, 'text/html')
+        email_msg.send()
+
+        logger.info(
+            'Support request submitted',
+            extra={'user_id': request.user.id, 'subject': subject}
+        )
+        return Response({'success': 'Your message has been sent. We will get back to you shortly.'})
+    except Exception as e:
+        logger.error('Failed to send support email from %s: %s', request.user.email, e)
+        return Response(
+            {'error': 'Failed to send your message. Please try again later.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

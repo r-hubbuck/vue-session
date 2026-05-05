@@ -29,6 +29,7 @@ ROLE_HQ_CHAPTER_SERVICES = 'hq_chapter_services'
 ROLE_HQ_ADMIN = 'hq_admin'
 ROLE_HQ_RECRUITING = 'hq_recruiting'
 ROLE_HQ_CONVENTION_TRAVEL = 'hq_convention_travel'
+ROLE_HQ_COMMUNICATIONS = 'hq_communications'
 ROLE_RECRUITER = 'recruiter'
 
 ALL_ROLES = [
@@ -56,6 +57,7 @@ ALL_ROLES = [
     ROLE_HQ_ADMIN,
     ROLE_HQ_RECRUITING,
     ROLE_HQ_CONVENTION_TRAVEL,
+    ROLE_HQ_COMMUNICATIONS,
     ROLE_RECRUITER,
 ]
 

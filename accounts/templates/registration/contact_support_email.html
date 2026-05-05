@@ -1,0 +1,47 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Support Request — {{ subject }}{% endblock %}
+
+{% block preheader %}New support request from {{ user_name }} ({{ user_email }}): {{ subject }}{% endblock %}
+
+{% block accent_color %}#284080{% endblock %}
+
+{% block body_header %}
+<p style="margin:0 0 28px 0; font-size:20px; font-weight:bold; color:#1b2342; letter-spacing:-0.3px;">Support Request</p>
+{% endblock %}
+
+{% block content %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 24px 0;">
+  <tr>
+    <td style="background-color:#eef2fa; border: 1px solid #c5d0e8; border-radius:8px; padding: 16px 20px;">
+      <p style="margin:0 0 6px 0; font-size:11px; font-weight:bold; color:#6272a0; text-transform:uppercase; letter-spacing:0.1em;">From</p>
+      <p style="margin:0; font-size:15px; color:#1b2342; font-weight:600;">{{ user_name }}</p>
+      <p style="margin:2px 0 0 0; font-size:13px; color:#374151;">{{ user_email }}</p>
+    </td>
+  </tr>
+</table>
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 24px 0;">
+  <tr>
+    <td style="border: 1px solid #e2e8f0; border-radius:8px; padding: 16px 20px;">
+      <p style="margin:0 0 6px 0; font-size:11px; font-weight:bold; color:#6272a0; text-transform:uppercase; letter-spacing:0.1em;">Subject</p>
+      <p style="margin:0; font-size:15px; color:#1b2342;">{{ subject }}</p>
+    </td>
+  </tr>
+</table>
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 8px 0;">
+  <tr>
+    <td style="border: 1px solid #e2e8f0; border-radius:8px; padding: 16px 20px;">
+      <p style="margin:0 0 10px 0; font-size:11px; font-weight:bold; color:#6272a0; text-transform:uppercase; letter-spacing:0.1em;">Message</p>
+      <p style="margin:0; font-size:15px; color:#333344; line-height:1.7; white-space:pre-wrap;">{{ message }}</p>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:24px 0 0 0; font-size:13px; color:#6c757d; line-height:1.7;">
+  Reply directly to this email to respond to {{ user_name }}.
+</p>
+{% endblock %}
+
+{% block sender %}TBP Portal — Support{% endblock %}

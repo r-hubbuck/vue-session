@@ -103,19 +103,13 @@ const routes = [
     path: '/convention',
     name: 'convention-home',
     component: ConventionHome,
-    meta: {
-      requiresAuth: true,
-      requiresRoles: ['member', 'alumni'],
-    }
+    meta: { requiresAuth: true }
   },
   {
     path: '/expense-report',
     name: 'expense-report',
     component: ExpenseReport,
-    meta: { 
-      requiresAuth: true,
-      requiresRoles: ['member', 'alumni', 'collegiate_officer', 'alumni_officer']
-    }
+    meta: { requiresAuth: true }
   },
   {
     path: '/expense-report-admin',
@@ -123,7 +117,7 @@ const routes = [
     component: ExpenseReportAdmin,
     meta: {
       requiresAuth: true,
-      requiresRoles: ['hq_staff', 'hq_finance']
+      requiresRoles: ['hq_admin', 'hq_finance']
     }
   },
   {
@@ -132,7 +126,7 @@ const routes = [
     component: ConventionCheckIn,
     meta: { 
       requiresAuth: true,
-      requiresRoles: ['hq_staff', 'member']
+      requiresRoles: ['hq_staff']
     }
   },
   {
@@ -141,7 +135,7 @@ const routes = [
   component: ConventionTravel,
   meta: { 
     requiresAuth: true,
-    requiresRoles: ['hq_staff', 'member']
+    requiresRoles: ['hq_admin', 'hq_convention_travel']
   }
 },
   // Recruiter routes
@@ -198,7 +192,7 @@ const routes = [
     component: RecruiterAdmin,
     meta: {
       requiresAuth: true,
-      requiresRoles: ['hq_staff', 'hq_admin']
+      requiresRoles: ['hq_recruiting', 'hq_admin']
     }
   },
   {
@@ -207,7 +201,7 @@ const routes = [
     component: InvoiceAdmin,
     meta: {
       requiresAuth: true,
-      requiresRoles: ['hq_staff', 'hq_finance', 'hq_admin']
+      requiresRoles: ['hq_finance', 'hq_admin']
     }
   },
   // Survey routes
@@ -217,7 +211,7 @@ const routes = [
     component: SurveyAdmin,
     meta: {
       requiresAuth: true,
-      requiresRoles: ['hq_staff', 'hq_it', 'hq_admin', 'hq_finance', 'executive_council']
+      requiresRoles: ['hq_staff']
     }
   },
   {
@@ -226,7 +220,7 @@ const routes = [
     component: SurveyBuilder,
     meta: {
       requiresAuth: true,
-      requiresRoles: ['hq_staff', 'hq_it', 'hq_admin', 'hq_finance', 'executive_council']
+      requiresRoles: ['hq_staff']
     }
   },
   {
@@ -235,7 +229,7 @@ const routes = [
     component: SurveyBuilder,
     meta: {
       requiresAuth: true,
-      requiresRoles: ['hq_staff', 'hq_it', 'hq_admin', 'hq_finance', 'executive_council']
+      requiresRoles: ['hq_staff']
     }
   },
   {
@@ -244,7 +238,7 @@ const routes = [
     component: SurveyResults,
     meta: {
       requiresAuth: true,
-      requiresRoles: ['hq_staff', 'hq_it', 'hq_admin', 'hq_finance', 'executive_council']
+      requiresRoles: ['hq_staff']
     }
   },
   {

@@ -193,6 +193,7 @@ REST_FRAMEWORK = {
         'code_check': '5/minute',
         'recruiter': '60/minute',
         'admin': '100/hour',
+        'contact_support': '5/hour',
     },
 }
 

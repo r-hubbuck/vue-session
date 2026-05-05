@@ -50,7 +50,7 @@ onMounted(() => {
                     </div>
 
                     <div class="row g-4 mt-2">
-                        <div v-if="authStore.hasRole('member') || authStore.hasRole('alumni')" class="col-md-4">
+                        <div v-if="authStore.isAuthenticated" class="col-md-4">
                             <div class="card h-100 text-center p-4" style="border: 1px solid #e2e8f0; border-radius: 12px;">
                                 <div class="card-body">
                                     <i class="bi bi-calendar-event" style="font-size: 2.5rem; color: var(--brand-blue);"></i>
@@ -76,7 +76,7 @@ onMounted(() => {
                             </div>
                         </div>
 
-                        <div v-if="authStore.hasRole('member') || authStore.hasRole('alumni') || authStore.hasRole('collegiate_officer') || authStore.hasRole('alumni_officer')" class="col-md-4">
+                        <div v-if="authStore.isAuthenticated" class="col-md-4">
                             <div class="card h-100 text-center p-4" style="border: 1px solid #e2e8f0; border-radius: 12px;">
                                 <div class="card-body">
                                     <i class="bi bi-receipt" style="font-size: 2.5rem; color: var(--brand-blue);"></i>

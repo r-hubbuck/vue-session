@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../store/auth'
+import SupportModal from './SupportModal.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -53,6 +54,8 @@ const handleMenuKeydown = (event) => {
 const accountRoute = computed(() =>
   authStore.isRecruiter ? '/recruiter/account' : '/account'
 )
+
+const supportModalOpen = ref(false)
 
 const logout = async () => {
   userMenuOpen.value = false
@@ -187,6 +190,17 @@ const logout = async () => {
             <i class="bi bi-person-gear"></i>
             Account Settings
           </router-link>
+          <button
+            @click="supportModalOpen = true; closeUserMenu()"
+            role="menuitem"
+            tabindex="-1"
+            style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; color: #374151; font-size: 0.875rem; width: 100%; background: none; border: none; cursor: pointer; text-align: left;"
+            @mouseenter="e => e.currentTarget.style.background='#f8fafc'"
+            @mouseleave="e => e.currentTarget.style.background=''"
+          >
+            <i class="bi bi-headset"></i>
+            Contact Support
+          </button>
           <div style="border-top: 1px solid #e2e8f0;"></div>
           <button
             @click="logout"
@@ -202,6 +216,10 @@ const logout = async () => {
         </div>
       </div>
     </div>
+
+    <Teleport to="body">
+      <SupportModal v-if="supportModalOpen" @close="supportModalOpen = false" />
+    </Teleport>
   </nav>
 </template>
 

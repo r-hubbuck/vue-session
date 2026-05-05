@@ -64,8 +64,12 @@
               </button>
             </div>
           </div>
-          <div class="mt-2">
+          <div class="mt-2 d-flex flex-wrap align-items-center gap-3">
             <small class="text-muted">{{ totalCount }} resumes found</small>
+            <small v-if="hasResumeAccess" class="text-muted">
+              <i class="bi bi-info-circle me-1"></i>
+              "Download All Resumes" downloads every resume matching your current filters.
+            </small>
           </div>
         </div>
 
