@@ -2,7 +2,7 @@ import axios from 'axios'
 import { useToast } from "vue-toastification"
 import router from './router'  // ✅ ADDED: Import router so it can be used in interceptor
 
-const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000'
+const apiUrl = import.meta.env.VITE_API_BASE_URL || ''
 
 const toast = useToast()
 // Create axios instance with default config
