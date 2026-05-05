@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
+from django.conf import settings
+from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
@@ -115,6 +117,24 @@ def my_expense_reports(request):
             )
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def serve_receipt(request, report_id):
+    """Serve a receipt PDF; accessible to the report owner, hq_staff, and hq_finance."""
+    report = get_object_or_404(ExpenseReport, id=report_id)
+    is_owner = hasattr(report.person, 'user') and report.person.user == request.user
+    is_staff = request.user.has_role('hq_staff') or request.user.has_role('hq_finance')
+    if not (is_owner or is_staff):
+        return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+    if not report.receipt:
+        return Response({'error': 'No receipt on file.'}, status=status.HTTP_404_NOT_FOUND)
+    if settings.DEBUG:
+        return FileResponse(report.receipt.open('rb'), content_type='application/pdf')
+    response = HttpResponse(content_type='application/pdf')
+    response['X-Accel-Redirect'] = f'/protected-media/{report.receipt.name}'
+    return response
 
 
 @api_view(['GET'])

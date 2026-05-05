@@ -1,10 +1,14 @@
+import os
+import re
 from datetime import date
 from django.db import models
 from django.core.validators import MinValueValidator
 
 
 def resume_upload_path(instance, filename):
-    return f'resumes/{date.today().year}/{filename}'
+    ext = os.path.splitext(filename)[1].lower()
+    safe = re.sub(r'[^\w\-]', '_', os.path.splitext(filename)[0])[:50]
+    return f'resumes/{date.today().year}/{safe}{ext}'
 
 
 class Airport(models.Model):

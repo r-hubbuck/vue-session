@@ -172,12 +172,8 @@ class ExpenseReportDetailedSerializer(serializers.ModelSerializer):
         return None
     
     def get_receipt_url(self, obj):
-        """Return the URL for the receipt PDF if it exists"""
         if obj.receipt:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.receipt.url)
-            return obj.receipt.url
+            return f'/api/expense-reports/receipts/{obj.id}/'
         return None
 
 

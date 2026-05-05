@@ -11,6 +11,7 @@ urlpatterns = [
     path('my-reports/', views.my_expense_reports, name='my-reports'),
     path('my-reports/<int:report_id>/', views.expense_report_detail, name='report-detail'),
     path('my-reports/<int:report_id>/upload-receipts/', views.upload_receipts, name='upload-receipts'),
+    path('receipts/<int:report_id>/', views.serve_receipt, name='serve-receipt'),
     
     # Staff endpoints (for review and management)
     path('staff/reports/', views.all_expense_reports, name='staff-all-reports'),

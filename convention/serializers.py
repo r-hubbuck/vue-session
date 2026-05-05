@@ -154,10 +154,7 @@ class MemberPersonalInfoSerializer(serializers.ModelSerializer):
     def get_resume_url(self, obj):
         reg = self._get_active_registration(obj)
         if reg and reg.resume:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(reg.resume.url)
-            return reg.resume.url
+            return '/api/recruiters/member/resume/'
         return None
 
     def get_resume_uploaded_at(self, obj):

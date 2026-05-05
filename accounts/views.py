@@ -413,6 +413,7 @@ class VerifyMemberAPIView(APIView):
     Returns success if a matching record is found, otherwise returns an error message.
     """
     permission_classes = [AllowAny]
+    throttle_classes = [RegisterThrottle]
 
     def post(self, request):
         serializer = VerifyMemberSerializer(data=request.data)

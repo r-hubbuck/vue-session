@@ -838,9 +838,9 @@ def admin_travel_detail(request, travel_id):
 def check_in_list(request):
     """
     Get all registrations for the active convention for check-in.
-    Requires hq_staff or member role.
+    Requires hq_staff role.
     """
-    if not any(request.user.has_role(r) for r in ['hq_staff', 'member']):
+    if not request.user.has_role('hq_staff'):
         raise PermissionDenied('You do not have permission to access check-in.')
     
     try:
@@ -870,7 +870,7 @@ def update_registration_status(request, registration_id):
     Staff only.
     """
     # Check if user has staff permissions
-    if not any(request.user.has_role(r) for r in ['hq_staff', 'member']):
+    if not request.user.has_role('hq_staff'):
         raise PermissionDenied('You do not have permission to update registration status.')
     
     registration = get_object_or_404(ConventionRegistration, id=registration_id)
@@ -912,9 +912,9 @@ def update_registration_status(request, registration_id):
 def staff_update_address(request, person_id, address_id):
     """
     Staff: update any person's address fields during check-in.
-    Requires hq_staff or member role.
+    Requires hq_staff role.
     """
-    if not any(request.user.has_role(r) for r in ['hq_staff', 'member']):
+    if not request.user.has_role('hq_staff'):
         raise PermissionDenied('You do not have permission to update member information.')
 
     person = get_object_or_404(Person, id=person_id)
@@ -966,9 +966,9 @@ def staff_update_address(request, person_id, address_id):
 def staff_set_primary_address(request, person_id, address_id):
     """
     Staff: set one of a person's addresses as primary.
-    Requires hq_staff or member role.
+    Requires hq_staff role.
     """
-    if not any(request.user.has_role(r) for r in ['hq_staff', 'member']):
+    if not request.user.has_role('hq_staff'):
         raise PermissionDenied('You do not have permission to update member information.')
 
     person = get_object_or_404(Person, id=person_id)
@@ -989,9 +989,9 @@ def staff_set_primary_address(request, person_id, address_id):
 def staff_update_mobile_phone(request, person_id):
     """
     Staff: update or create a person's Mobile phone number during check-in.
-    Requires hq_staff or member role.
+    Requires hq_staff role.
     """
-    if not any(request.user.has_role(r) for r in ['hq_staff', 'member']):
+    if not request.user.has_role('hq_staff'):
         raise PermissionDenied('You do not have permission to update member information.')
 
     person = get_object_or_404(Person, id=person_id)

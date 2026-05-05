@@ -151,6 +151,21 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 MEDIA_URL = '/media/'
 MEDIA_ROOT = '/portal/vue-session/media'
 
+# Align with per-file limits enforced in upload views (10 MB per file, 50 MB receipt total).
+# Without these, Django rejects multipart bodies over the 2.5 MB default before view logic runs.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 55 * 1024 * 1024   # 55 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024   # 10 MB
+
+# Production nginx config required for private file serving (resumes, receipts):
+#
+#   location /protected-media/ {
+#       internal;
+#       alias /portal/vue-session/media/;
+#   }
+#   location ~* ^/media/(resumes|receipts)/ {
+#       return 403;
+#   }
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 

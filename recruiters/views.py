@@ -971,18 +971,22 @@ def recruiter_resume_download(request, member_id):
     if not member_reg.resume:
         return Response({'error': 'No resume on file.'}, status=status.HTTP_404_NOT_FOUND)
 
-    from django.http import FileResponse
-    return FileResponse(member_reg.resume.open('rb'), content_type='application/pdf')
+    from django.http import FileResponse, HttpResponse
+    if settings.DEBUG:
+        return FileResponse(member_reg.resume.open('rb'), content_type='application/pdf')
+    response = HttpResponse(content_type='application/pdf')
+    response['X-Accel-Redirect'] = f'/protected-media/{member_reg.resume.name}'
+    return response
 
 
 # ============================================================
 # Member Resume Upload
 # ============================================================
 
-@api_view(['POST', 'DELETE'])
+@api_view(['GET', 'POST', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def member_resume(request):
-    """Upload or delete member resume for the active convention."""
+    """Upload, view, or delete member resume for the active convention."""
     user = request.user
     if not (hasattr(user, 'person') and user.person):
         return Response({'error': 'No member profile.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -998,6 +1002,16 @@ def member_resume(request):
         )
     except ConventionRegistration.DoesNotExist:
         return Response({'error': 'No convention registration found.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if request.method == 'GET':
+        if not reg.resume:
+            return Response({'error': 'No resume on file.'}, status=status.HTTP_404_NOT_FOUND)
+        from django.http import FileResponse, HttpResponse
+        if settings.DEBUG:
+            return FileResponse(reg.resume.open('rb'), content_type='application/pdf')
+        response = HttpResponse(content_type='application/pdf')
+        response['X-Accel-Redirect'] = f'/protected-media/{reg.resume.name}'
+        return response
 
     if request.method == 'DELETE':
         if reg.resume:
@@ -1053,7 +1067,7 @@ def member_resume(request):
 
     return Response({
         'success': 'Resume uploaded.',
-        'resume_url': request.build_absolute_uri(reg.resume.url),
+        'resume_url': '/api/recruiters/member/resume/',
         'uploaded_at': reg.resume_uploaded_at.isoformat(),
         'resume_curricula': [{'id': c.id, 'full_name': c.full_name} for c in curricula],
     })

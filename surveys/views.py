@@ -1,3 +1,4 @@
+import uuid
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -129,9 +130,10 @@ def start_survey(request, survey_id):
     survey_response = SurveyResponse.objects.create(survey=survey, user=user)
 
     if survey.is_anonymous:
-        anon_responses = request.session.get('anon_survey_responses', [])
-        anon_responses.append(survey_response.id)
-        request.session['anon_survey_responses'] = anon_responses
+        token = str(uuid.uuid4())
+        anon_tokens = request.session.get('anon_survey_tokens', {})
+        anon_tokens[token] = survey_response.id
+        request.session['anon_survey_tokens'] = anon_tokens
 
     return Response({'response_id': survey_response.id}, status=status.HTTP_201_CREATED)
 
@@ -145,7 +147,7 @@ def save_draft(request, survey_id, response_id):
     survey_response = get_object_or_404(SurveyResponse, pk=response_id, survey=survey)
 
     if survey.is_anonymous:
-        if survey_response.id not in request.session.get('anon_survey_responses', []):
+        if survey_response.id not in request.session.get('anon_survey_tokens', {}).values():
             return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
     elif survey_response.user != request.user:
         return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
@@ -181,7 +183,7 @@ def submit_survey(request, survey_id, response_id):
     survey_response = get_object_or_404(SurveyResponse, pk=response_id, survey=survey)
 
     if survey.is_anonymous:
-        if survey_response.id not in request.session.get('anon_survey_responses', []):
+        if survey_response.id not in request.session.get('anon_survey_tokens', {}).values():
             return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
     elif survey_response.user != request.user:
         return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
