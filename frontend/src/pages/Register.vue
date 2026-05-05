@@ -20,20 +20,6 @@
         <div class="invalid-feedback">{{ emailError }}</div>
       </div>
 
-      <!-- Phone -->
-      <!-- <div class="form-group">
-        <label class="form-label" for="phone">Phone:</label>
-        <input
-          class="form-control"
-          v-model.trim="phone"
-          id="phone"
-          type="text"
-          required
-          @blur="validatePhone"
-        />
-        <div v-if="phoneError" class="text-danger mt-4 fw-bold">{{ phoneError }}</div>
-      </div> -->
-
       <!-- Password -->
       <div class="form-group position-relative">
         <label class="form-label" for="password1">Password:</label>
@@ -49,35 +35,29 @@
           autocomplete="new-password"
           pattern="[A-Za-z0-9!@#$%^&*_=+\-.]{8,}"
         />
-  <div v-if="showPasswordReq" class="password-req-box bg-light border rounded p-2" style="text-align:left; z-index:100; position:absolute; left:0; top:100%; min-width:320px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+        <div v-if="showPasswordReq" class="password-req-box bg-light border rounded p-2" style="text-align:left; z-index:100; position:absolute; left:0; top:100%; min-width:320px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
           <div class="small">
-            <span v-if="passwordLength" style="color: #28a745; font-weight: bold;">✓</span>
-            <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+            <span :style="passwordLength ? 'color:#28a745;font-weight:bold;' : 'color:red;margin-right:5px;'">{{ passwordLength ? '✓' : '✗' }}</span>
             <span :class="{'text-success': passwordLength, 'text-danger': !passwordLength}"> At least 8 characters</span>
           </div>
           <div class="small">
-            <span v-if="passwordUpper" style="color: #28a745; font-weight: bold;">✓</span>
-            <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+            <span :style="passwordUpper ? 'color:#28a745;font-weight:bold;' : 'color:red;margin-right:5px;'">{{ passwordUpper ? '✓' : '✗' }}</span>
             <span :class="{'text-success': passwordUpper, 'text-danger': !passwordUpper}"> At least one uppercase letter</span>
           </div>
           <div class="small">
-            <span v-if="passwordLower" style="color: #28a745; font-weight: bold;">✓</span>
-            <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+            <span :style="passwordLower ? 'color:#28a745;font-weight:bold;' : 'color:red;margin-right:5px;'">{{ passwordLower ? '✓' : '✗' }}</span>
             <span :class="{'text-success': passwordLower, 'text-danger': !passwordLower}"> At least one lowercase letter</span>
           </div>
           <div class="small">
-            <span v-if="passwordNumber" style="color: #28a745; font-weight: bold;">✓</span>
-            <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+            <span :style="passwordNumber ? 'color:#28a745;font-weight:bold;' : 'color:red;margin-right:5px;'">{{ passwordNumber ? '✓' : '✗' }}</span>
             <span :class="{'text-success': passwordNumber, 'text-danger': !passwordNumber}"> At least one number</span>
           </div>
           <div class="small">
-            <span v-if="passwordSpecial" style="color: #28a745; font-weight: bold;">✓</span>
-            <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+            <span :style="passwordSpecial ? 'color:#28a745;font-weight:bold;' : 'color:red;margin-right:5px;'">{{ passwordSpecial ? '✓' : '✗' }}</span>
             <span :class="{'text-success': passwordSpecial, 'text-danger': !passwordSpecial}"> At least one special character (!@#$%^&*_=+-.)</span>
           </div>
           <div class="small">
-            <span v-if="passwordSafe" style="color: #28a745; font-weight: bold;">✓</span>
-            <span v-else style="color: red !important; margin-right: 5px;">✗</span>
+            <span :style="passwordSafe ? 'color:#28a745;font-weight:bold;' : 'color:red;margin-right:5px;'">{{ passwordSafe ? '✓' : '✗' }}</span>
             <span :class="{'text-success': passwordSafe, 'text-danger': !passwordSafe}"> No invalid characters</span>
           </div>
         </div>
@@ -96,209 +76,97 @@
           @blur="onPassword2Blur"
           @input="validatePasswords"
           autocomplete="new-password"
-          pattern="[A-Za-z0-9!@#$%^&*_=+\-.]{8,}"
         />
-  <div v-if="showPassword2Req" class="password-req-box bg-light border rounded p-2" style="text-align:left; z-index:100; position:absolute; left:0; top:100%; min-width:320px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+        <div v-if="showPassword2Req" class="password-req-box bg-light border rounded p-2" style="text-align:left; z-index:100; position:absolute; left:0; top:100%; min-width:280px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
           <div class="small">
-            <span v-if="password2Length" style="color: #28a745; font-weight: bold;">✓</span>
-            <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-            <span :class="{'text-success': password2Length, 'text-danger': !password2Length}"> At least 8 characters</span>
-          </div>
-          <div class="small">
-            <span v-if="password2Upper" style="color: #28a745; font-weight: bold;">✓</span>
-            <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-            <span :class="{'text-success': password2Upper, 'text-danger': !password2Upper}"> At least one uppercase letter</span>
-          </div>
-          <div class="small">
-            <span v-if="password2Lower" style="color: #28a745; font-weight: bold;">✓</span>
-            <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-            <span :class="{'text-success': password2Lower, 'text-danger': !password2Lower}"> At least one lowercase letter</span>
-          </div>
-          <div class="small">
-            <span v-if="password2Number" style="color: #28a745; font-weight: bold;">✓</span>
-            <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-            <span :class="{'text-success': password2Number, 'text-danger': !password2Number}"> At least one number</span>
-          </div>
-          <div class="small">
-            <span v-if="password2Special" style="color: #28a745; font-weight: bold;">✓</span>
-            <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-            <span :class="{'text-success': password2Special, 'text-danger': !password2Special}"> At least one special character (!@#$%^&*_=+-.)</span>
-          </div>
-          <div class="small">
-            <span v-if="password2Safe" style="color: #28a745; font-weight: bold;">✓</span>
-            <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-            <span :class="{'text-success': password2Safe, 'text-danger': !password2Safe}"> No invalid characters</span>
+            <span :style="passwordsMatch ? 'color:#28a745;font-weight:bold;' : 'color:red;margin-right:5px;'">{{ passwordsMatch ? '✓' : '✗' }}</span>
+            <span :class="{'text-success': passwordsMatch, 'text-danger': !passwordsMatch}"> Passwords match</span>
           </div>
         </div>
         <div class="invalid-feedback">{{ passwordError }}</div>
       </div>
-      <button class="btn btn-danger mt-5 me-4" type="button" @click="$router.push('/login')">Back</button>
+      <button class="btn btn-danger mt-5 me-4" type="button" @click="router.push('/login')">Back</button>
       <button class="btn btn-primary mt-5" type="submit">Register</button>
     </form>
 
     <!-- Server messages -->
-    <div v-if="error" class="alert alert-danger mt-3">{{ error }}</div>
+    <div v-if="error" class="alert alert-danger mt-3" role="alert">{{ error }}</div>
     <div v-if="success" class="text-success mt-4 fw-bold">{{ success }}</div>
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '../api'
 import { useAuthStore } from '../store/auth'
 import { isValidEmail } from '../utils/validation'
 
-export default {
-  setup() {
-    const authStore = useAuthStore()
-    return {
-      authStore
-    }
-  },   
-  data() {
-    return {
-      email: "",
-      // phone: "",
-      password1: "",
-      password2: "",
-      error: "",
-      success: "",
-      emailError: "",
-      // phoneError: "",
-      passwordError: "",
-      showPasswordReq: false,
-      showPassword2Req: false,
-    };
-  },
-  mounted() {
-    // Pre-fill email if user came from verification
-    if (this.authStore.verificationEmail) {
-      this.email = this.authStore.verificationEmail
-    }
-  },
-  computed: {
-    passwordLength() {
-      return this.password1.length >= 8;
-    },
-    passwordUpper() {
-      return /[A-Z]/.test(this.password1);
-    },
-    passwordLower() {
-      return /[a-z]/.test(this.password1);
-    },
-    passwordNumber() {
-      return /[0-9]/.test(this.password1);
-    },
-    passwordSpecial() {
-      return /[!@#$%^&*_=+\-.]/.test(this.password1);
-    },
-    passwordSafe() {
-      return !/[^A-Za-z0-9!@#$%^&*_=+\-.]/.test(this.password1);
-    },
-     password2Length() {
-      return this.password2.length >= 8;
-    },
-    password2Upper() {
-      return /[A-Z]/.test(this.password2);
-    },
-    password2Lower() {
-      return /[a-z]/.test(this.password2);
-    },
-    password2Number() {
-      return /[0-9]/.test(this.password2);
-    },
-    password2Special() {
-      return /[!@#$%^&*_=+\-.]/.test(this.password2);
-    },
-    password2Safe() {
-      return !/[^A-Za-z0-9!@#$%^&*_=+\-.]/.test(this.password2);
-    },
-  },
-  methods: {
-     onPasswordBlur() {
-      setTimeout(() => {
-        this.showPasswordReq = false;
-      }, 200);
-    },
+const authStore = useAuthStore()
+const router = useRouter()
 
-     onPassword2Blur() {
-      setTimeout(() => {
-        this.showPassword2Req = false;
-      }, 200);
-    },
+const email = ref('')
+const password1 = ref('')
+const password2 = ref('')
+const error = ref('')
+const success = ref('')
+const emailError = ref('')
+const passwordError = ref('')
+const showPasswordReq = ref(false)
+const showPassword2Req = ref(false)
 
-    validateEmail() {
-      this.emailError = isValidEmail(this.email)
-        ? ""
-        : "Please enter a valid email address.";
-    },
+const passwordLength  = computed(() => password1.value.length >= 8)
+const passwordUpper   = computed(() => /[A-Z]/.test(password1.value))
+const passwordLower   = computed(() => /[a-z]/.test(password1.value))
+const passwordNumber  = computed(() => /[0-9]/.test(password1.value))
+const passwordSpecial = computed(() => /[!@#$%^&*_=+\-.]/.test(password1.value))
+const passwordSafe    = computed(() => !/[^A-Za-z0-9!@#$%^&*_=+\-.]/.test(password1.value))
+const passwordsMatch  = computed(() => password1.value.length > 0 && password1.value === password2.value)
 
-    // validatePhone() {
-    //   const cleaned = this.phone.replace(/[\s\-\(\)\+]/g, "");
-    //   this.phone = cleaned;
+function onPasswordBlur() { setTimeout(() => { showPasswordReq.value = false }, 200) }
+function onPassword2Blur() { setTimeout(() => { showPassword2Req.value = false }, 200) }
 
-    //   const re = /^[0-9]{10,15}$/;
-    //   this.phoneError = re.test(this.phone)
-    //     ? ""
-    //     : "Phone number must be 10-15 digits.";
-    // },
+function validateEmail() {
+  emailError.value = isValidEmail(email.value) ? '' : 'Please enter a valid email address.'
+}
 
-    validatePasswords() {
-      const allowedSpecial = /[!@#$%^&*_=+\-.]/;
-      const forbidden = /[^A-Za-z0-9!@#$%^&*_=+\-.]/;
-      
-      if (this.password1 && this.password2 && this.password1 !== this.password2) {
-        this.passwordError = "Passwords do not match.";
-      } else {
-        this.passwordError = "";
-      }
-      
-      return (
-        this.password1.length >= 8 &&
-        /[A-Z]/.test(this.password1) &&
-        /[a-z]/.test(this.password1) &&
-        /[0-9]/.test(this.password1) &&
-        allowedSpecial.test(this.password1) &&
-        !forbidden.test(this.password1)
-      );
-    },
+function validatePasswords() {
+  if (password1.value && password2.value && password1.value !== password2.value) {
+    passwordError.value = 'Passwords do not match.'
+  } else {
+    passwordError.value = ''
+  }
+  return (
+    passwordLength.value && passwordUpper.value && passwordLower.value &&
+    passwordNumber.value && passwordSpecial.value && passwordSafe.value
+  )
+}
 
-    async register() {
-      this.validateEmail();
-      // this.validatePhone();
-      const passwordsValid = this.validatePasswords();
+async function register() {
+  validateEmail()
+  const passwordsValid = validatePasswords()
+  if (emailError.value || passwordError.value || !passwordsValid) {
+    error.value = 'Please fix the highlighted errors before submitting.'
+    return
+  }
+  error.value = ''
+  try {
+    await api.post('/api/accounts/register', {
+      email: email.value,
+      password1: password1.value,
+      password2: password2.value,
+    })
+    success.value = 'Registration successful! Please log in.'
+    authStore.clearVerification()
+    setTimeout(() => { router.push('/email-confirmation') }, 500)
+  } catch (err) {
+    error.value = err.response?.data?.error || 'Registration failed'
+  }
+}
 
-      if (
-        this.emailError ||
-        // this.phoneError ||
-        this.passwordError ||
-        !passwordsValid
-      ) {
-        this.error = "Please fix the highlighted errors before submitting.";
-        return;
-      }
-
-      try {
-        const response = await api.post('/api/accounts/register', {
-          email: this.email,
-          // phone: this.phone,
-          password1: this.password1,
-          password2: this.password2,
-        });
-
-        this.success = "Registration successful! Please log in.";
-        this.error = "";
-        
-        // Clear verification after successful registration
-        this.authStore.clearVerification()
-        
-        setTimeout(() => {
-          this.$router.push("/email-confirmation");
-        }, 500);
-      } catch (err) {
-        console.error(err);
-        this.error = err.response?.data?.error || "Registration failed";
-      }
-    },
-  },
-};
+onMounted(() => {
+  if (authStore.verificationEmail) {
+    email.value = authStore.verificationEmail
+  }
+})
 </script>

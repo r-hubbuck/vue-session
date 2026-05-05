@@ -67,8 +67,8 @@
 
           <div class="row g-4">
             <div class="col-12">
-              <label class="form-label">Report Type *</label>
-              <select v-model="newReport.report_type" :class="['form-select', { 'is-invalid': reportTypeError }]" @change="onReportTypeChange; reportTypeError = ''">
+              <label class="form-label" for="report-type">Report Type *</label>
+              <select id="report-type" v-model="newReport.report_type" :class="['form-select', { 'is-invalid': reportTypeError }]" @change="onReportTypeChange; reportTypeError = ''">
                 <option value="">Select a report type...</option>
                 <option v-for="type in reportTypes" :key="type.id" :value="type.id">
                   {{ type.report_code }} - {{ type.report_name }}
@@ -89,8 +89,8 @@
 
           <div class="row g-4 mt-3">
             <div class="col-md-6">
-              <label class="form-label">Event Date *</label>
-              <input v-model="newReport.report_date" type="date" :class="['form-control', { 'is-invalid': reportDateError }]" @input="reportDateError = ''">
+              <label class="form-label" for="report-date">Event Date *</label>
+              <input id="report-date" v-model="newReport.report_date" type="date" :class="['form-control', { 'is-invalid': reportDateError }]" @input="reportDateError = ''">
               <div class="invalid-feedback">{{ reportDateError }}</div>
             </div>
           </div>
@@ -108,8 +108,8 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Select Address *</label>
-              <select v-model="newReport.mailing_address" :class="['form-select', { 'is-invalid': mailingAddressError }]" @change="mailingAddressError = ''">
+              <label class="form-label" for="mailing-address">Select Address *</label>
+              <select id="mailing-address" v-model="newReport.mailing_address" :class="['form-select', { 'is-invalid': mailingAddressError }]" @change="mailingAddressError = ''">
                 <option value="">Choose an address...</option>
                 <option v-for="address in userAddresses" :key="address.id" :value="address.id">
                   {{ address.add_type }}{{ address.is_primary ? ' (Primary)' : '' }} - {{ address.display_name }}
@@ -136,16 +136,16 @@
             <div class="expense-section-body">
               <div class="row g-3">
                 <div class="col-md-4">
-                  <label class="form-label">Miles Driven</label>
-                  <input v-model.number="newReport.details.automobile_miles" type="number" step="0.01" class="form-control">
+                  <label class="form-label" for="auto-miles">Miles Driven</label>
+                  <input id="auto-miles" v-model.number="newReport.details.automobile_miles" type="number" step="0.01" class="form-control">
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Tolls ($)</label>
-                  <input v-model.number="newReport.details.automobile_tolls" type="number" step="0.01" class="form-control">
+                  <label class="form-label" for="auto-tolls">Tolls ($)</label>
+                  <input id="auto-tolls" v-model.number="newReport.details.automobile_tolls" type="number" step="0.01" class="form-control">
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Passengers</label>
-                  <input v-model.number="newReport.details.passengers" type="number" class="form-control" min="0">
+                  <label class="form-label" for="auto-passengers">Passengers</label>
+                  <input id="auto-passengers" v-model.number="newReport.details.passengers" type="number" class="form-control" min="0">
                 </div>
               </div>
             </div>
@@ -160,12 +160,12 @@
             <div class="expense-section-body">
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label">Number of Nights</label>
-                  <input v-model.number="newReport.details.lodging_nights" type="number" class="form-control" min="0">
+                  <label class="form-label" for="lodging-nights">Number of Nights</label>
+                  <input id="lodging-nights" v-model.number="newReport.details.lodging_nights" type="number" class="form-control" min="0">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Cost Per Night ($)</label>
-                  <input v-model.number="newReport.details.lodging_per_night" type="number" step="0.01" class="form-control">
+                  <label class="form-label" for="lodging-rate">Cost Per Night ($)</label>
+                  <input id="lodging-rate" v-model.number="newReport.details.lodging_per_night" type="number" step="0.01" class="form-control">
                 </div>
               </div>
             </div>
@@ -180,16 +180,16 @@
             <div class="expense-section-body">
               <div class="row g-3">
                 <div class="col-md-4">
-                  <label class="form-label">Breakfasts</label>
-                  <input v-model.number="newReport.details.breakfast_enroute" type="number" class="form-control" min="0">
+                  <label class="form-label" for="breakfast-enroute">Breakfasts</label>
+                  <input id="breakfast-enroute" v-model.number="newReport.details.breakfast_enroute" type="number" class="form-control" min="0">
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Lunches</label>
-                  <input v-model.number="newReport.details.lunch_enroute" type="number" class="form-control" min="0">
+                  <label class="form-label" for="lunch-enroute">Lunches</label>
+                  <input id="lunch-enroute" v-model.number="newReport.details.lunch_enroute" type="number" class="form-control" min="0">
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Dinners</label>
-                  <input v-model.number="newReport.details.dinner_enroute" type="number" class="form-control" min="0">
+                  <label class="form-label" for="dinner-enroute">Dinners</label>
+                  <input id="dinner-enroute" v-model.number="newReport.details.dinner_enroute" type="number" class="form-control" min="0">
                 </div>
               </div>
             </div>
@@ -204,12 +204,12 @@
             <div class="expense-section-body">
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label">Breakfasts</label>
-                  <input v-model.number="newReport.details.breakfast_onsite" type="number" class="form-control" min="0">
+                  <label class="form-label" for="breakfast-onsite">Breakfasts</label>
+                  <input id="breakfast-onsite" v-model.number="newReport.details.breakfast_onsite" type="number" class="form-control" min="0">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Lunches</label>
-                  <input v-model.number="newReport.details.lunch_onsite" type="number" class="form-control" min="0">
+                  <label class="form-label" for="lunch-onsite">Lunches</label>
+                  <input id="lunch-onsite" v-model.number="newReport.details.lunch_onsite" type="number" class="form-control" min="0">
                 </div>
               </div>
             </div>
@@ -224,23 +224,23 @@
             <div class="expense-section-body">
               <div class="row g-3">
                 <div class="col-md-4">
-                  <label class="form-label">Terminal Costs ($)</label>
-                  <input v-model.number="newReport.details.terminal_cost" type="number" step="0.01" class="form-control">
+                  <label class="form-label" for="terminal-cost">Terminal Costs ($)</label>
+                  <input id="terminal-cost" v-model.number="newReport.details.terminal_cost" type="number" step="0.01" class="form-control">
                   <small class="form-text">Airport parking, etc.</small>
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Public Carrier ($)</label>
-                  <input v-model.number="newReport.details.public_carrier_cost" type="number" step="0.01" class="form-control">
+                  <label class="form-label" for="carrier-cost">Public Carrier ($)</label>
+                  <input id="carrier-cost" v-model.number="newReport.details.public_carrier_cost" type="number" step="0.01" class="form-control">
                   <small class="form-text">Airline, train, bus</small>
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Other On-Site ($)</label>
-                  <input v-model.number="newReport.details.other_onsite_cost" type="number" step="0.01" class="form-control">
+                  <label class="form-label" for="other-onsite">Other On-Site ($)</label>
+                  <input id="other-onsite" v-model.number="newReport.details.other_onsite_cost" type="number" step="0.01" class="form-control">
                 </div>
               </div>
               <div class="mt-3">
-                <label class="form-label">Additional Notes</label>
-                <textarea v-model="newReport.details.expense_notes" class="form-control" rows="3"></textarea>
+                <label class="form-label" for="expense-notes">Additional Notes</label>
+                <textarea id="expense-notes" v-model="newReport.details.expense_notes" class="form-control" rows="3"></textarea>
               </div>
               <div class="form-check mt-3">
                 <input v-model="newReport.details.billed_to_hq" type="checkbox" class="form-check-input" id="billedToHq">
@@ -301,7 +301,7 @@
             </div>
           </div>
 
-          <div v-if="error" class="alert alert-danger mt-4" style="border-left: 4px solid #ef4444;">
+          <div v-if="error" class="alert alert-danger mt-4" role="alert" style="border-left: 4px solid #ef4444;">
             <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
           </div>
 
@@ -961,6 +961,10 @@ export default {
         this.selectedReport = response.data
         
         // Show modal
+        if (!window.bootstrap?.Modal) {
+          this.error = 'UI library unavailable. Please refresh the page.'
+          return
+        }
         this.detailModal = new window.bootstrap.Modal(this.$refs.detailModal)
         this.detailModal.show()
       } catch (err) {

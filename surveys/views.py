@@ -343,6 +343,7 @@ def admin_survey_results(request, survey_id):
             choice_counts = {}
             for choice in question.choices.all():
                 choice_counts[choice.id] = {
+                    'id': choice.id,
                     'choice_text': choice.choice_text,
                     'count': 0,
                     'is_correct': choice.is_correct,

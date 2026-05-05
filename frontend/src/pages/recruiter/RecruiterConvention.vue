@@ -60,7 +60,7 @@
                   <tr v-for="(a, i) in registration.attendees" :key="i">
                     <td>{{ a.first_name }} {{ a.last_name }}</td>
                     <td>{{ a.email }}</td>
-                    <td>{{ formatPhone(a.phone) }}</td>
+                    <td>{{ formatPhone(a.phone) || '—' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -75,11 +75,35 @@
               <div v-if="registration.status === 'pending'" class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label">Booth Package *</label>
-                  <select v-model="editForm.booth_package" class="form-select" required>
-                    <option v-for="pkg in packages" :key="pkg.id" :value="pkg.id">
-                      {{ pkg.name }} - ${{ pkg.price }}
-                    </option>
-                  </select>
+                  <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                    <div
+                      v-for="pkg in packages"
+                      :key="pkg.id"
+                      class="d-flex align-items-center gap-2 px-2 py-2 rounded"
+                      :class="editForm.booth_package === pkg.id ? 'bg-primary bg-opacity-10' : ''"
+                      style="cursor: pointer;"
+                      @click="editForm.booth_package = pkg.id"
+                    >
+                      <span
+                        class="flex-shrink-0 mt-1"
+                        style="width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid #aaa; display: inline-block; box-sizing: border-box;"
+                        :style="editForm.booth_package === pkg.id
+                          ? 'border-color: #0d6efd; background: #0d6efd; box-shadow: inset 0 0 0 3px #fff;'
+                          : ''"
+                      ></span>
+                      <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                          <span class="fw-semibold small">{{ pkg.name }}</span>
+                          <div class="d-flex gap-1 align-items-center flex-shrink-0">
+                            <span v-if="pkg.is_in_person" class="badge bg-info">In-Person</span>
+                            <span v-if="pkg.is_virtual" class="badge bg-secondary">Virtual</span>
+                            <span v-if="pkg.includes_resume_access" class="badge bg-success">Resume Access</span>
+                            <span class="fw-semibold small ms-1">${{ pkg.price }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -131,7 +155,7 @@
               <div class="row g-3 mt-1">
                 <div class="col-md-4">
                   <label class="form-label">Number of Recruiters Attending *</label>
-                  <select v-model.number="editNumRecruiters" class="form-select" @change="resizeEditAttendees">
+                  <select v-model.number="editNumRecruiters" class="form-select" style="cursor: pointer;" @change="resizeEditAttendees">
                     <option v-for="n in 4" :key="n" :value="n">{{ n }}</option>
                   </select>
                 </div>
@@ -186,29 +210,43 @@
           <h5 class="fw-bold mb-4">Choose Your Booth Package</h5>
 
           <!-- Package Rows -->
-          <div class="mb-4">
-            <div
-              v-for="pkg in packages"
-              :key="pkg.id"
-              class="d-flex align-items-center gap-2 px-3 py-2 border rounded mb-2"
-              :class="newForm.booth_package === pkg.id ? 'border-primary bg-light' : 'border'"
-              style="cursor: pointer;"
-              @click="selectPackage(pkg)"
-            >
-              <span
-                class="flex-shrink-0"
-                style="width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid #aaa; display: inline-block; box-sizing: border-box;"
-                :style="newForm.booth_package === pkg.id
-                  ? 'border-color: #0d6efd; background: #0d6efd; box-shadow: inset 0 0 0 3px #fff;'
-                  : ''"
-              ></span>
-              <span class="fw-semibold small flex-grow-1">{{ pkg.name }}</span>
-              <div class="d-flex gap-1 flex-shrink-0">
-                <span v-if="pkg.is_in_person" class="badge bg-info">In-Person</span>
-                <span v-if="pkg.is_virtual" class="badge bg-secondary">Virtual</span>
-                <span v-if="pkg.includes_resume_access" class="badge bg-success">Resume Access</span>
+          <div class="row g-5 mb-4 align-items-start">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Booth Package *</label>
+              <div>
+                <div
+                  v-for="pkg in packages"
+                  :key="pkg.id"
+                  class="d-flex align-items-center gap-2 px-2 py-2 rounded"
+                  :class="newForm.booth_package === pkg.id ? 'bg-primary bg-opacity-10' : ''"
+                  style="cursor: pointer;"
+                  @click="selectPackage(pkg)"
+                >
+                  <span
+                    class="flex-shrink-0 mt-1"
+                    style="width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid #aaa; display: inline-block; box-sizing: border-box;"
+                    :style="newForm.booth_package === pkg.id
+                      ? 'border-color: #0d6efd; background: #0d6efd; box-shadow: inset 0 0 0 3px #fff;'
+                      : ''"
+                  ></span>
+                  <div class="flex-grow-1">
+                    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                      <span class="fw-semibold small">{{ pkg.name }}</span>
+                      <div class="d-flex gap-1 align-items-center flex-shrink-0">
+                        <span v-if="pkg.is_in_person" class="badge bg-info">In-Person</span>
+                        <span v-if="pkg.is_virtual" class="badge bg-secondary">Virtual</span>
+                        <span v-if="pkg.includes_resume_access" class="badge bg-success">Resume Access</span>
+                        <span class="fw-semibold small ms-1">${{ pkg.price }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <span class="fw-semibold small flex-shrink-0 ms-2">${{ pkg.price }}</span>
+            </div>
+            <div class="col-md-5 ms-auto">
+              <a href="/2026-rec-booths.jpg" target="_blank" rel="noopener">
+                <img src="/2026-rec-booths.jpg" alt="2026 Convention Booth Layout" class="img-fluid rounded" style="max-height: 480px; cursor: zoom-in;">
+              </a>
             </div>
           </div>
 
@@ -261,7 +299,7 @@
             <div class="row g-3 mb-3">
               <div class="col-md-4">
                 <label class="form-label">Number of Recruiters Attending *</label>
-                <select v-model.number="numRecruiters" class="form-select" @change="resizeAttendees">
+                <select v-model.number="numRecruiters" class="form-select" style="cursor: pointer;" @change="resizeAttendees">
                   <option v-for="n in 4" :key="n" :value="n">{{ n }}</option>
                 </select>
               </div>
@@ -303,7 +341,7 @@
               <textarea v-model.trim="newForm.special_requests" class="form-control" rows="3" maxlength="500"></textarea>
             </div>
 
-            <div v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+            <div v-if="errorMessage" class="alert alert-danger" role="alert">{{ errorMessage }}</div>
 
             <button type="submit" class="btn btn-primary" :disabled="saving || !newForm.booth_package">
               <span v-if="saving"><span class="spinner-border spinner-border-sm me-2"></span>Registering...</span>
@@ -320,6 +358,7 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '../../api'
 import { useToast } from 'vue-toastification'
+import { formatPhone } from '../../utils/validation'
 
 const toast = useToast()
 const loading = ref(true)
@@ -336,7 +375,7 @@ const flattenErrors = (val) => {
 const packages = ref([])
 const curricula = ref([])
 const convention = ref(null)
-const positionOptions = ['Full-time', 'Part-time', 'Paid Internship']
+const positionOptions = ['Full-time', 'Graduate Program', 'Paid Internship', 'Part-time']
 const registration = ref(null)
 const primaryRecruiter = ref(null)
 
@@ -350,14 +389,6 @@ const formatDate = (dateStr) => {
 const numRecruiters = ref(1)
 const editNumRecruiters = ref(1)
 
-const formatPhone = (value) => {
-  if (!value) return '—'
-  const digits = value.replace(/\D/g, '')
-  if (digits.length === 10) {
-    return `(${digits.substr(0, 3)}) ${digits.substr(3, 3)}-${digits.substr(6, 4)}`
-  }
-  return value || '—'
-}
 
 const formatAttendeePhone = (attendee, event) => {
   const raw = event.target.value

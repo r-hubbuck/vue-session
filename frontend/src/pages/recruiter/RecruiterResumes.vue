@@ -153,7 +153,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import api from '../../api'
 import { useToast } from 'vue-toastification'
 
@@ -260,8 +260,11 @@ const bulkDownload = async () => {
   }
 }
 
+const isSafeUrl = (url) => typeof url === 'string' && /^(https?:\/\/|\/)/i.test(url)
+
 const viewResume = (resume) => {
-  window.open(resume.resume_url, '_blank')
+  if (!isSafeUrl(resume.resume_url)) return
+  window.open(resume.resume_url, '_blank', 'noopener,noreferrer')
 }
 
 const downloadResume = async (resume) => {
@@ -306,6 +309,8 @@ const fetchFilterOptions = async () => {
     // Non-critical — filters just won't populate
   }
 }
+
+onUnmounted(() => clearTimeout(searchTimeout))
 
 onMounted(async () => {
   try {

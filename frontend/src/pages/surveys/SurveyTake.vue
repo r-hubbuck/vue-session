@@ -7,7 +7,7 @@
       </div>
     </div>
 
-    <div v-else-if="loadError" class="alert alert-danger">{{ loadError }}</div>
+    <div v-else-if="loadError" class="alert alert-danger" role="alert">{{ loadError }}</div>
 
     <template v-else-if="survey">
       <!-- Already submitted banner -->
@@ -46,7 +46,7 @@
           </div>
         </div>
 
-        <div v-if="submitError" class="alert alert-danger">{{ submitError }}</div>
+        <div v-if="submitError" class="alert alert-danger" role="alert">{{ submitError }}</div>
 
         <!-- Questions -->
         <div v-for="question in survey.questions" :key="question.id" class="card mb-3" :class="{ 'border-danger': questionErrors[question.id] }" :data-question-id="question.id">
@@ -204,7 +204,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../api'
 
@@ -223,6 +223,8 @@ const submitError = ref(null)
 const submitMsg = ref(null)
 const questionErrors = ref({})
 let debounceTimer = null
+
+onUnmounted(() => clearTimeout(debounceTimer))
 
 // --- Answer helpers ---
 

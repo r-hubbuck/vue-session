@@ -14,7 +14,7 @@
     </div>
 
     <template v-else>
-      <div v-if="saveError" class="alert alert-danger mb-3">
+      <div v-if="saveError" class="alert alert-danger mb-3" role="alert">
         {{ saveError }}
       </div>
 

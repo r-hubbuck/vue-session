@@ -1,291 +1,179 @@
 <template>
   <div class="container mt-2">
-    <!-- <div class="row justify-content-center">
-      <div class=""> -->
-        <div class="d-flex">
-          <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50 mx-auto">
-        </div>
-        <h1 class="page-title text-center my-4">Reset Your Password</h1>
-        <div v-if="tokenError" class="alert alert-danger">
-          {{ tokenError }}
-          <div class="mt-2">
-            <RouterLink to="/password-forgot" class="text-decoration-none">Request a new reset link</RouterLink>
-          </div>
-        </div>
-        
-        <div v-else-if="success" class="alert alert-success">
-          {{ success }}
-        </div>
-        
-        <form v-else @submit.prevent="resetPassword" class="container-md">
-          <div class="mb-3 position-relative">
-            <label for="newPassword1" class="form-label">New Password:</label>
-            <input
-              v-model="newPassword1"
-              type="password"
-              :class="['form-control', { 'is-invalid': passwordError }]"
-              id="newPassword1"
-              required
-              :disabled="loading"
-              @focus="showPasswordReq = true"
-              @blur="onPasswordBlur"
-              @input="validatePasswords"
-              autocomplete="new-password"
-            />
-            <div v-if="showPasswordReq" class="position-absolute bg-light border rounded shadow-sm p-2 mt-1" style="text-align: left; z-index: 1050; min-width: 320px;">
-             <div class="small">
-                <span v-if="passwordLength" style="color: #28a745; font-weight: bold;">✓</span>
-                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-                <span :class="{'text-success': passwordLength, 'text-danger': !passwordLength}"> At least 8 characters</span>
-              </div>
-              <div class="small">
-                <span v-if="passwordUpper" style="color: #28a745; font-weight: bold;">✓</span>
-                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-                <span :class="{'text-success': passwordUpper, 'text-danger': !passwordUpper}"> At least one uppercase letter</span>
-              </div>
-              <div class="small">
-                <span v-if="passwordLower" style="color: #28a745; font-weight: bold;">✓</span>
-                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-                <span :class="{'text-success': passwordLower, 'text-danger': !passwordLower}"> At least one lowercase letter</span>
-              </div>
-              <div class="small">
-                <span v-if="passwordNumber" style="color: #28a745; font-weight: bold;">✓</span>
-                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-                <span :class="{'text-success': passwordNumber, 'text-danger': !passwordNumber}"> At least one number</span>
-              </div>
-              <div class="small">
-                <span v-if="passwordSpecial" style="color: #28a745; font-weight: bold;">✓</span>
-                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-                <span :class="{'text-success': passwordSpecial, 'text-danger': !passwordSpecial}"> At least one special character (!@#$%^&*_=+-.)</span>
-              </div>
-              <div class="small">
-                <span v-if="passwordSafe" style="color: #28a745; font-weight: bold;">✓</span>
-                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-                <span :class="{'text-success': passwordSafe, 'text-danger': !passwordSafe}"> No invalid characters</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="mb-3 position-relative">
-            <label for="newPassword2" class="form-label">Confirm New Password:</label>
-            <input
-              v-model="newPassword2"
-              type="password"
-              :class="['form-control', { 'is-invalid': passwordError }]"
-              id="newPassword2"
-              required
-              :disabled="loading"
-              @focus="showPassword2Req = true"
-              @blur="onPassword2Blur"
-              @input="validatePasswords"
-              autocomplete="new-password"
-            />
-            <div v-if="showPassword2Req" class="position-absolute bg-light border rounded shadow-sm p-2 mt-1" style="text-align: left; z-index: 1050; min-width: 320px;">
-              <div class="small">
-                <span v-if="password2Length" style="color: #28a745; font-weight: bold;">✓</span>
-                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-                <span :class="{'text-success': password2Length, 'text-danger': !password2Length}"> At least 8 characters</span>
-              </div>
-              <div class="small">
-                <span v-if="password2Upper" style="color: #28a745; font-weight: bold;">✓</span>
-                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-                <span :class="{'text-success': password2Upper, 'text-danger': !password2Upper}"> At least one uppercase letter</span>
-              </div>
-              <div class="small">
-                <span v-if="password2Lower" style="color: #28a745; font-weight: bold;">✓</span>
-                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-                <span :class="{'text-success': password2Lower, 'text-danger': !password2Lower}"> At least one lowercase letter</span>
-              </div>
-              <div class="small">
-                <span v-if="password2Number" style="color: #28a745; font-weight: bold;">✓</span>
-                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-                <span :class="{'text-success': password2Number, 'text-danger': !password2Number}"> At least one number</span>
-              </div>
-              <div class="small">
-                <span v-if="password2Special" style="color: #28a745; font-weight: bold;">✓</span>
-                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-                <span :class="{'text-success': password2Special, 'text-danger': !password2Special}"> At least one special character (!@#$%^&*_=+-.)</span>
-              </div>
-              <div class="small">
-                <span v-if="password2Safe" style="color: #28a745; font-weight: bold;">✓</span>
-                <span v-else style="color: red !important; margin-right: 5px;">✗</span>
-                <span :class="{'text-success': password2Safe, 'text-danger': !password2Safe}"> No invalid characters</span>
-              </div>
-            </div>
-            <div class="invalid-feedback">{{ passwordError }}</div>
-          </div>
-
-          <div v-if="error" class="alert alert-danger">
-            {{ error }}
-          </div>
-
-          <button 
-            type="submit"
-            class="btn btn-primary mt-5"
-            :disabled="loading || !isFormValid"
-          >
-            {{ loading ? 'Updating...' : 'Update Password' }}
-          </button>
-        </form>
-
-        <p class="text-center mt-3">
-          <RouterLink to="/login" class="text-decoration-none">Back to Login</RouterLink>
-        </p>
+    <div class="d-flex">
+      <img src="/logo_horizontal_blue.png" alt="Logo" class="d-inline-block align-text-top w-50 mx-auto">
+    </div>
+    <h1 class="page-title text-center my-4">Reset Your Password</h1>
+    <div v-if="tokenError" class="alert alert-danger" role="alert">
+      {{ tokenError }}
+      <div class="mt-2">
+        <RouterLink to="/password-forgot" class="text-decoration-none">Request a new reset link</RouterLink>
       </div>
-    <!-- </div>
-  </div> -->
+    </div>
+
+    <div v-else-if="success" class="alert alert-success" role="alert">
+      {{ success }}
+    </div>
+
+    <form v-else @submit.prevent="resetPassword" class="container-md">
+      <div class="mb-3 position-relative">
+        <label for="newPassword1" class="form-label">New Password:</label>
+        <input
+          v-model="newPassword1"
+          type="password"
+          :class="['form-control', { 'is-invalid': passwordError }]"
+          id="newPassword1"
+          required
+          :disabled="loading"
+          @focus="showPasswordReq = true"
+          @blur="onPasswordBlur"
+          @input="validatePasswords"
+          autocomplete="new-password"
+        />
+        <div v-if="showPasswordReq" class="position-absolute bg-light border rounded shadow-sm p-2 mt-1" style="text-align:left; z-index:1050; min-width:320px;">
+          <div class="small">
+            <span :style="passwordLength ? 'color:#28a745;font-weight:bold;' : 'color:red;margin-right:5px;'">{{ passwordLength ? '✓' : '✗' }}</span>
+            <span :class="{'text-success': passwordLength, 'text-danger': !passwordLength}"> At least 8 characters</span>
+          </div>
+          <div class="small">
+            <span :style="passwordUpper ? 'color:#28a745;font-weight:bold;' : 'color:red;margin-right:5px;'">{{ passwordUpper ? '✓' : '✗' }}</span>
+            <span :class="{'text-success': passwordUpper, 'text-danger': !passwordUpper}"> At least one uppercase letter</span>
+          </div>
+          <div class="small">
+            <span :style="passwordLower ? 'color:#28a745;font-weight:bold;' : 'color:red;margin-right:5px;'">{{ passwordLower ? '✓' : '✗' }}</span>
+            <span :class="{'text-success': passwordLower, 'text-danger': !passwordLower}"> At least one lowercase letter</span>
+          </div>
+          <div class="small">
+            <span :style="passwordNumber ? 'color:#28a745;font-weight:bold;' : 'color:red;margin-right:5px;'">{{ passwordNumber ? '✓' : '✗' }}</span>
+            <span :class="{'text-success': passwordNumber, 'text-danger': !passwordNumber}"> At least one number</span>
+          </div>
+          <div class="small">
+            <span :style="passwordSpecial ? 'color:#28a745;font-weight:bold;' : 'color:red;margin-right:5px;'">{{ passwordSpecial ? '✓' : '✗' }}</span>
+            <span :class="{'text-success': passwordSpecial, 'text-danger': !passwordSpecial}"> At least one special character (!@#$%^&*_=+-.)</span>
+          </div>
+          <div class="small">
+            <span :style="passwordSafe ? 'color:#28a745;font-weight:bold;' : 'color:red;margin-right:5px;'">{{ passwordSafe ? '✓' : '✗' }}</span>
+            <span :class="{'text-success': passwordSafe, 'text-danger': !passwordSafe}"> No invalid characters</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3 position-relative">
+        <label for="newPassword2" class="form-label">Confirm New Password:</label>
+        <input
+          v-model="newPassword2"
+          type="password"
+          :class="['form-control', { 'is-invalid': passwordError }]"
+          id="newPassword2"
+          required
+          :disabled="loading"
+          @focus="showPassword2Req = true"
+          @blur="onPassword2Blur"
+          @input="validatePasswords"
+          autocomplete="new-password"
+        />
+        <div v-if="showPassword2Req" class="position-absolute bg-light border rounded shadow-sm p-2 mt-1" style="text-align:left; z-index:1050; min-width:280px;">
+          <div class="small">
+            <span :style="passwordsMatch ? 'color:#28a745;font-weight:bold;' : 'color:red;margin-right:5px;'">{{ passwordsMatch ? '✓' : '✗' }}</span>
+            <span :class="{'text-success': passwordsMatch, 'text-danger': !passwordsMatch}"> Passwords match</span>
+          </div>
+        </div>
+        <div class="invalid-feedback">{{ passwordError }}</div>
+      </div>
+
+      <div v-if="error" class="alert alert-danger" role="alert">
+        {{ error }}
+      </div>
+
+      <button
+        type="submit"
+        class="btn btn-primary mt-5"
+        :disabled="loading || !isFormValid"
+      >
+        {{ loading ? 'Updating...' : 'Update Password' }}
+      </button>
+    </form>
+
+    <p class="text-center mt-3">
+      <RouterLink to="/login" class="text-decoration-none">Back to Login</RouterLink>
+    </p>
+  </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import api from '../api'
 
-export default {
-  name: 'PasswordResetConfirm',
-  data() {
-    return {
-      newPassword1: "",
-      newPassword2: "",
-      error: "",
-      success: "",
-      tokenError: "",
-      passwordError: "",
-      loading: false,
-      showPasswordReq: false,
-      showPassword2Req: false,
-      uidb64: "",
-      token: "",
-    };
-  },
-  computed: {
-    passwordLength() {
-      return this.newPassword1.length >= 8;
-    },
-    passwordUpper() {
-      return /[A-Z]/.test(this.newPassword1);
-    },
-    passwordLower() {
-      return /[a-z]/.test(this.newPassword1);
-    },
-    passwordNumber() {
-      return /[0-9]/.test(this.newPassword1);
-    },
-    passwordSpecial() {
-      return /[!@#$%^&*_=+\-.]/.test(this.newPassword1);
-    },
-    passwordSafe() {
-      return !/[^A-Za-z0-9!@#$%^&*_=+\-.]/.test(this.newPassword1);
-    },
-    password2Length() {
-      return this.newPassword2.length >= 8;
-    },
-    password2Upper() {
-      return /[A-Z]/.test(this.newPassword2);
-    },
-    password2Lower() {
-      return /[a-z]/.test(this.newPassword2);
-    },
-    password2Number() {
-      return /[0-9]/.test(this.newPassword2);
-    },
-    password2Special() {
-      return /[!@#$%^&*_=+\-.]/.test(this.newPassword2);
-    },
-    password2Safe() {
-      return !/[^A-Za-z0-9!@#$%^&*_=+\-.]/.test(this.newPassword2);
-    },
-    isFormValid() {
-      return (
-        this.passwordLength &&
-        this.passwordUpper &&
-        this.passwordLower &&
-        this.passwordNumber &&
-        this.passwordSpecial &&
-        this.passwordSafe &&
-        this.password2Length &&
-        this.password2Upper &&
-        this.password2Lower &&
-        this.password2Number &&
-        this.password2Special &&
-        this.password2Safe &&
-        this.newPassword1 === this.newPassword2 &&
-        !this.passwordError
-      );
-    },
-  },
-  methods: {
-    onPasswordBlur() {
-      setTimeout(() => {
-        this.showPasswordReq = false;
-      }, 200);
-    },
+const route = useRoute()
 
-    onPassword2Blur() {
-      setTimeout(() => {
-        this.showPassword2Req = false;
-      }, 200);
-    },
+const newPassword1 = ref('')
+const newPassword2 = ref('')
+const error = ref('')
+const success = ref('')
+const tokenError = ref('')
+const passwordError = ref('')
+const loading = ref(false)
+const showPasswordReq = ref(false)
+const showPassword2Req = ref(false)
+const uidb64 = ref('')
+const token = ref('')
 
-    validatePasswords() {
-      if (this.newPassword1 && this.newPassword2 && this.newPassword1 !== this.newPassword2) {
-        this.passwordError = "Passwords do not match.";
-      } else {
-        this.passwordError = "";
-      }
-    },
+const passwordLength  = computed(() => newPassword1.value.length >= 8)
+const passwordUpper   = computed(() => /[A-Z]/.test(newPassword1.value))
+const passwordLower   = computed(() => /[a-z]/.test(newPassword1.value))
+const passwordNumber  = computed(() => /[0-9]/.test(newPassword1.value))
+const passwordSpecial = computed(() => /[!@#$%^&*_=+\-.]/.test(newPassword1.value))
+const passwordSafe    = computed(() => !/[^A-Za-z0-9!@#$%^&*_=+\-.]/.test(newPassword1.value))
+const passwordsMatch  = computed(() => newPassword1.value.length > 0 && newPassword1.value === newPassword2.value)
 
-    async resetPassword() {
-      this.validatePasswords();
+const isFormValid = computed(() =>
+  passwordLength.value && passwordUpper.value && passwordLower.value &&
+  passwordNumber.value && passwordSpecial.value && passwordSafe.value &&
+  passwordsMatch.value && !passwordError.value
+)
 
-      if (!this.isFormValid) {
-        return;
-      }
+function onPasswordBlur()  { setTimeout(() => { showPasswordReq.value  = false }, 200) }
+function onPassword2Blur() { setTimeout(() => { showPassword2Req.value = false }, 200) }
 
-      this.loading = true;
-      this.error = "";
+function validatePasswords() {
+  if (newPassword1.value && newPassword2.value && newPassword1.value !== newPassword2.value) {
+    passwordError.value = 'Passwords do not match.'
+  } else {
+    passwordError.value = ''
+  }
+}
 
-      try {
-        const response = await api.post(
-          `/api/accounts/password-reset-confirm/${this.uidb64}/${this.token}/`,
-          {
-            new_password1: this.newPassword1,
-            new_password2: this.newPassword2,
-          }
-        );
-
-        this.success = response.data.message || "Password has been reset successfully! You can now log in with your new password.";
-        this.newPassword1 = "";
-        this.newPassword2 = "";
-      } catch (err) {
-        console.error(err);
-        const data = err.response?.data;
-        
-        if (err.response?.status === 400) {
-          if (data?.error) {
-            this.error = data.error;
-          } else if (data?.new_password1) {
-            this.error = data.new_password1[0];
-          } else if (data?.new_password2) {
-            this.error = data.new_password2[0];
-          } else {
-            this.error = "Invalid password. Please check the requirements.";
-          }
-        } else {
-          this.error = data?.error || data?.message || "Failed to reset password";
-        }
-      } finally {
-        this.loading = false;
-      }
-    },
-  },
-  mounted() {
-    this.uidb64 = this.$route.params.uidb64;
-    this.token = this.$route.params.token;
-
-    if (!this.uidb64 || !this.token) {
-      this.tokenError = "Invalid reset link. Please request a new password reset.";
-      return;
+async function resetPassword() {
+  validatePasswords()
+  if (!isFormValid.value) return
+  loading.value = true
+  error.value = ''
+  try {
+    const response = await api.post(
+      `/api/accounts/password-reset-confirm/${uidb64.value}/${token.value}/`,
+      { new_password1: newPassword1.value, new_password2: newPassword2.value }
+    )
+    success.value = response.data.message || 'Password has been reset successfully! You can now log in with your new password.'
+    newPassword1.value = ''
+    newPassword2.value = ''
+  } catch (err) {
+    const data = err.response?.data
+    if (err.response?.status === 400) {
+      error.value = data?.error || data?.new_password1?.[0] || data?.new_password2?.[0] || 'Invalid password. Please check the requirements.'
+    } else {
+      error.value = data?.error || data?.message || 'Failed to reset password'
     }
+  } finally {
+    loading.value = false
+  }
+}
 
-  },
-};
+onMounted(() => {
+  uidb64.value = route.params.uidb64
+  token.value  = route.params.token
+  if (!uidb64.value || !token.value) {
+    tokenError.value = 'Invalid reset link. Please request a new password reset.'
+  }
+})
 </script>

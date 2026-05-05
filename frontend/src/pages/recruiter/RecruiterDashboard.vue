@@ -242,13 +242,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import api from '../../api'
 import { useToast } from 'vue-toastification'
 import { useAuthStore } from '../../store/auth'
 
 const authStore = useAuthStore()
-import { isValidEmail, validatePhone } from '../../utils/validation'
+import { isValidEmail, validatePhone, formatPhone } from '../../utils/validation'
 
 const toast = useToast()
 const loading = ref(true)
@@ -267,26 +267,9 @@ const logoPreview = ref('')
 const currentLogoUrl = ref('')
 const logoRemoved = ref(false)
 
-const formatPhone = (value) => {
-  if (!value) return ''
-  const digits = value.replace(/\D/g, '')
-  if (digits.length === 10) {
-    return `(${digits.substr(0, 3)}) ${digits.substr(3, 3)}-${digits.substr(6, 4)}`
-  }
-  return value
-}
-
-const formatPhoneNumber = (value) => {
-  if (!value) return value
-  const digits = value.replace(/\D/g, '')
-  if (digits.length === 10) {
-    return `(${digits.substr(0, 3)}) ${digits.substr(3, 3)}-${digits.substr(6, 4)}`
-  }
-  return digits
-}
 
 const formatOrgPhone = () => {
-  orgForm.value.phone = formatPhoneNumber(orgForm.value.phone)
+  orgForm.value.phone = formatPhone(orgForm.value.phone)
 }
 
 const validateBillingEmail = () => {
@@ -310,7 +293,7 @@ const startEditOrg = () => {
     name: org.name || '',
     org_type: org.org_type || '',
     website: org.website || '',
-    phone: formatPhoneNumber(org.phone) || '',
+    phone: formatPhone(org.phone) || '',
     address_line1: org.address_line1 || '',
     address_line2: org.address_line2 || '',
     city: org.city || '',
@@ -364,8 +347,13 @@ const handleLogoChange = (event) => {
   }
 
   logoFile.value = file
+  if (logoPreview.value?.startsWith('blob:')) URL.revokeObjectURL(logoPreview.value)
   logoPreview.value = URL.createObjectURL(file)
 }
+
+onUnmounted(() => {
+  if (logoPreview.value?.startsWith('blob:')) URL.revokeObjectURL(logoPreview.value)
+})
 
 const removeLogo = async () => {
   if (!currentLogoUrl.value) return

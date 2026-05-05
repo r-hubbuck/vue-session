@@ -84,58 +84,43 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, onUnmounted } from 'vue'
 import api from '../api'
-import { useAuthStore } from '../store/auth'
 
-export default {
-  name: 'UserManagement',
+const searchQuery = ref('')
+const users = ref([])
+const loading = ref(false)
+const error = ref(null)
+const hasSearched = ref(false)
+let searchDebounce = null
 
-  data() {
-    return {
-      searchQuery: '',
-      users: [],
-      loading: false,
-      error: null,
-      hasSearched: false,
-      searchDebounce: null,
-    }
-  },
-
-  async created() {
-    const authStore = useAuthStore()
-    if (!authStore.hasRole('hq_admin')) {
-      this.$router.push({ name: 'home' })
-    }
-  },
-
-  methods: {
-    onSearchInput() {
-      clearTimeout(this.searchDebounce)
-      if (!this.searchQuery.trim()) {
-        this.users = []
-        this.hasSearched = false
-        return
-      }
-      this.searchDebounce = setTimeout(() => this.fetchUsers(), 400)
-    },
-
-    async fetchUsers() {
-      this.loading = true
-      this.error = null
-      this.hasSearched = true
-      try {
-        const response = await api.get('/api/accounts/admin/users/', {
-          params: { search: this.searchQuery.trim() }
-        })
-        this.users = response.data
-      } catch (err) {
-        this.error = err.response?.data?.error || 'Failed to load users.'
-        this.users = []
-      } finally {
-        this.loading = false
-      }
-    },
-  },
+function onSearchInput() {
+  clearTimeout(searchDebounce)
+  if (!searchQuery.value.trim()) {
+    users.value = []
+    hasSearched.value = false
+    return
+  }
+  searchDebounce = setTimeout(fetchUsers, 400)
 }
+
+async function fetchUsers() {
+  loading.value = true
+  error.value = null
+  hasSearched.value = true
+  try {
+    const response = await api.get('/api/accounts/admin/users/', {
+      params: { search: searchQuery.value.trim() }
+    })
+    users.value = response.data
+  } catch (err) {
+    error.value = err.response?.data?.error || 'Failed to load users.'
+    users.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+onUnmounted(() => clearTimeout(searchDebounce))
 </script>

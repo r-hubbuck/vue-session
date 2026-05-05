@@ -1,41 +1,61 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../store/auth'
 
 const authStore = useAuthStore()
 const router = useRouter()
 const mobileMenuOpen = ref(false)
+const userMenuOpen = ref(false)
+const userMenuRef = ref(null)
+const userTriggerRef = ref(null)
 
 onMounted(async () => {
   if (authStore.isRecruiter) {
     await authStore.fetchRecruiterRegistration()
   }
+  document.addEventListener('click', closeUserMenu)
 })
 
-// Get user initials for avatar
-const userInitials = computed(() => {
-  if (authStore.user?.email) {
-    const email = authStore.user.email
-    return email.substring(0, 2).toUpperCase()
+onUnmounted(() => {
+  document.removeEventListener('click', closeUserMenu)
+})
+
+const userEmail = computed(() => authStore.user?.email || 'User')
+
+const toggleMobileMenu = () => { mobileMenuOpen.value = !mobileMenuOpen.value }
+const closeMobileMenu = () => { mobileMenuOpen.value = false }
+
+const toggleUserMenu = () => {
+  userMenuOpen.value = !userMenuOpen.value
+  if (userMenuOpen.value) {
+    nextTick(() => userMenuRef.value?.querySelector('[role="menuitem"]')?.focus())
   }
-  return 'U'
-})
+}
+const closeUserMenu = () => { userMenuOpen.value = false }
 
-// Get user email
-const userEmail = computed(() => {
-  return authStore.user?.email || 'User'
-})
-
-const toggleMobileMenu = () => {
-  mobileMenuOpen.value = !mobileMenuOpen.value
+const handleTriggerKeydown = (event) => {
+  if (event.key === 'Escape') {
+    userMenuOpen.value = false
+  } else if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    toggleUserMenu()
+  }
 }
 
-const closeMobileMenu = () => {
-  mobileMenuOpen.value = false
+const handleMenuKeydown = (event) => {
+  if (event.key === 'Escape') {
+    userMenuOpen.value = false
+    userTriggerRef.value?.focus()
+  }
 }
+
+const accountRoute = computed(() =>
+  authStore.isRecruiter ? '/recruiter/account' : '/account'
+)
 
 const logout = async () => {
+  userMenuOpen.value = false
   try {
     await authStore.logout(router)
   } catch (error) {
@@ -86,12 +106,6 @@ const logout = async () => {
 
         <!-- Member Navigation -->
         <ul v-else class="main-nav" :class="{ 'show': mobileMenuOpen }">
-          <li>
-            <router-link to="/account" @click="closeMobileMenu">
-              <i class="bi bi-person"></i>
-              Account
-            </router-link>
-          </li>
           <li v-if="authStore.hasRole('hq_staff') || authStore.hasRole('hq_admin') || authStore.hasRole('hq_finance')">
             <router-link to="/convention-travel" @click="closeMobileMenu">
               <i class="bi bi-calendar-event"></i>
@@ -138,12 +152,53 @@ const logout = async () => {
       </div>
 
       <!-- User Menu -->
-      <div class="user-menu">
-        <div class="user-info" @click="logout" role="button" tabindex="0" aria-label="Logout">
+      <div class="user-menu" style="position: relative;" @click.stop>
+        <div
+          ref="userTriggerRef"
+          class="user-info"
+          @click="toggleUserMenu"
+          @keydown="handleTriggerKeydown"
+          role="button"
+          tabindex="0"
+          :aria-expanded="userMenuOpen"
+          aria-haspopup="menu"
+        >
           <div class="user-details">
             <span>{{ userEmail }}</span>
           </div>
-          <i class="bi bi-box-arrow-right" style="color: #718096; font-size: 1rem;"></i>
+          <i class="bi bi-chevron-down" style="color: #718096; font-size: 0.75rem; transition: transform 0.2s;" :style="userMenuOpen ? 'transform: rotate(180deg)' : ''"></i>
+        </div>
+        <div
+          v-if="userMenuOpen"
+          ref="userMenuRef"
+          role="menu"
+          @keydown="handleMenuKeydown"
+          style="position: absolute; right: 0; top: calc(100% + 8px); min-width: 180px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1000; overflow: hidden;"
+        >
+          <router-link
+            :to="accountRoute"
+            @click="closeUserMenu"
+            role="menuitem"
+            tabindex="-1"
+            style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; color: #374151; text-decoration: none; font-size: 0.875rem;"
+            @mouseenter="e => e.currentTarget.style.background='#f8fafc'"
+            @mouseleave="e => e.currentTarget.style.background=''"
+          >
+            <i class="bi bi-person-gear"></i>
+            Account Settings
+          </router-link>
+          <div style="border-top: 1px solid #e2e8f0;"></div>
+          <button
+            @click="logout"
+            role="menuitem"
+            tabindex="-1"
+            style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; color: #ef4444; font-size: 0.875rem; width: 100%; background: none; border: none; cursor: pointer; text-align: left;"
+            @mouseenter="e => e.currentTarget.style.background='#fef2f2'"
+            @mouseleave="e => e.currentTarget.style.background=''"
+          >
+            <i class="bi bi-box-arrow-right"></i>
+            Logout
+          </button>
         </div>
       </div>
     </div>

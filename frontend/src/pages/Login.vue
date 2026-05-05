@@ -37,11 +37,11 @@
         <div class="invalid-feedback">{{ passwordError }}</div>
       </div>
 
-      <div v-if="authStore.serverMessage" class="alert alert-danger">{{ authStore.serverMessage }}</div>
+      <div v-if="authStore.serverMessage" class="alert alert-danger" role="alert">{{ authStore.serverMessage }}</div>
 
-      <button 
-        class="btn btn-primary mt-5" 
-        type="submit" 
+      <button
+        class="btn btn-primary mt-5"
+        type="submit"
         :disabled="loading"
       >
         {{ loading ? 'Please wait...' : 'Login' }}
@@ -53,87 +53,66 @@
       </p>
       <p class="mt-3">Don't have an account yet? Please <RouterLink class="" to="/verify">register</RouterLink> now.</p>
     </div>
-    
   </div>
 </template>
 
-<script>
-import { useAuthStore } from "../store/auth";
-import { isValidEmail } from "../utils/validation";
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../store/auth'
+import { isValidEmail } from '../utils/validation'
 
-export default {
-  setup() {
-    const authStore = useAuthStore();
-    return {
-      authStore,
-    };
-  },
-  data() {
-    return {
-      email: "",
-      password: "",
-      activateParam: null,
-      emailError: "",
-      passwordError: "",
-      loading: false,
-    };
-  },
-  computed: {
-    hasActivateParam() {
-      return this.activateParam !== null;
-    },
-  },
-  methods: {
-    validateEmail() {
-      this.emailError = isValidEmail(this.email)
-        ? ""
-        : "Please enter a valid email address.";
-    },
-    validatePassword() {
-      if (!this.password) {
-        this.passwordError = "Password cannot be empty.";
-      } else if (this.password.length < 8) {
-        this.passwordError = "Password must be at least 8 characters long.";
-      } else {
-        this.passwordError = "";
-      }
-    },
-    async login() {
-      // Prevent multiple submissions
-      if (this.loading) {
-        return;
-      }
+const authStore = useAuthStore()
+const router = useRouter()
 
-      // Run validations before submitting
-      this.validateEmail();
-      this.validatePassword();
+const email = ref('')
+const password = ref('')
+const activateParam = ref(null)
+const emailError = ref('')
+const passwordError = ref('')
+const loading = ref(false)
 
-      if (this.emailError || this.passwordError) {
-        return; // stop if there are validation errors
-      }
+const hasActivateParam = computed(() => activateParam.value !== null)
 
-      this.loading = true;
+function validateEmail() {
+  emailError.value = isValidEmail(email.value) ? '' : 'Please enter a valid email address.'
+}
 
-      try {
-        await this.authStore.login(this.email, this.password, this.$router);
-        this.resetForm();
-      } catch (error) {
-        console.error('Login error:', error);
-      } finally {
-        this.loading = false;
-      }
-    },
-    resetForm() {
-      this.email = "";
-      this.password = "";
-      this.emailError = "";
-      this.passwordError = "";
-    },
-  },
-  async mounted() {
-    this.authStore.clearMessage();
-    const urlParams = new URLSearchParams(window.location.search);
-    this.activateParam = urlParams.get("activate");
-  },
-};
+function validatePassword() {
+  if (!password.value) {
+    passwordError.value = 'Password cannot be empty.'
+  } else if (password.value.length < 8) {
+    passwordError.value = 'Password must be at least 8 characters long.'
+  } else {
+    passwordError.value = ''
+  }
+}
+
+async function login() {
+  if (loading.value) return
+  validateEmail()
+  validatePassword()
+  if (emailError.value || passwordError.value) return
+  loading.value = true
+  try {
+    await authStore.login(email.value, password.value, router)
+    resetForm()
+  } catch {
+    // auth store handles error messaging
+  } finally {
+    loading.value = false
+  }
+}
+
+function resetForm() {
+  email.value = ''
+  password.value = ''
+  emailError.value = ''
+  passwordError.value = ''
+}
+
+onMounted(() => {
+  authStore.clearMessage()
+  activateParam.value = new URLSearchParams(window.location.search).get('activate')
+})
 </script>

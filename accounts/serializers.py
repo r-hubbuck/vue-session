@@ -233,6 +233,38 @@ class AddressSerializer(serializers.ModelSerializer):
         return data
 
 
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True)
+    new_password1 = serializers.CharField(write_only=True, min_length=8)
+    new_password2 = serializers.CharField(write_only=True, min_length=8)
+
+    def _validate_strength(self, value):
+        if len(value) < 8:
+            raise serializers.ValidationError('Password must be at least 8 characters long.')
+        if not re.search(r'[A-Z]', value):
+            raise serializers.ValidationError('Password must contain at least one uppercase letter.')
+        if not re.search(r'[a-z]', value):
+            raise serializers.ValidationError('Password must contain at least one lowercase letter.')
+        if not re.search(r'[0-9]', value):
+            raise serializers.ValidationError('Password must contain at least one number.')
+        if not re.search(r'[!@#$%^&*_=+\-.]', value):
+            raise serializers.ValidationError('Password must contain at least one special character (!@#$%^&*_=+-.)')
+        if re.search(r'[^A-Za-z0-9!@#$%^&*_=+\-.]', value):
+            raise serializers.ValidationError('Password contains invalid characters.')
+        return value
+
+    def validate_new_password1(self, value):
+        return self._validate_strength(value)
+
+    def validate_new_password2(self, value):
+        return self._validate_strength(value)
+
+    def validate(self, data):
+        if data['new_password1'] != data['new_password2']:
+            raise serializers.ValidationError({'new_password2': 'Passwords do not match.'})
+        return data
+
+
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
 

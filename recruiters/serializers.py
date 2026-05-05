@@ -232,7 +232,7 @@ class MealOptionSerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
 
-VALID_POSITIONS = ['Full-time', 'Part-time', 'Paid Internship']
+VALID_POSITIONS = ['Full-time', 'Graduate Program', 'Paid Internship', 'Part-time']
 
 
 class RecruiterConventionRegistrationSerializer(serializers.ModelSerializer):

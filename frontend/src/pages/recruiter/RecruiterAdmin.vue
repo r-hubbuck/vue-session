@@ -130,8 +130,8 @@
   </div>
 
   <!-- Recruiter Detail Modal -->
-  <div v-if="selectedRecruiter" class="modal-backdrop-custom" @click.self="closeDetail">
-    <div class="modal-dialog-custom">
+  <div v-if="selectedRecruiter" class="modal-backdrop-custom" @click.self="closeDetail" @keydown="trapFocus($event, detailDialogRef, closeDetail)">
+    <div class="modal-dialog-custom" ref="detailDialogRef" tabindex="-1">
       <div class="modal-header-custom">
         <h5 class="modal-title-custom">
           <i class="bi bi-person-badge me-2"></i>Recruiter Details
@@ -232,8 +232,8 @@
   </div>
 
   <!-- Registration Edit Modal -->
-  <div v-if="selectedReg" class="modal-backdrop-custom" @click.self="closeRegEdit">
-    <div class="modal-dialog-custom" style="max-width: 520px;">
+  <div v-if="selectedReg" class="modal-backdrop-custom" @click.self="closeRegEdit" @keydown="trapFocus($event, regEditDialogRef, closeRegEdit)">
+    <div class="modal-dialog-custom" ref="regEditDialogRef" tabindex="-1" style="max-width: 520px;">
       <div class="modal-header-custom">
         <h5 class="modal-title-custom">
           <i class="bi bi-pencil-square me-2"></i>Edit Registration
@@ -297,14 +297,35 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import api from '../../api'
 import { useToast } from 'vue-toastification'
+import { formatPhone } from '../../utils/validation'
 import { useAuthStore } from '../../store/auth'
 
 const toast = useToast()
 const authStore = useAuthStore()
 const hasAccess = computed(() => authStore.hasRole('hq_staff') || authStore.hasRole('hq_admin'))
+
+const detailDialogRef = ref(null)
+const regEditDialogRef = ref(null)
+let lastFocusedEl = null
+
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+function trapFocus(event, dialogEl, closeFn) {
+  if (event.key === 'Escape') { closeFn(); return }
+  if (event.key !== 'Tab') return
+  const focusable = Array.from(dialogEl.querySelectorAll(FOCUSABLE))
+  if (!focusable.length) return
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+  if (event.shiftKey) {
+    if (document.activeElement === first) { event.preventDefault(); last.focus() }
+  } else {
+    if (document.activeElement === last) { event.preventDefault(); first.focus() }
+  }
+}
 const loading = ref(true)
 const saving = ref(false)
 const pendingRecruiters = ref([])
@@ -363,14 +384,6 @@ const statusBadgeClass = (status) => {
   return map[status] || 'badge bg-secondary'
 }
 
-const formatPhone = (value) => {
-  if (!value) return '—'
-  const digits = value.replace(/\D/g, '')
-  if (digits.length === 10) {
-    return `(${digits.substr(0, 3)}) ${digits.substr(3, 3)}-${digits.substr(6, 4)}`
-  }
-  return value
-}
 
 const formatDate = (value) => {
   if (!value) return '—'
@@ -391,23 +404,26 @@ const formatOrgAddress = (org) => {
 }
 
 const openDetail = (recruiter) => {
+  lastFocusedEl = document.activeElement
   selectedRecruiter.value = recruiter
+  nextTick(() => detailDialogRef.value?.querySelector(FOCUSABLE)?.focus())
 }
 
 const closeDetail = () => {
   selectedRecruiter.value = null
+  nextTick(() => lastFocusedEl?.focus())
 }
 
 const openRegEdit = (reg) => {
+  lastFocusedEl = document.activeElement
   selectedReg.value = reg
-  regEditForm.value = {
-    boothId: reg.booth_id || '',
-    status: reg.status,
-  }
+  regEditForm.value = { boothId: reg.booth_id || '', status: reg.status }
+  nextTick(() => regEditDialogRef.value?.querySelector(FOCUSABLE)?.focus())
 }
 
 const closeRegEdit = () => {
   selectedReg.value = null
+  nextTick(() => lastFocusedEl?.focus())
 }
 
 const saveRegEdit = async () => {

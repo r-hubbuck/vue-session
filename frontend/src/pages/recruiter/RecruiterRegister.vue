@@ -15,7 +15,7 @@
       </div>
 
       <form v-else @submit.prevent="handleSubmit">
-        <div v-if="errorMessage" class="alert alert-danger mb-4">
+        <div v-if="errorMessage" class="alert alert-danger mb-4" role="alert">
           <i class="bi bi-exclamation-triangle me-2"></i>{{ errorMessage }}
         </div>
 
@@ -23,12 +23,12 @@
         <h5 class="fw-bold mb-3 mt-5">Organization Information</h5>
         <div class="row g-3 mb-4">
           <div class="col-md-8">
-            <label class="form-label">Organization Name *</label>
-            <input v-model.trim="form.org_name" type="text" class="form-control" required maxlength="255">
+            <label class="form-label" for="org-name">Organization Name *</label>
+            <input id="org-name" v-model.trim="form.org_name" type="text" class="form-control" required maxlength="255">
           </div>
           <div class="col-md-4">
-            <label class="form-label">Type *</label>
-            <select v-model="form.org_type" class="form-select" required>
+            <label class="form-label" for="org-type">Type *</label>
+            <select id="org-type" v-model="form.org_type" class="form-select" required>
               <option value="">Select...</option>
               <option value="business">Business</option>
               <option value="graduate_school">Graduate School</option>
@@ -36,19 +36,20 @@
             </select>
           </div>
           <div class="col-md-6">
-            <label class="form-label">Website *</label>
-            <input v-model.trim="form.org_website" type="url" class="form-control" placeholder="https://..." maxlength="200" required
+            <label class="form-label" for="org-website">Website *</label>
+            <input id="org-website" v-model.trim="form.org_website" type="url" class="form-control" placeholder="https://..." maxlength="200" required
               @invalid="e => e.target.setCustomValidity('Please enter a full URL, e.g. https://example.com')"
               @input="e => e.target.setCustomValidity('')">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Organization Phone</label>
-            <input v-model="form.org_phone" @input="formatPhone('org_phone')" @blur="validatePhoneField('org_phone')" type="tel" :class="['form-control', { 'is-invalid': orgPhoneError }]" placeholder="(555) 123-4567" maxlength="14">
+            <label class="form-label" for="org-phone">Organization Phone</label>
+            <input id="org-phone" v-model="form.org_phone" @input="formatPhone('org_phone')" @blur="validatePhoneField('org_phone')" type="tel" :class="['form-control', { 'is-invalid': orgPhoneError }]" placeholder="(555) 123-4567" maxlength="14">
             <div class="invalid-feedback">{{ orgPhoneError }}</div>
           </div>
           <div class="col-md-8">
-            <label class="form-label">Organization Logo</label>
+            <label class="form-label" for="org-logo">Organization Logo</label>
             <input
+              id="org-logo"
               type="file"
               :class="['form-control', { 'is-invalid': logoError }]"
               accept=".png,.jpg,.jpeg"
@@ -66,40 +67,40 @@
         <h5 class="fw-bold mb-3 mt-5">Billing Information</h5>
         <div class="row g-3 mb-4">
           <div class="col-md-6">
-            <label class="form-label">Address Line 1 *</label>
-            <input v-model.trim="form.org_address_line1" type="text" class="form-control" required maxlength="255">
+            <label class="form-label" for="org-addr1">Address Line 1 *</label>
+            <input id="org-addr1" v-model.trim="form.org_address_line1" type="text" class="form-control" required maxlength="255">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Address Line 2</label>
-            <input v-model.trim="form.org_address_line2" type="text" class="form-control" maxlength="255">
+            <label class="form-label" for="org-addr2">Address Line 2</label>
+            <input id="org-addr2" v-model.trim="form.org_address_line2" type="text" class="form-control" maxlength="255">
           </div>
           <div class="col-md-4">
-            <label class="form-label">City *</label>
-            <input v-model.trim="form.org_city" type="text" class="form-control" required maxlength="100">
+            <label class="form-label" for="org-city">City *</label>
+            <input id="org-city" v-model.trim="form.org_city" type="text" class="form-control" required maxlength="100">
           </div>
           <div class="col-md-4">
-            <label class="form-label">State *</label>
-            <select v-if="form.org_country === 'United States'" v-model="form.org_state" class="form-select" required>
+            <label class="form-label" for="org-state">State *</label>
+            <select v-if="form.org_country === 'United States'" id="org-state" v-model="form.org_state" class="form-select" required>
               <option value="">Select state...</option>
               <option v-for="s in usStates" :key="s.id" :value="s.abbrev">{{ s.name }}</option>
             </select>
-            <input v-else v-model.trim="form.org_state" type="text" class="form-control" required maxlength="100">
+            <input v-else id="org-state" v-model.trim="form.org_state" type="text" class="form-control" required maxlength="100">
           </div>
           <div class="col-md-4">
-            <label class="form-label">Zip Code *</label>
-            <input v-model.trim="form.org_zip_code" type="text" class="form-control" required maxlength="20">
+            <label class="form-label" for="org-zip">Zip Code *</label>
+            <input id="org-zip" v-model.trim="form.org_zip_code" type="text" class="form-control" required maxlength="20">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Invoice Contact First Name *</label>
-            <input v-model.trim="form.org_billing_contact_first_name" type="text" class="form-control" required maxlength="100">
+            <label class="form-label" for="billing-first">Invoice Contact First Name *</label>
+            <input id="billing-first" v-model.trim="form.org_billing_contact_first_name" type="text" class="form-control" required maxlength="100">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Invoice Contact Last Name *</label>
-            <input v-model.trim="form.org_billing_contact_last_name" type="text" class="form-control" required maxlength="100">
+            <label class="form-label" for="billing-last">Invoice Contact Last Name *</label>
+            <input id="billing-last" v-model.trim="form.org_billing_contact_last_name" type="text" class="form-control" required maxlength="100">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Invoice Email *</label>
-            <input v-model.trim="form.org_billing_email" type="email" :class="['form-control', { 'is-invalid': billingEmailError }]" required maxlength="254" @blur="validateBillingEmail" @input="validateBillingEmail">
+            <label class="form-label" for="billing-email">Invoice Email *</label>
+            <input id="billing-email" v-model.trim="form.org_billing_email" type="email" :class="['form-control', { 'is-invalid': billingEmailError }]" required maxlength="254" @blur="validateBillingEmail" @input="validateBillingEmail">
             <div class="invalid-feedback">{{ billingEmailError }}</div>
           </div>
         </div>
@@ -109,26 +110,26 @@
         <p class="text-muted small mb-3">Important information regarding event details, invoicing, resume bank access, and day-of information will be emailed to this individual to ensure that the recruiters at the event receive all necessary information.</p>
         <div class="row g-3 mb-4">
           <div class="col-md-6">
-            <label class="form-label">First Name *</label>
-            <input v-model.trim="form.first_name" type="text" class="form-control" required maxlength="100">
+            <label class="form-label" for="recruiter-first">First Name *</label>
+            <input id="recruiter-first" v-model.trim="form.first_name" type="text" class="form-control" required maxlength="100">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Last Name *</label>
-            <input v-model.trim="form.last_name" type="text" class="form-control" required maxlength="100">
+            <label class="form-label" for="recruiter-last">Last Name *</label>
+            <input id="recruiter-last" v-model.trim="form.last_name" type="text" class="form-control" required maxlength="100">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Email *</label>
-            <input v-model.trim="form.email" type="email" :class="['form-control', { 'is-invalid': emailError }]" required maxlength="254" @blur="validateEmail" @input="validateEmail">
+            <label class="form-label" for="recruiter-email">Email *</label>
+            <input id="recruiter-email" v-model.trim="form.email" type="email" :class="['form-control', { 'is-invalid': emailError }]" required maxlength="254" @blur="validateEmail" @input="validateEmail">
             <div class="invalid-feedback">{{ emailError }}</div>
           </div>
           <div class="col-md-6">
-            <label class="form-label">Phone</label>
-            <input v-model="form.phone" @input="formatPhone('phone')" @blur="validatePhoneField('phone')" type="tel" :class="['form-control', { 'is-invalid': phoneError }]" placeholder="(555) 123-4567" maxlength="14">
+            <label class="form-label" for="recruiter-phone">Phone</label>
+            <input id="recruiter-phone" v-model="form.phone" @input="formatPhone('phone')" @blur="validatePhoneField('phone')" type="tel" :class="['form-control', { 'is-invalid': phoneError }]" placeholder="(555) 123-4567" maxlength="14">
             <div class="invalid-feedback">{{ phoneError }}</div>
           </div>
           <div class="col-md-6">
-            <label class="form-label">Cell Phone</label>
-            <input v-model="form.cell_phone" @input="formatPhone('cell_phone')" @blur="validatePhoneField('cell_phone')" type="tel" :class="['form-control', { 'is-invalid': cellPhoneError }]" placeholder="(555) 123-4567" maxlength="14">
+            <label class="form-label" for="recruiter-cell">Cell Phone</label>
+            <input id="recruiter-cell" v-model="form.cell_phone" @input="formatPhone('cell_phone')" @blur="validatePhoneField('cell_phone')" type="tel" :class="['form-control', { 'is-invalid': cellPhoneError }]" placeholder="(555) 123-4567" maxlength="14">
             <div class="invalid-feedback">{{ cellPhoneError }}</div>
           </div>
         </div>
@@ -137,9 +138,10 @@
         <h5 class="fw-bold mb-3 mt-5">Create Password</h5>
         <div class="row g-3 mb-4">
           <div class="col-md-6">
-            <label class="form-label">Password *</label>
+            <label class="form-label" for="password1">Password *</label>
             <div class="position-relative">
               <input
+                id="password1"
                 v-model="form.password1"
                 type="password"
                 class="form-control"
@@ -186,9 +188,10 @@
             </div>
           </div>
           <div class="col-md-6">
-            <label class="form-label">Confirm Password *</label>
+            <label class="form-label" for="password2">Confirm Password *</label>
             <div class="position-relative">
               <input
+                id="password2"
                 v-model="form.password2"
                 type="password"
                 :class="['form-control', { 'is-invalid': passwordError }]"
@@ -200,36 +203,10 @@
                 @blur="onPassword2Blur"
                 @input="validatePasswords"
               >
-              <div v-if="showPassword2Req" class="password-req-box bg-light border rounded p-2" style="text-align:left; z-index:100; position:absolute; left:0; top:100%; min-width:320px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+              <div v-if="showPassword2Req" class="password-req-box bg-light border rounded p-2" style="text-align:left; z-index:100; position:absolute; left:0; top:100%; min-width:240px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
                 <div class="small">
-                  <span v-if="password2Length" style="color:#28a745; font-weight:bold;">✓</span>
-                  <span v-else style="color:red; margin-right:5px;">✗</span>
-                  <span :class="{'text-success': password2Length, 'text-danger': !password2Length}"> At least 8 characters</span>
-                </div>
-                <div class="small">
-                  <span v-if="password2Upper" style="color:#28a745; font-weight:bold;">✓</span>
-                  <span v-else style="color:red; margin-right:5px;">✗</span>
-                  <span :class="{'text-success': password2Upper, 'text-danger': !password2Upper}"> At least one uppercase letter</span>
-                </div>
-                <div class="small">
-                  <span v-if="password2Lower" style="color:#28a745; font-weight:bold;">✓</span>
-                  <span v-else style="color:red; margin-right:5px;">✗</span>
-                  <span :class="{'text-success': password2Lower, 'text-danger': !password2Lower}"> At least one lowercase letter</span>
-                </div>
-                <div class="small">
-                  <span v-if="password2Number" style="color:#28a745; font-weight:bold;">✓</span>
-                  <span v-else style="color:red; margin-right:5px;">✗</span>
-                  <span :class="{'text-success': password2Number, 'text-danger': !password2Number}"> At least one number</span>
-                </div>
-                <div class="small">
-                  <span v-if="password2Special" style="color:#28a745; font-weight:bold;">✓</span>
-                  <span v-else style="color:red; margin-right:5px;">✗</span>
-                  <span :class="{'text-success': password2Special, 'text-danger': !password2Special}"> At least one special character (!@#$%^&*_=+-.)</span>
-                </div>
-                <div class="small">
-                  <span v-if="password2Safe" style="color:#28a745; font-weight:bold;">✓</span>
-                  <span v-else style="color:red; margin-right:5px;">✗</span>
-                  <span :class="{'text-success': password2Safe, 'text-danger': !password2Safe}"> No invalid characters</span>
+                  <span :style="passwordsMatch ? 'color:#28a745;font-weight:bold;' : 'color:red;margin-right:5px;'">{{ passwordsMatch ? '✓' : '✗' }}</span>
+                  <span :class="{'text-success': passwordsMatch, 'text-danger': !passwordsMatch}"> Passwords match</span>
                 </div>
               </div>
               <div class="invalid-feedback fw-bold">{{ passwordError }}</div>
@@ -251,12 +228,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import api from '../../api'
-import { useAuthStore } from '../../store/auth'
-import { isValidEmail, validatePhone } from '../../utils/validation'
+import { isValidEmail, validatePhone, formatPhone as formatPhoneValue } from '../../utils/validation'
 
-const authStore = useAuthStore()
 const usStates = ref([])
 
 onMounted(async () => {
@@ -281,12 +256,7 @@ const passwordNumber  = computed(() => /[0-9]/.test(form.value.password1))
 const passwordSpecial = computed(() => /[!@#$%^&*_=+\-.]/.test(form.value.password1))
 const passwordSafe    = computed(() => !/[^A-Za-z0-9!@#$%^&*_=+\-.]/.test(form.value.password1))
 
-const password2Length  = computed(() => form.value.password2.length >= 8)
-const password2Upper   = computed(() => /[A-Z]/.test(form.value.password2))
-const password2Lower   = computed(() => /[a-z]/.test(form.value.password2))
-const password2Number  = computed(() => /[0-9]/.test(form.value.password2))
-const password2Special = computed(() => /[!@#$%^&*_=+\-.]/.test(form.value.password2))
-const password2Safe    = computed(() => !/[^A-Za-z0-9!@#$%^&*_=+\-.]/.test(form.value.password2))
+const passwordsMatch   = computed(() => form.value.password1.length > 0 && form.value.password1 === form.value.password2)
 
 const onPasswordBlur  = () => setTimeout(() => { showPasswordReq.value  = false }, 200)
 const onPassword2Blur = () => setTimeout(() => { showPassword2Req.value = false }, 200)
@@ -322,17 +292,8 @@ const cleanPhone = (value) => {
   return value.replace(/\D/g, '')
 }
 
-const formatPhoneNumber = (value) => {
-  if (!value) return value
-  const cleaned = cleanPhone(value)
-  if (cleaned.length === 10) {
-    return `(${cleaned.substr(0, 3)}) ${cleaned.substr(3, 3)}-${cleaned.substr(6, 4)}`
-  }
-  return cleaned
-}
-
 const formatPhone = (field) => {
-  form.value[field] = formatPhoneNumber(form.value[field])
+  form.value[field] = formatPhoneValue(form.value[field])
 }
 
 const form = ref({
@@ -384,8 +345,13 @@ const handleLogoChange = (event) => {
   }
 
   logoFile.value = file
+  if (logoPreview.value?.startsWith('blob:')) URL.revokeObjectURL(logoPreview.value)
   logoPreview.value = URL.createObjectURL(file)
 }
+
+onUnmounted(() => {
+  if (logoPreview.value?.startsWith('blob:')) URL.revokeObjectURL(logoPreview.value)
+})
 
 const validateEmail = () => {
   emailError.value = form.value.email && !isValidEmail(form.value.email)
@@ -440,10 +406,6 @@ const handleSubmit = async () => {
   }
 
   saving.value = true
-
-  // Get CSRF token first
-  await authStore.setCsrfToken()
-
   try {
     const payload = new FormData()
     for (const [key, value] of Object.entries(form.value)) {

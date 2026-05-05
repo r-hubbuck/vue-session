@@ -1,19 +1,24 @@
 import { defineStore } from 'pinia'
 import api from '../api'
 
+let _userFetchedAt = 0
+
 const getStoredState = () => {
-  const storedState = localStorage.getItem('authState')
-  return storedState
-    ? JSON.parse(storedState)
-    : {
-        user: null,
-        isAuthenticated: false,
-      }
+  try {
+    const stored = localStorage.getItem('authState')
+    if (!stored) return {}
+    const { isAuthenticated } = JSON.parse(stored)
+    return { isAuthenticated: !!isAuthenticated }
+  } catch {
+    return {}
+  }
 }
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    ...getStoredState(),  // ✅ FIXED: Load saved auth state from localStorage
+    user: null,
+    isAuthenticated: false,
+    ...getStoredState(),
     serverMessage: null,
     // Verification state
     isVerified: false,
@@ -191,7 +196,8 @@ export const useAuthStore = defineStore('auth', {
         await api.post('/api/accounts/logout')
         this.user = null
         this.isAuthenticated = false
-        this.clearVerification() // Clear verification on logout
+        _userFetchedAt = 0
+        this.clearVerification()
         this.saveState()
         
         if (router) {
@@ -203,15 +209,18 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async fetchUser() {
+    async fetchUser(force = false) {
+      if (!force && _userFetchedAt && Date.now() - _userFetchedAt < 60_000) return
       try {
         const response = await api.get('/api/accounts/user')
         this.user = response.data
         this.isAuthenticated = true
+        _userFetchedAt = Date.now()
       } catch (error) {
         console.error('Failed to fetch user', error)
         this.user = null
         this.isAuthenticated = false
+        _userFetchedAt = 0
       }
       this.saveState()
     },
@@ -226,13 +235,7 @@ export const useAuthStore = defineStore('auth', {
     },
 
     saveState() {
-      localStorage.setItem(
-        'authState',
-        JSON.stringify({
-          user: this.user,
-          isAuthenticated: this.isAuthenticated,
-        })
-      )
+      localStorage.setItem('authState', JSON.stringify({ isAuthenticated: this.isAuthenticated }))
     },
   },
 })

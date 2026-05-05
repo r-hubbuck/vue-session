@@ -47,7 +47,7 @@
                 <td>{{ inv.paid_date || '—' }}</td>
                 <td>
                   <a
-                    v-if="inv.payment_link && inv.status !== 'paid' && inv.status !== 'cancelled'"
+                    v-if="isSafeUrl(inv.payment_link) && inv.status !== 'paid' && inv.status !== 'cancelled'"
                     :href="inv.payment_link"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -71,6 +71,8 @@ import api from '../../api'
 
 const loading = ref(true)
 const invoices = ref([])
+
+const isSafeUrl = (url) => typeof url === 'string' && /^https?:\/\//i.test(url)
 
 const statusClass = (s) => {
   const map = {

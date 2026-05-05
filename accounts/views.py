@@ -13,7 +13,7 @@ from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.contrib.sites.shortcuts import get_current_site
 from django.conf import settings
-from django.contrib.auth import authenticate, login, logout, get_user_model
+from django.contrib.auth import authenticate, login, logout, get_user_model, update_session_auth_hash
 
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
@@ -41,6 +41,7 @@ from .serializers import (
     AddressSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
+    ChangePasswordSerializer,
     PhoneNumberSerializer,
     StateProvinceSerializer
 )
@@ -696,6 +697,26 @@ def password_reset_confirm(request, uidb64, token):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    serializer = ChangePasswordSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    if not request.user.check_password(serializer.validated_data['current_password']):
+        return Response({'error': 'Current password is incorrect.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if serializer.validated_data['current_password'] == serializer.validated_data['new_password1']:
+        return Response({'error': 'New password must be different from your current password.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    request.user.set_password(serializer.validated_data['new_password1'])
+    request.user.save()
+    update_session_auth_hash(request, request.user)
+
+    return Response({'message': 'Password changed successfully.'}, status=status.HTTP_200_OK)
+
 
 # API viewset to handle address CRUD operations
 class AddressViewSet(viewsets.ModelViewSet):

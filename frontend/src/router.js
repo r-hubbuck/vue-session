@@ -1,34 +1,37 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from './pages/Home.vue'
-import Login from './pages/Login.vue'
-import Register from './pages/Register.vue'
-import Verify from './pages/Verify.vue'
-import EmailConfirmation from './pages/EmailConfirmation.vue'
-import CodeCheck from './pages/CodeCheck.vue'
-import PasswordForgot from './pages/PasswordForgot.vue'
-import PasswordResetConfirm from './pages/PasswordResetConfirm.vue'
-import EmailLinkError from './pages/EmailLinkError.vue'
 import { useAuthStore } from './store/auth'
-import UserAccount from './pages/UserAccount.vue'
-import ConventionHome from './pages/convention/ConventionHome.vue'
-import ConventionTravel from './pages/convention/ConventionTravel.vue'
-import ConventionCheckIn from './pages/convention/ConventionCheckIn.vue'
-import ExpenseReport from './pages/ExpenseReport.vue'
-import ExpenseReportAdmin from './pages/ExpenseReportAdmin.vue'
-import RecruiterRegister from './pages/recruiter/RecruiterRegister.vue'
-import RecruiterDashboard from './pages/recruiter/RecruiterDashboard.vue'
-import RecruiterConvention from './pages/recruiter/RecruiterConvention.vue'
-import RecruiterResumes from './pages/recruiter/RecruiterResumes.vue'
-import RecruiterInvoices from './pages/recruiter/RecruiterInvoices.vue'
-import RecruiterAdmin from './pages/recruiter/RecruiterAdmin.vue'
-import InvoiceAdmin from './pages/recruiter/InvoiceAdmin.vue'
-import SurveyList from './pages/surveys/SurveyList.vue'
-import SurveyTake from './pages/surveys/SurveyTake.vue'
-import SurveyBuilder from './pages/surveys/SurveyBuilder.vue'
-import SurveyResults from './pages/surveys/SurveyResults.vue'
-import SurveyAdmin from './pages/surveys/SurveyAdmin.vue'
-import NotFound from './pages/NotFound.vue'
-import UserManagement from './pages/UserManagement.vue'
+
+// All pages lazy-loaded — split into per-route chunks at build time
+const Home              = () => import('./pages/Home.vue')
+const Login             = () => import('./pages/Login.vue')
+const Register          = () => import('./pages/Register.vue')
+const Verify            = () => import('./pages/Verify.vue')
+const EmailConfirmation = () => import('./pages/EmailConfirmation.vue')
+const CodeCheck         = () => import('./pages/CodeCheck.vue')
+const PasswordForgot    = () => import('./pages/PasswordForgot.vue')
+const PasswordResetConfirm = () => import('./pages/PasswordResetConfirm.vue')
+const EmailLinkError    = () => import('./pages/EmailLinkError.vue')
+const UserAccount       = () => import('./pages/UserAccount.vue')
+const ConventionHome    = () => import('./pages/convention/ConventionHome.vue')
+const ConventionTravel  = () => import('./pages/convention/ConventionTravel.vue')
+const ConventionCheckIn = () => import('./pages/convention/ConventionCheckIn.vue')
+const ExpenseReport     = () => import('./pages/ExpenseReport.vue')
+const ExpenseReportAdmin = () => import('./pages/ExpenseReportAdmin.vue')
+const RecruiterRegister  = () => import('./pages/recruiter/RecruiterRegister.vue')
+const RecruiterDashboard = () => import('./pages/recruiter/RecruiterDashboard.vue')
+const RecruiterAccount   = () => import('./pages/recruiter/RecruiterAccount.vue')
+const RecruiterConvention = () => import('./pages/recruiter/RecruiterConvention.vue')
+const RecruiterResumes   = () => import('./pages/recruiter/RecruiterResumes.vue')
+const RecruiterInvoices  = () => import('./pages/recruiter/RecruiterInvoices.vue')
+const RecruiterAdmin     = () => import('./pages/recruiter/RecruiterAdmin.vue')
+const InvoiceAdmin       = () => import('./pages/recruiter/InvoiceAdmin.vue')
+const SurveyList    = () => import('./pages/surveys/SurveyList.vue')
+const SurveyTake    = () => import('./pages/surveys/SurveyTake.vue')
+const SurveyBuilder = () => import('./pages/surveys/SurveyBuilder.vue')
+const SurveyResults = () => import('./pages/surveys/SurveyResults.vue')
+const SurveyAdmin   = () => import('./pages/surveys/SurveyAdmin.vue')
+const NotFound      = () => import('./pages/NotFound.vue')
+const UserManagement = () => import('./pages/UserManagement.vue')
 
 const routes = [
   {
@@ -100,8 +103,9 @@ const routes = [
     path: '/convention',
     name: 'convention-home',
     component: ConventionHome,
-    meta: { 
+    meta: {
       requiresAuth: true,
+      requiresRoles: ['member', 'alumni'],
     }
   },
   {
@@ -117,9 +121,9 @@ const routes = [
     path: '/expense-report-admin',
     name: 'expense-report-admin',
     component: ExpenseReportAdmin,
-    meta: { 
+    meta: {
       requiresAuth: true,
-      requiresRoles: ['hq_staff', 'hq_finance', 'member']
+      requiresRoles: ['hq_staff', 'hq_finance']
     }
   },
   {
@@ -141,6 +145,12 @@ const routes = [
   }
 },
   // Recruiter routes
+  {
+    path: '/recruiter/account',
+    name: 'recruiter-account',
+    component: RecruiterAccount,
+    meta: { requiresAuth: true, requiresRoles: ['recruiter'] }
+  },
   {
     path: '/recruiter/register',
     name: 'recruiter-register',
@@ -256,26 +266,6 @@ const routes = [
     component: NotFound,
     meta: { requiresAuth: true }
   },
-  // Example: Route only for officials
-  // {
-  //   path: '/admin',
-  //   name: 'admin',
-  //   component: () => import('./pages/Admin.vue'), // Lazy load
-  //   meta: { 
-  //     requiresAuth: true,
-  //     requiresRoles: ['official']
-  //   }
-  // },
-  // Example: Route for any member (not non-members)
-  // {
-  //   path: '/members',
-  //   name: 'members',
-  //   component: () => import('./pages/Members.vue'),
-  //   meta: { 
-  //     requiresAuth: true,
-  //     requiresMember: true // Uses the isMember getter
-  //   }
-  // }
 ]
 
 const router = createRouter({
@@ -292,35 +282,45 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // Check if route requires verification (for registration)
-  if (to.meta.requiresVerification) {
-    if (!authStore.hasValidVerification) {
-      // Redirect to verify page with a message
-      authStore.serverMessage = 'Please verify your membership before registering.'
-      return next({ name: 'verify' })
-    }
+  if (to.meta.requiresVerification && !authStore.hasValidVerification) {
+    authStore.serverMessage = 'Please verify your membership before registering.'
+    return next({ name: 'verify' })
   }
 
-  // For role-protected routes, verify roles with the backend first
-  if (to.meta.requiresRoles && authStore.isAuthenticated) {
+  // Fetch current user for all authenticated routes (60s cache — negligible overhead).
+  // This must happen before the recruiter confinement check so isRecruiter reflects
+  // actual server-side roles rather than potentially stale startup state.
+  if (authStore.isAuthenticated && to.meta.requiresAuth) {
     await authStore.fetchUser()
-
     if (!authStore.isAuthenticated) {
       return next({ name: 'login' })
     }
+  }
 
+  // Recruiters are confined to their own section — explicit allowlist avoids matching /recruiter-admin
+  const RECRUITER_PATHS = [
+    '/recruiter/dashboard',
+    '/recruiter/convention',
+    '/recruiter/resumes',
+    '/recruiter/invoices',
+    '/recruiter/account',
+  ]
+  if (authStore.isAuthenticated && authStore.isRecruiter &&
+      !RECRUITER_PATHS.some(p => to.path.startsWith(p))) {
+    return next({ name: 'recruiter-dashboard' })
+  }
+
+  // Check role requirements (fetchUser already called above for requiresAuth routes)
+  if (to.meta.requiresRoles && authStore.isAuthenticated) {
     const userRoles = authStore.userRoles
     const requiredRoles = to.meta.requiresRoles
-
-    // Check if user has ANY of the required roles
     const hasRequiredRole = requiredRoles.some(role => userRoles.includes(role))
 
     if (!hasRequiredRole) {
       console.warn('Access denied: insufficient role for route', to.name)
       return next({
         name: 'home',
-        query: {
-          error: 'You do not have permission to access that page.'
-        }
+        query: { error: 'You do not have permission to access that page.' }
       })
     }
   }
@@ -331,9 +331,7 @@ router.beforeEach(async (to, from, next) => {
       console.warn('Access denied: membership required for route', to.name)
       return next({
         name: 'home',
-        query: {
-          error: 'This page is only available to TBP members.'
-        }
+        query: { error: 'This page is only available to TBP members.' }
       })
     }
   }

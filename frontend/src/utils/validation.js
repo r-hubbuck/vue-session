@@ -42,6 +42,19 @@ export function validatePhone(phoneNumber, countryCode = '+1') {
  */
 const ADDRESS_REGEX = /^[a-zA-Z0-9\s,.\-\/#']+$/
 
+/**
+ * Format a 10-digit US phone number as (XXX) XXX-XXXX.
+ * Non-US numbers (not 10 clean digits) are returned as-is after digit stripping.
+ */
+export function formatPhone(value) {
+  if (!value) return value
+  const digits = String(value).replace(/\D/g, '')
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+  }
+  return digits || value
+}
+
 export function isValidAddressField(value) {
   if (!value) return true
   return ADDRESS_REGEX.test(value)

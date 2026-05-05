@@ -1051,7 +1051,7 @@ import { isValidEmail } from '../../utils/validation'
 const toast = useToast()
 
 // State
-const loading = ref(false)
+const loading = ref(true)
 const saving = ref(false)
 const convention = ref(null)
 const registration = ref(null)
@@ -1950,13 +1950,18 @@ watch(returnState, (newState) => {
   }
 })
 
+const sendingConfirmation = ref(false)
+
 watch(completionPercentage, async (newVal) => {
-  if (newVal === 100 && registration.value && !registration.value.confirmation_email_sent) {
+  if (newVal === 100 && registration.value && !registration.value.confirmation_email_sent && !sendingConfirmation.value) {
+    sendingConfirmation.value = true
     try {
       await api.post(`/api/convention/registration/${registration.value.id}/send-confirmation/`)
       registration.value.confirmation_email_sent = true
-    } catch (error) {
-      console.error('Failed to send registration confirmation email:', error)
+    } catch {
+      // silent — confirmation email is non-critical; will retry on next 100% trigger
+    } finally {
+      sendingConfirmation.value = false
     }
   }
 })
@@ -2003,10 +2008,6 @@ const saveTravel = async () => {
     )
     toast.success('Travel information saved!')
   } catch (error) {
-    console.error('Error saving travel:', error)
-    console.error('Response data:', error.response?.data)
-    console.error('Travel value being sent:', travel.value)
-    
     const data = error.response?.data
     const msg = data?.error || Object.values(data || {}).flat().join(' ')
     toast.error(msg || 'Failed to save travel information')
@@ -2034,10 +2035,6 @@ const saveAccommodation = async () => {
     )
     toast.success('Accommodation information saved!')
   } catch (error) {
-    console.error('Error saving accommodation:', error)
-    console.error('Response data:', error.response?.data)
-    console.error('Accommodation value being sent:', accommodation.value)
-    
     const data = error.response?.data
     const msg = data?.error || Object.values(data || {}).flat().join(' ')
     toast.error(msg || 'Failed to save accommodation information')

@@ -1,20 +1,14 @@
-// import { defineConfig } from 'vite'
-// import vue from '@vitejs/plugin-vue'
-
-// // https://vite.dev/config/
-// export default defineConfig({
-//   base: '/',
-//   // base: '/portal/',
-//   plugins: [vue()],
-// })
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   base: '/',
   // base: '/portal/',
   plugins: [vue()],
+  esbuild: {
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,
@@ -30,4 +24,4 @@ export default defineConfig({
       }
     }
   }
-})
+}))

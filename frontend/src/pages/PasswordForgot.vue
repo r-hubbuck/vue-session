@@ -7,11 +7,11 @@
         </div>
         <h1 class="page-title text-center my-4">Reset Your Password</h1>
         <p class="text-muted text-center mb-4">Enter your email address and we'll send you a link to reset your password.</p>
-        
-        <div v-if="success" class="alert alert-success">
+
+        <div v-if="success" class="alert alert-success" role="alert">
           {{ success }}
         </div>
-        
+
         <form v-else @submit.prevent="requestPasswordReset" class="container-md">
           <div class="mb-3">
             <label for="email" class="form-label">Email:</label>
@@ -29,11 +29,11 @@
             <div class="invalid-feedback">{{ emailError }}</div>
           </div>
 
-          <div v-if="error" class="alert alert-danger">
+          <div v-if="error" class="alert alert-danger" role="alert">
             {{ error }}
           </div>
 
-          <button 
+          <button
             type="submit"
             class="btn btn-primary"
             :disabled="loading || !!emailError"
@@ -45,7 +45,7 @@
         <p class="text-center mt-3">
           <RouterLink to="/login" class="text-decoration-none">Back to Login</RouterLink>
         </p>
-        
+
         <p class="text-center mt-3">
           Don't have an account yet? Please <RouterLink to="/verify" class="text-decoration-none">register</RouterLink> now.
         </p>
@@ -54,53 +54,35 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref } from 'vue'
 import api from '../api'
 import { isValidEmail } from '../utils/validation'
 
-export default {
-  name: 'PasswordForgot',
-  data() {
-    return {
-      email: "",
-      error: "",
-      success: "",
-      emailError: "",
-      loading: false,
-    };
-  },
-  methods: {
-    validateEmail() {
-      this.emailError = isValidEmail(this.email)
-        ? ""
-        : "Please enter a valid email address.";
-    },
-    
-    async requestPasswordReset() {
-      this.validateEmail();
+const email = ref('')
+const error = ref('')
+const success = ref('')
+const emailError = ref('')
+const loading = ref(false)
 
-      if (this.emailError) {
-        return;
-      }
+function validateEmail() {
+  emailError.value = isValidEmail(email.value) ? '' : 'Please enter a valid email address.'
+}
 
-      this.loading = true;
-      this.error = "";
-      this.success = "";
-
-      try {
-        const response = await api.post('/api/accounts/password-reset-request', {
-          email: this.email,
-        });
-
-        this.success = response.data.message || "Password reset email has been sent. Please allow a few minutes for it to arrive to your inbox.";
-        this.email = "";
-      } catch (err) {
-        console.error(err);
-        this.error = err.response?.data?.error || err.response?.data?.message || "Failed to send reset email";
-      } finally {
-        this.loading = false;
-      }
-    },
-  },
-};
+async function requestPasswordReset() {
+  validateEmail()
+  if (emailError.value) return
+  loading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    const response = await api.post('/api/accounts/password-reset-request', { email: email.value })
+    success.value = response.data.message || 'Password reset email has been sent. Please allow a few minutes for it to arrive to your inbox.'
+    email.value = ''
+  } catch (err) {
+    error.value = err.response?.data?.error || err.response?.data?.message || 'Failed to send reset email'
+  } finally {
+    loading.value = false
+  }
+}
 </script>

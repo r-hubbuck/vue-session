@@ -25,7 +25,7 @@
       </div>
     </div>
 
-    <div v-else-if="error" class="alert alert-danger">{{ error }}</div>
+    <div v-else-if="error" class="alert alert-danger" role="alert">{{ error }}</div>
 
     <div v-else-if="filteredSurveys.length === 0" class="card">
       <div class="card-body text-center py-5 text-muted">

@@ -72,7 +72,7 @@
           <!-- Choice-based questions -->
           <template v-if="qs.stats.choices">
             <div class="text-muted small mb-2">{{ qs.stats.total_answers }} answer(s)</div>
-            <div v-for="choice in qs.stats.choices" :key="choice.choice_text" class="mb-2">
+            <div v-for="choice in qs.stats.choices" :key="choice.id" class="mb-2">
               <div class="d-flex justify-content-between small mb-1">
                 <span>
                   {{ choice.choice_text }}
@@ -247,7 +247,7 @@ function choiceTexts(questionId, selectedIds) {
   const choices = questionChoicesMap.value[questionId]
   if (!choices) return selectedIds.join(', ')
   return selectedIds
-    .map(id => choices.find(c => c.choice_text)?.choice_text || id)
+    .map(id => choices.find(c => c.id === id)?.choice_text || id)
     .join(', ')
 }
 

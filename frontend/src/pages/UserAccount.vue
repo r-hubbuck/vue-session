@@ -25,7 +25,7 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="section-card">
-      <div class="alert alert-danger" style="border-left: 4px solid #ef4444;">
+      <div class="alert alert-danger" role="alert" style="border-left: 4px solid #ef4444;">
         <i class="bi bi-exclamation-triangle me-2"></i>
         {{ error }}
       </div>
@@ -52,7 +52,7 @@
             <div class="col-md-6">
               <label for="email" class="form-label">Primary Email</label>
               <input type="email" class="form-control" id="email" :value="accountData.email" disabled />
-              <small class="form-text">Primary email cannot be changed</small>
+              <small class="form-text">Primary email cannot be changed. Please contact <a href="mailto:tbp.it@tbp.org">tbp.it@tbp.org</a> with any concerns.</small>
             </div>
             <div class="col-md-6">
               <label for="alt_email" class="form-label">Alternate Email</label>
@@ -73,7 +73,7 @@
             </div>
           </div>
 
-          <div v-if="accountError" class="alert alert-danger mt-4" style="border-left: 4px solid #ef4444;">
+          <div v-if="accountError" class="alert alert-danger mt-4" role="alert" style="border-left: 4px solid #ef4444;">
             <i class="bi bi-exclamation-triangle me-2"></i>{{ accountError }}
           </div>
 
@@ -91,6 +91,9 @@
           </button>
         </form>
       </div>
+
+      <!-- Change Password Section -->
+      <ChangePasswordSection />
 
       <!-- Phone Numbers Section -->
       <div class="section-card" id="phone-numbers">
@@ -116,7 +119,7 @@
             <i class="bi bi-check-circle-fill me-2"></i>{{ phoneSuccess }}
           </div>
 
-          <div v-if="phoneError" class="alert alert-danger mb-3" style="border-left: 4px solid #ef4444;">
+          <div v-if="phoneError" class="alert alert-danger mb-3" role="alert" style="border-left: 4px solid #ef4444;">
             <i class="bi bi-exclamation-triangle me-2"></i>{{ phoneError }}
           </div>
 
@@ -237,7 +240,7 @@
             <i class="bi bi-check-circle-fill me-2"></i>{{ addressSuccess }}
           </div>
 
-          <div v-if="addressError" class="alert alert-danger mb-3" style="border-left: 4px solid #ef4444;">
+          <div v-if="addressError" class="alert alert-danger mb-3" role="alert" style="border-left: 4px solid #ef4444;">
             <i class="bi bi-exclamation-triangle me-2"></i>{{ addressError }}
           </div>
 
@@ -398,601 +401,404 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import api from '../api'
 import { isValidEmail, validatePhone, isValidAddressField } from '../utils/validation'
+import ChangePasswordSection from '../components/ChangePasswordSection.vue'
 
-export default {
-  name: 'UserAccount',
-  data() {
-    return {
-      loading: true,
-      error: null,
-      
-      // Account data
-      accountData: {
-        email: '',
-        alt_email: ''
-      },
-      accountErrors: {},
-      accountError: null,
-      accountSuccess: null,
-      accountSaving: false,
-      emailValidationError: null,
-      
-      // Phone numbers
-      phoneNumbers: [],
-      originalPhoneNumbers: [],
-      primaryPhoneIndex: 0,
-      showAddPhoneRow: false,
-      phoneError: null,
-      phoneSuccess: null,
-      phoneSaving: false,
-      
-      countryCodes: [
-        { code: '+1', name: 'United States/Canada', flag: '🇺🇸' },
-        { code: '+44', name: 'United Kingdom', flag: '🇬🇧' },
-        { code: '+61', name: 'Australia', flag: '🇦🇺' },
-        { code: '+49', name: 'Germany', flag: '🇩🇪' },
-        { code: '+33', name: 'France', flag: '🇫🇷' },
-        { code: '+86', name: 'China', flag: '🇨🇳' },
-        { code: '+81', name: 'Japan', flag: '🇯🇵' },
-        { code: '+82', name: 'South Korea', flag: '🇰🇷' },
-        { code: '+91', name: 'India', flag: '🇮🇳' },
-        { code: '+55', name: 'Brazil', flag: '🇧🇷' },
-      ],
-      
-      // Addresses
-      addresses: [],
-      originalAddresses: [],
-      primaryAddressIndex: 0,
-      showAddAddressRow: false,
-      addressError: null,
-      addressSuccess: null,
-      addressSaving: false,
-      groupedStates: {}
+const route = useRoute()
+
+// State
+const loading = ref(true)
+const error = ref(null)
+
+const accountData = ref({ email: '', alt_email: '', first_name: '', last_name: '' })
+const accountErrors = ref({})
+const accountError = ref(null)
+const accountSuccess = ref(null)
+const accountSaving = ref(false)
+const emailValidationError = ref(null)
+
+const phoneNumbers = ref([])
+const originalPhoneNumbers = ref([])
+const primaryPhoneIndex = ref(0)
+const showAddPhoneRow = ref(false)
+const phoneError = ref(null)
+const phoneSuccess = ref(null)
+const phoneSaving = ref(false)
+
+const countryCodes = [
+  { code: '+1',  name: 'United States/Canada', flag: '🇺🇸' },
+  { code: '+44', name: 'United Kingdom',        flag: '🇬🇧' },
+  { code: '+61', name: 'Australia',             flag: '🇦🇺' },
+  { code: '+49', name: 'Germany',               flag: '🇩🇪' },
+  { code: '+33', name: 'France',                flag: '🇫🇷' },
+  { code: '+86', name: 'China',                 flag: '🇨🇳' },
+  { code: '+81', name: 'Japan',                 flag: '🇯🇵' },
+  { code: '+82', name: 'South Korea',           flag: '🇰🇷' },
+  { code: '+91', name: 'India',                 flag: '🇮🇳' },
+  { code: '+55', name: 'Brazil',                flag: '🇧🇷' },
+]
+
+const addresses = ref([])
+const originalAddresses = ref([])
+const primaryAddressIndex = ref(0)
+const showAddAddressRow = ref(false)
+const addressError = ref(null)
+const addressSuccess = ref(null)
+const addressSaving = ref(false)
+const groupedStates = ref({})
+
+// Computed
+const adminUserId = computed(() => {
+  const id = route.params.userId
+  return id ? parseInt(id) : null
+})
+const isAdminMode = computed(() => !!adminUserId.value)
+const apiBase = computed(() =>
+  isAdminMode.value ? `/api/accounts/admin/users/${adminUserId.value}` : '/api/accounts'
+)
+const pageTitle = computed(() => {
+  if (isAdminMode.value && accountData.value.first_name) {
+    return `${accountData.value.first_name} ${accountData.value.last_name}`
+  }
+  return 'Account Settings'
+})
+const pageSubtitle = computed(() =>
+  isAdminMode.value
+    ? 'Viewing and editing on behalf of this user'
+    : 'Manage your contact information and account settings'
+)
+const isPhoneFormValid = computed(() => {
+  if (phoneNumbers.value.length === 0) return false
+  return phoneNumbers.value.every(phone => {
+    if (!phone.phone_type || !phone.country_code || !phone.phone_number) return false
+    if (phone.validationError) return false
+    const clean = getCleanPhoneNumber(phone.phone_number)
+    return phone.country_code === '+1' ? clean.length === 10 : clean.length >= 6 && clean.length <= 15
+  })
+})
+const isAddressFormValid = computed(() => {
+  if (addresses.value.length === 0) return false
+  return addresses.value.every(address => {
+    if (!address.add_type || !address.add_line1 || !address.add_city || !address.add_country) return false
+    if ((address.add_line1?.length ?? 0) > 255 || (address.add_line2?.length ?? 0) > 255) return false
+    if (address.add_city.length > 100 || address.add_zip.length > 20) return false
+    if (address.add_country === 'United States' && !address.add_state) return false
+    return true
+  })
+})
+
+// Watcher
+watch(primaryAddressIndex, newIndex => {
+  addresses.value.forEach((address, index) => { address.is_primary = index === newIndex })
+})
+
+// Lifecycle
+onMounted(async () => {
+  await fetchAccountData()
+  await fetchPhoneNumbers()
+  await fetchAddresses()
+  await fetchStates()
+  loading.value = false
+})
+
+// Account
+function validateAltEmail() {
+  emailValidationError.value = accountData.value.alt_email && !isValidEmail(accountData.value.alt_email)
+    ? 'Please enter a valid email address'
+    : null
+}
+
+async function fetchAccountData() {
+  try {
+    const response = await api.get(`${apiBase.value}/user-account`)
+    accountData.value = {
+      email:      response.data.email      || '',
+      alt_email:  response.data.alt_email  || '',
+      first_name: response.data.first_name || '',
+      last_name:  response.data.last_name  || '',
     }
-  },
-  
-  computed: {
-    adminUserId() {
-      const id = this.$route.params.userId
-      return id ? parseInt(id) : null
-    },
+  } catch {
+    error.value = 'Failed to load account information'
+  }
+}
 
-    isAdminMode() {
-      return !!this.adminUserId
-    },
+async function saveAccountInfo() {
+  if (accountData.value.alt_email && !isValidEmail(accountData.value.alt_email)) {
+    accountError.value = 'Please enter a valid alternate email address'
+    return
+  }
+  accountSaving.value = true
+  accountError.value = null
+  accountSuccess.value = null
+  accountErrors.value = {}
+  try {
+    await api.put(`${apiBase.value}/user-account`, {
+      alt_email: accountData.value.alt_email?.trim() || ''
+    })
+    accountSuccess.value = 'Account information updated successfully!'
+    setTimeout(() => { accountSuccess.value = null }, 3000)
+  } catch (err) {
+    accountErrors.value = err.response?.data || {}
+    accountError.value = err.response?.data?.detail || 'Failed to save account information'
+  } finally {
+    accountSaving.value = false
+  }
+}
 
-    apiBase() {
-      return this.isAdminMode
-        ? `/api/accounts/admin/users/${this.adminUserId}`
-        : '/api/accounts'
-    },
+// Phone numbers
+function getCleanPhoneNumber(phoneNumber) {
+  return phoneNumber ? phoneNumber.replace(/\D/g, '') : ''
+}
 
-    pageTitle() {
-      if (this.isAdminMode && this.accountData.first_name) {
-        return `${this.accountData.first_name} ${this.accountData.last_name}`
-      }
-      return 'Account Settings'
-    },
+function validatePhoneNumber(phone) {
+  const result = validatePhone(phone.phone_number, phone.country_code)
+  phone.validationError = result.error
+  return result.valid
+}
 
-    pageSubtitle() {
-      return this.isAdminMode
-        ? 'Viewing and editing on behalf of this user'
-        : 'Manage your contact information and account preferences'
-    },
+function handlePhoneInput(phone, index) {
+  formatPhoneNumber(phone, index)
+  validatePhoneNumber(phone)
+}
 
-    isPhoneFormValid() {
-      if (this.phoneNumbers.length === 0) return false
-      
-      return this.phoneNumbers.every(phone => {
-        if (!phone.phone_type || !phone.country_code || !phone.phone_number) return false
-        if (phone.validationError) return false
-        
-        const cleanNumber = this.getCleanPhoneNumber(phone.phone_number)
-        if (phone.country_code === '+1') {
-          return cleanNumber.length === 10
-        }
-        return cleanNumber.length >= 6 && cleanNumber.length <= 15
-      })
-    },
-    
-    isAddressFormValid() {
-      if (this.addresses.length === 0) return false
-      
-      return this.addresses.every(address => {
-        if (!address.add_type || !address.add_line1 || !address.add_city || !address.add_country) {
-          return false
-        }
-        
-        // Validate field lengths
-        if (address.add_line1.length > 255 || address.add_line2.length > 255) return false
-        if (address.add_city.length > 100 || address.add_zip.length > 20) return false
-        
-        // US addresses require state
-        if (address.add_country === 'United States' && !address.add_state) {
-          return false
-        }
-        
-        return true
-      })
+function formatPhoneNumber(phone, index) {
+  if (!phone.phone_number) return
+  const cleaned = getCleanPhoneNumber(phone.phone_number)
+  phone.phone_number = (phone.country_code === '+1' && cleaned.length === 10)
+    ? `(${cleaned.substr(0, 3)}) ${cleaned.substr(3, 3)}-${cleaned.substr(6, 4)}`
+    : cleaned
+  validatePhoneNumber(phone)
+}
+
+async function fetchPhoneNumbers() {
+  try {
+    const response = await api.get(`${apiBase.value}/phone-numbers/`)
+    phoneNumbers.value = response.data.map(phone => ({
+      id: phone.id,
+      phone_type: phone.phone_type,
+      country_code: phone.country_code || '+1',
+      phone_number: phone.formatted_number || phone.phone_number,
+      is_primary: phone.is_primary,
+      validationError: null
+    }))
+    const primaryIdx = phoneNumbers.value.findIndex(p => p.is_primary)
+    primaryPhoneIndex.value = primaryIdx >= 0 ? primaryIdx : 0
+    if (phoneNumbers.value.length > 0 && primaryIdx < 0) phoneNumbers.value[0].is_primary = true
+    originalPhoneNumbers.value = JSON.parse(JSON.stringify(phoneNumbers.value))
+  } catch {
+    // silent — phones stay empty
+  }
+}
+
+function addNewPhone() {
+  if (showAddPhoneRow.value || phoneNumbers.value.length >= 3) return
+  phoneNumbers.value.push({ id: null, phone_type: '', country_code: '+1', phone_number: '', is_primary: phoneNumbers.value.length === 0, validationError: null })
+  if (phoneNumbers.value.length === 1) primaryPhoneIndex.value = 0
+  showAddPhoneRow.value = true
+  phoneError.value = null
+}
+
+async function removePhone(index) {
+  const phone = phoneNumbers.value[index]
+  if (phone.id) {
+    if (confirm('Are you sure you want to delete this phone number?')) await deletePhone(phone.id, index)
+  } else {
+    phoneNumbers.value.splice(index, 1)
+    showAddPhoneRow.value = false
+    if (primaryPhoneIndex.value === index && phoneNumbers.value.length > 0) {
+      primaryPhoneIndex.value = 0
+      phoneNumbers.value[0].is_primary = true
+    } else if (primaryPhoneIndex.value > index) {
+      primaryPhoneIndex.value--
     }
-  },
-  
-  watch: {
-    primaryAddressIndex(newIndex) {
-      // When user selects a different primary address, update the is_primary flags
-      this.addresses.forEach((address, index) => {
-        address.is_primary = index === newIndex
-      })
-    }
-  },
-  
-  async mounted() {
-    await this.fetchAccountData()
-    await this.fetchPhoneNumbers()
-    await this.fetchAddresses()
-    await this.fetchStates()
-    this.loading = false
-  },
-  
-  methods: {
-    isValidEmail,
-    
-    validateAltEmail() {
-      this.emailValidationError = null
-      if (this.accountData.alt_email && !this.isValidEmail(this.accountData.alt_email)) {
-        this.emailValidationError = 'Please enter a valid email address'
-      }
-    },
-    
-    // Validate phone number using libphonenumber-js
-    validatePhoneNumber(phone) {
-      const result = validatePhone(phone.phone_number, phone.country_code)
-      phone.validationError = result.error
-      return result.valid
-    },
-    
-    handlePhoneInput(phone, index) {
-      this.formatPhoneNumber(phone, index)
-      this.validatePhoneNumber(phone)
-    },
-    
-    handleCountryChange(address) {
-      // Clear state when switching to non-US/Canada/Australia countries
-      if (!['United States', 'Canada', 'Australia'].includes(address.add_country)) {
-        address.add_state = ''
-      }
-    },
-    
-    async fetchAccountData() {
-      try {
-        const response = await api.get(`${this.apiBase}/user-account`)
-        this.accountData = {
-          email: response.data.email || '',
-          alt_email: response.data.alt_email || '',
-          first_name: response.data.first_name || '',
-          last_name: response.data.last_name || '',
-        }
-      } catch (error) {
-        console.error('Error fetching account data:', error)
-        this.error = 'Failed to load account information'
-      }
-    },
-    
-    async saveAccountInfo() {
-      // Validate before sending
-      if (this.accountData.alt_email && !this.isValidEmail(this.accountData.alt_email)) {
-        this.accountError = 'Please enter a valid alternate email address'
-        return
-      }
-      
-      this.accountSaving = true
-      this.accountError = null
-      this.accountSuccess = null
-      this.accountErrors = {}
-      
-      try {
-        // Sanitize and trim data
-        const payload = {
-          alt_email: this.accountData.alt_email?.trim().substring(0, 100) || ''
-        }
-        
-        await api.put(`${this.apiBase}/user-account`, payload)
-        this.accountSuccess = 'Account information updated successfully!'
-        
-        setTimeout(() => {
-          this.accountSuccess = null
-        }, 3000)
-      } catch (error) {
-        console.error('Error saving account info:', error)
-        this.accountErrors = error.response?.data || {}
-        this.accountError = error.response?.data?.detail || 'Failed to save account information'
-      } finally {
-        this.accountSaving = false
-      }
-    },
-    
-    async fetchPhoneNumbers() {
-      try {
-        const response = await api.get(`${this.apiBase}/phone-numbers/`)
-        
-        this.phoneNumbers = response.data.map(phone => ({
-          id: phone.id,
-          phone_type: phone.phone_type,
-          country_code: phone.country_code || '+1',
-          phone_number: phone.formatted_number || phone.phone_number,
-          is_primary: phone.is_primary,
-          validationError: null
-        }))
-        
-        const primaryIndex = this.phoneNumbers.findIndex(phone => phone.is_primary)
-        this.primaryPhoneIndex = primaryIndex >= 0 ? primaryIndex : 0
-        
-        if (this.phoneNumbers.length > 0 && primaryIndex < 0) {
-          this.phoneNumbers[0].is_primary = true
-        }
-        
-        this.originalPhoneNumbers = JSON.parse(JSON.stringify(this.phoneNumbers))
-      } catch (error) {
-        console.error('Error fetching phone numbers:', error)
-      }
-    },
-    
-    getCleanPhoneNumber(phoneNumber) {
-      if (!phoneNumber) return ''
-      return phoneNumber.replace(/\D/g, '')
-    },
-    
-    formatPhoneNumber(phone, index) {
-      if (!phone.phone_number) return
-      
-      const cleaned = this.getCleanPhoneNumber(phone.phone_number)
-      
-      if (phone.country_code === '+1' && cleaned.length === 10) {
-        phone.phone_number = `(${cleaned.substr(0, 3)}) ${cleaned.substr(3, 3)}-${cleaned.substr(6, 4)}`
+  }
+}
+
+async function deletePhone(phoneId, index) {
+  phoneSaving.value = true
+  phoneError.value = null
+  try {
+    await api.delete(`${apiBase.value}/phone-numbers/${phoneId}/`)
+    phoneNumbers.value.splice(index, 1)
+    if (primaryPhoneIndex.value === index && phoneNumbers.value.length > 0) primaryPhoneIndex.value = 0
+    else if (primaryPhoneIndex.value > index) primaryPhoneIndex.value--
+    phoneSuccess.value = 'Phone number deleted successfully!'
+    setTimeout(() => { phoneSuccess.value = null }, 3000)
+  } catch (err) {
+    phoneError.value = err.response?.data?.detail || 'Failed to delete phone number'
+  } finally {
+    phoneSaving.value = false
+  }
+}
+
+function resetPhoneChanges() {
+  phoneNumbers.value = JSON.parse(JSON.stringify(originalPhoneNumbers.value))
+  const primaryIdx = phoneNumbers.value.findIndex(p => p.is_primary)
+  primaryPhoneIndex.value = primaryIdx >= 0 ? primaryIdx : 0
+  showAddPhoneRow.value = false
+  phoneError.value = null
+}
+
+async function saveAllPhones() {
+  let hasErrors = false
+  phoneNumbers.value.forEach(phone => { if (!validatePhoneNumber(phone)) hasErrors = true })
+  if (hasErrors) { phoneError.value = 'Please fix validation errors before saving'; return }
+
+  phoneSaving.value = true
+  phoneError.value = null
+  phoneSuccess.value = null
+  try {
+    phoneNumbers.value.forEach((phone, index) => { phone.is_primary = index === primaryPhoneIndex.value })
+    for (const phone of phoneNumbers.value) {
+      const cleanNumber = getCleanPhoneNumber(phone.phone_number)
+      if (!cleanNumber || cleanNumber.length > 20) throw new Error('Invalid phone number')
+      const payload = { phone_type: phone.phone_type, country_code: phone.country_code || '+1', phone_number: cleanNumber, is_primary: phone.is_primary }
+      if (phone.id) {
+        await api.put(`${apiBase.value}/phone-numbers/${phone.id}/`, payload)
       } else {
-        phone.phone_number = cleaned
-      }
-      
-      this.validatePhoneNumber(phone)
-    },
-    
-    addNewPhone() {
-      if (this.showAddPhoneRow || this.phoneNumbers.length >= 3) return
-      
-      this.phoneNumbers.push({
-        id: null,
-        phone_type: '',
-        country_code: '+1',
-        phone_number: '',
-        is_primary: this.phoneNumbers.length === 0,
-        validationError: null
-      })
-      
-      if (this.phoneNumbers.length === 1) {
-        this.primaryPhoneIndex = 0
-      }
-      
-      this.showAddPhoneRow = true
-      this.phoneError = null
-    },
-    
-    async removePhone(index) {
-      const removedPhone = this.phoneNumbers[index]
-      
-      if (removedPhone.id) {
-        if (confirm('Are you sure you want to delete this phone number?')) {
-          await this.deletePhone(removedPhone.id, index)
-        }
-      } else {
-        this.phoneNumbers.splice(index, 1)
-        this.showAddPhoneRow = false
-        
-        if (this.primaryPhoneIndex === index && this.phoneNumbers.length > 0) {
-          this.primaryPhoneIndex = 0
-          this.phoneNumbers[0].is_primary = true
-        } else if (this.primaryPhoneIndex > index) {
-          this.primaryPhoneIndex--
-        }
-      }
-    },
-    
-    async deletePhone(phoneId, index) {
-      this.phoneSaving = true
-      this.phoneError = null
-      
-      try {
-        await api.delete(`${this.apiBase}/phone-numbers/${phoneId}/`)
-        
-        this.phoneNumbers.splice(index, 1)
-        
-        if (this.primaryPhoneIndex === index && this.phoneNumbers.length > 0) {
-          this.primaryPhoneIndex = 0
-        } else if (this.primaryPhoneIndex > index) {
-          this.primaryPhoneIndex--
-        }
-        
-        this.phoneSuccess = 'Phone number deleted successfully!'
-        setTimeout(() => {
-          this.phoneSuccess = null
-        }, 3000)
-      } catch (error) {
-        console.error('Error deleting phone:', error)
-        this.phoneError = error.response?.data?.detail || 'Failed to delete phone number'
-      } finally {
-        this.phoneSaving = false
-      }
-    },
-    
-    resetPhoneChanges() {
-      this.phoneNumbers = JSON.parse(JSON.stringify(this.originalPhoneNumbers))
-      const primaryIndex = this.phoneNumbers.findIndex(phone => phone.is_primary)
-      this.primaryPhoneIndex = primaryIndex >= 0 ? primaryIndex : 0
-      this.showAddPhoneRow = false
-      this.phoneError = null
-    },
-    
-    async saveAllPhones() {
-      // Validate all phones before saving
-      let hasErrors = false
-      this.phoneNumbers.forEach(phone => {
-        if (!this.validatePhoneNumber(phone)) {
-          hasErrors = true
-        }
-      })
-      
-      if (hasErrors) {
-        this.phoneError = 'Please fix validation errors before saving'
-        return
-      }
-      
-      this.phoneSaving = true
-      this.phoneError = null
-      this.phoneSuccess = null
-      
-      try {
-        // Mark which phone should be primary
-        this.phoneNumbers.forEach((phone, index) => {
-          phone.is_primary = index === this.primaryPhoneIndex
-        })
-        
-        // Save each phone
-        for (let i = 0; i < this.phoneNumbers.length; i++) {
-          const phone = this.phoneNumbers[i]
-          
-          // Sanitize and validate data
-          const cleanNumber = this.getCleanPhoneNumber(phone.phone_number)
-          if (!cleanNumber || cleanNumber.length > 20) {
-            throw new Error('Invalid phone number')
-          }
-          
-          const payload = {
-            phone_type: phone.phone_type,
-            country_code: phone.country_code || '+1',
-            phone_number: cleanNumber,
-            is_primary: phone.is_primary
-          }
-          
-          if (phone.id) {
-            await api.put(`${this.apiBase}/phone-numbers/${phone.id}/`, payload)
-          } else {
-            const response = await api.post(`${this.apiBase}/phone-numbers/`, payload)
-            phone.id = response.data.id
-          }
-        }
-        
-        // Success - refresh and show message
-        await this.fetchPhoneNumbers()
-        this.showAddPhoneRow = false
-        this.phoneSuccess = 'Phone numbers updated successfully!'
-        setTimeout(() => {
-          this.phoneSuccess = null
-        }, 3000)
-        
-      } catch (error) {
-        console.error('Error saving phones:', error)
-        const errorData = error.response?.data
-        
-        if (errorData && typeof errorData === 'object') {
-          this.phoneError = Object.values(errorData).flat().join(' ') || 'Failed to save phone numbers'
-        } else if (typeof errorData === 'string') {
-          this.phoneError = errorData
-        } else {
-          this.phoneError = 'Failed to save phone numbers'
-        }
-      } finally {
-        this.phoneSaving = false
-      }
-    },
-    
-    async fetchAddresses() {
-      try {
-        const response = await api.get(`${this.apiBase}/addresses/`)
-        
-        this.addresses = response.data.map(address => ({
-          id: address.id,
-          add_type: address.add_type,
-          add_line1: address.add_line1,
-          add_line2: address.add_line2 || '',
-          add_city: address.add_city,
-          add_state: address.add_state || '',
-          add_zip: address.add_zip,
-          add_country: address.add_country || 'United States',
-          is_primary: address.is_primary
-        }))
-        
-        // Set primaryAddressIndex based on is_primary
-        const primaryIndex = this.addresses.findIndex(address => address.is_primary)
-        this.primaryAddressIndex = primaryIndex >= 0 ? primaryIndex : 0
-        
-        // If no primary address is set and we have addresses, mark the first as primary
-        if (this.addresses.length > 0 && primaryIndex < 0) {
-          this.addresses[0].is_primary = true
-          this.primaryAddressIndex = 0
-        }
-        
-        this.originalAddresses = JSON.parse(JSON.stringify(this.addresses))
-        
-        // Force Vue to update the UI after addresses change
-        await this.$nextTick()
-      } catch (error) {
-        console.error('Error fetching addresses:', error)
-      }
-    },
-    
-    async fetchStates() {
-      try {
-        const response = await api.get('/api/accounts/states-provinces')
-        this.groupedStates = response.data
-      } catch (error) {
-        console.error('Error fetching states:', error)
-      }
-    },
-    
-    addNewAddress() {
-      if (this.showAddAddressRow || this.addresses.length >= 3) return
-      
-      this.addresses.push({
-        id: null,
-        add_type: '',
-        add_line1: '',
-        add_line2: '',
-        add_city: '',
-        add_state: '',
-        add_zip: '',
-        add_country: 'United States',
-        is_primary: this.addresses.length === 0
-      })
-      
-      this.showAddAddressRow = true
-      this.addressError = null
-    },
-    
-    removeAddress(index) {
-      const removedAddress = this.addresses[index]
-      
-      if (removedAddress.id) {
-        if (confirm('Are you sure you want to delete this address?')) {
-          this.deleteAddress(removedAddress.id, index)
-        }
-      } else {
-        this.addresses.splice(index, 1)
-        this.showAddAddressRow = false
-        
-        // Adjust primaryAddressIndex if needed
-        if (this.primaryAddressIndex === index) {
-          this.primaryAddressIndex = 0
-        } else if (this.primaryAddressIndex > index) {
-          this.primaryAddressIndex--
-        }
-      }
-    },
-    
-    async deleteAddress(addressId, index) {
-      this.addressSaving = true
-      this.addressError = null
-      
-      try {
-        await api.delete(`${this.apiBase}/addresses/${addressId}/`)
-        
-        // Refresh addresses to ensure primary state is correct
-        await this.fetchAddresses()
-        
-        this.addressSuccess = 'Address deleted successfully!'
-        setTimeout(() => {
-          this.addressSuccess = null
-        }, 3000)
-      } catch (error) {
-        console.error('Error deleting address:', error)
-        this.addressError = error.response?.data?.detail || 'Failed to delete address'
-      } finally {
-        this.addressSaving = false
-      }
-    },
-    
-    resetAddressChanges() {
-      this.addresses = JSON.parse(JSON.stringify(this.originalAddresses))
-      this.showAddAddressRow = false
-      this.addressError = null
-    },
-    
-    async saveAllAddresses() {
-      this.addressSaving = true
-      this.addressError = null
-      this.addressSuccess = null
-      
-      try {
-        // First, save all addresses
-        const savedAddresses = []
-        for (const address of this.addresses) {
-          // Sanitize and validate data
-          const add_line1 = address.add_line1?.trim().substring(0, 255)
-          const add_line2 = address.add_line2?.trim().substring(0, 255)
-          const add_city = address.add_city?.trim().substring(0, 100)
-          const add_zip = address.add_zip?.trim().substring(0, 20)
-          
-          if (!add_line1 || !add_city) {
-            throw new Error('Address line 1 and city are required')
-          }
-
-          if (!isValidAddressField(add_line1) || !isValidAddressField(add_line2) || !isValidAddressField(add_city)) {
-            throw new Error('Address fields contain invalid characters')
-          }
-          
-          const stateValue = ['United States', 'Canada', 'Australia'].includes(address.add_country)
-            ? address.add_state
-            : null
-          
-          const payload = {
-            add_type: address.add_type,
-            add_line1: add_line1,
-            add_line2: add_line2 || '',
-            add_city: add_city,
-            add_state: stateValue,
-            add_zip: add_zip || '',
-            add_country: address.add_country
-          }
-          
-          let response
-          if (address.id) {
-            response = await api.put(`${this.apiBase}/addresses/${address.id}/`, payload)
-          } else {
-            response = await api.post(`${this.apiBase}/addresses/`, payload)
-            address.id = response.data.id
-          }
-          savedAddresses.push(response.data)
-        }
-        
-        // Then set the primary address using the set_primary endpoint
-        const primaryAddress = this.addresses[this.primaryAddressIndex]
-        
-        if (primaryAddress && primaryAddress.id) {
-          await api.post(`${this.apiBase}/addresses/${primaryAddress.id}/set_primary/`)
-        }
-        
-        await this.fetchAddresses()
-        this.showAddAddressRow = false
-        this.addressSuccess = 'Addresses updated successfully!'
-        setTimeout(() => {
-          this.addressSuccess = null
-        }, 3000)
-      } catch (error) {
-        console.error('Error saving addresses:', error)
-        const errorData = error.response?.data
-        
-        if (errorData?.add_type) {
-          this.addressError = errorData.add_type[0]
-        } else if (errorData?.add_state) {
-          this.addressError = errorData.add_state[0] || errorData.add_state
-        } else {
-          this.addressError = errorData?.detail || error.message || 'Failed to save addresses'
-        }
-      } finally {
-        this.addressSaving = false
+        const response = await api.post(`${apiBase.value}/phone-numbers/`, payload)
+        phone.id = response.data.id
       }
     }
+    await fetchPhoneNumbers()
+    showAddPhoneRow.value = false
+    phoneSuccess.value = 'Phone numbers updated successfully!'
+    setTimeout(() => { phoneSuccess.value = null }, 3000)
+  } catch (err) {
+    await fetchPhoneNumbers()
+    const errorData = err.response?.data
+    if (errorData && typeof errorData === 'object') {
+      phoneError.value = Object.values(errorData).flat().join(' ') || 'Failed to save phone numbers'
+    } else {
+      phoneError.value = typeof errorData === 'string' ? errorData : 'Failed to save phone numbers'
+    }
+  } finally {
+    phoneSaving.value = false
+  }
+}
+
+// Addresses
+function handleCountryChange(address) {
+  if (!['United States', 'Canada', 'Australia'].includes(address.add_country)) address.add_state = ''
+}
+
+async function fetchAddresses() {
+  try {
+    const response = await api.get(`${apiBase.value}/addresses/`)
+    addresses.value = response.data.map(address => ({
+      id: address.id,
+      add_type: address.add_type,
+      add_line1: address.add_line1,
+      add_line2: address.add_line2 || '',
+      add_city: address.add_city,
+      add_state: address.add_state || '',
+      add_zip: address.add_zip,
+      add_country: address.add_country || 'United States',
+      is_primary: address.is_primary
+    }))
+    const primaryIdx = addresses.value.findIndex(a => a.is_primary)
+    primaryAddressIndex.value = primaryIdx >= 0 ? primaryIdx : 0
+    if (addresses.value.length > 0 && primaryIdx < 0) {
+      addresses.value[0].is_primary = true
+      primaryAddressIndex.value = 0
+    }
+    originalAddresses.value = JSON.parse(JSON.stringify(addresses.value))
+    await nextTick()
+  } catch {
+    // silent — addresses stay empty
+  }
+}
+
+async function fetchStates() {
+  try {
+    const response = await api.get('/api/accounts/states-provinces')
+    groupedStates.value = response.data
+  } catch {
+    // non-critical reference data
+  }
+}
+
+function addNewAddress() {
+  if (showAddAddressRow.value || addresses.value.length >= 3) return
+  addresses.value.push({ id: null, add_type: '', add_line1: '', add_line2: '', add_city: '', add_state: '', add_zip: '', add_country: 'United States', is_primary: addresses.value.length === 0 })
+  showAddAddressRow.value = true
+  addressError.value = null
+}
+
+function removeAddress(index) {
+  const addr = addresses.value[index]
+  if (addr.id) {
+    if (confirm('Are you sure you want to delete this address?')) deleteAddress(addr.id, index)
+  } else {
+    addresses.value.splice(index, 1)
+    showAddAddressRow.value = false
+    if (primaryAddressIndex.value === index) primaryAddressIndex.value = 0
+    else if (primaryAddressIndex.value > index) primaryAddressIndex.value--
+  }
+}
+
+async function deleteAddress(addressId, index) {
+  addressSaving.value = true
+  addressError.value = null
+  try {
+    await api.delete(`${apiBase.value}/addresses/${addressId}/`)
+    await fetchAddresses()
+    addressSuccess.value = 'Address deleted successfully!'
+    setTimeout(() => { addressSuccess.value = null }, 3000)
+  } catch (err) {
+    addressError.value = err.response?.data?.detail || 'Failed to delete address'
+  } finally {
+    addressSaving.value = false
+  }
+}
+
+function resetAddressChanges() {
+  addresses.value = JSON.parse(JSON.stringify(originalAddresses.value))
+  showAddAddressRow.value = false
+  addressError.value = null
+}
+
+async function saveAllAddresses() {
+  addressSaving.value = true
+  addressError.value = null
+  addressSuccess.value = null
+  try {
+    for (const address of addresses.value) {
+      const add_line1 = address.add_line1?.trim().substring(0, 255)
+      const add_line2 = address.add_line2?.trim().substring(0, 255)
+      const add_city  = address.add_city?.trim().substring(0, 100)
+      const add_zip   = address.add_zip?.trim().substring(0, 20)
+      if (!add_line1 || !add_city) throw new Error('Address line 1 and city are required')
+      if (!isValidAddressField(add_line1) || !isValidAddressField(add_line2) || !isValidAddressField(add_city)) {
+        throw new Error('Address fields contain invalid characters')
+      }
+      const stateValue = ['United States', 'Canada', 'Australia'].includes(address.add_country) ? address.add_state : null
+      const payload = { add_type: address.add_type, add_line1, add_line2: add_line2 || '', add_city, add_state: stateValue, add_zip: add_zip || '', add_country: address.add_country }
+      if (address.id) {
+        await api.put(`${apiBase.value}/addresses/${address.id}/`, payload)
+      } else {
+        const response = await api.post(`${apiBase.value}/addresses/`, payload)
+        address.id = response.data.id
+      }
+    }
+    const primaryAddress = addresses.value[primaryAddressIndex.value]
+    if (primaryAddress?.id) await api.post(`${apiBase.value}/addresses/${primaryAddress.id}/set_primary/`)
+    await fetchAddresses()
+    showAddAddressRow.value = false
+    addressSuccess.value = 'Addresses updated successfully!'
+    setTimeout(() => { addressSuccess.value = null }, 3000)
+  } catch (err) {
+    await fetchAddresses()
+    const errorData = err.response?.data
+    if (errorData?.add_type) addressError.value = errorData.add_type[0]
+    else if (errorData?.add_state) addressError.value = errorData.add_state[0] || errorData.add_state
+    else addressError.value = errorData?.detail || err.message || 'Failed to save addresses'
+  } finally {
+    addressSaving.value = false
   }
 }
 </script>

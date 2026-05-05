@@ -51,7 +51,7 @@
     </div>
 
     <!-- Error State -->
-    <div v-if="error" class="alert alert-danger">
+    <div v-if="error" class="alert alert-danger" role="alert">
       <i class="bi bi-exclamation-triangle"></i> {{ error }}
     </div>
 
@@ -593,6 +593,10 @@ export default {
         
         // Show Bootstrap modal
         this.$nextTick(() => {
+          if (!window.bootstrap?.Modal) {
+            this.error = 'UI library unavailable. Please refresh the page.'
+            return
+          }
           const modalElement = document.getElementById('travelDetailModal');
           const modal = new window.bootstrap.Modal(modalElement);
           modal.show();
@@ -747,10 +751,6 @@ export default {
 </script>
 
 <style scoped>
-.convention-travel-admin {
-}
-
-
 .filters-section {
   background: white;
   border-radius: 8px;

@@ -11,8 +11,13 @@
                 <i class="bi bi-exclamation-circle" style="font-size: 3.5rem; color: var(--brand-blue);"></i>
                 <h2 class="mt-4">404 — Page Not Found</h2>
                 <p class="text-muted mt-2">The page you're looking for doesn't exist or has been moved.</p>
-                <router-link to="/" class="btn btn-primary mt-3">Go to Dashboard</router-link>
+                <router-link :to="authStore.isRecruiter ? '/recruiter/dashboard' : '/'" class="btn btn-primary mt-3">Go to Dashboard</router-link>
             </div>
         </div>
     </div>
 </template>
+
+<script setup>
+import { useAuthStore } from '../store/auth'
+const authStore = useAuthStore()
+</script>

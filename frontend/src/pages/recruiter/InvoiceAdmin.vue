@@ -78,7 +78,7 @@
               </div>
             </div>
 
-            <div v-if="createError" class="alert alert-danger mt-3">{{ createError }}</div>
+            <div v-if="createError" class="alert alert-danger mt-3" role="alert">{{ createError }}</div>
 
             <button type="submit" class="btn btn-primary mt-3" :disabled="saving">
               <span v-if="saving"><span class="spinner-border spinner-border-sm me-2"></span>Creating...</span>
@@ -132,7 +132,7 @@
                   </td>
                   <td>
                     <a
-                      v-if="inv.payment_link"
+                      v-if="isSafeUrl(inv.payment_link)"
                       :href="inv.payment_link"
                       target="_blank"
                       rel="noopener noreferrer"
@@ -167,8 +167,8 @@
   </div>
 
   <!-- Invoice Edit Modal -->
-  <div v-if="selectedInvoice" class="modal-backdrop-custom" @click.self="closeInvoiceEdit">
-    <div class="modal-dialog-custom" style="max-width: 540px;">
+  <div v-if="selectedInvoice" class="modal-backdrop-custom" @click.self="closeInvoiceEdit" @keydown="trapFocus($event, invoiceDialogRef, closeInvoiceEdit)">
+    <div class="modal-dialog-custom" ref="invoiceDialogRef" tabindex="-1" style="max-width: 540px;">
       <div class="modal-header-custom">
         <h5 class="modal-title-custom">
           <i class="bi bi-pencil-square me-2"></i>Edit Invoice
@@ -240,7 +240,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import api from '../../api'
 import { useToast } from 'vue-toastification'
 import { useAuthStore } from '../../store/auth'
@@ -314,6 +314,27 @@ const statusBadgeClass = (status) => {
   return map[status] || 'badge bg-secondary'
 }
 
+const isSafeUrl = (url) => typeof url === 'string' && /^https?:\/\//i.test(url)
+
+const invoiceDialogRef = ref(null)
+let lastFocusedEl = null
+
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+function trapFocus(event, dialogEl, closeFn) {
+  if (event.key === 'Escape') { closeFn(); return }
+  if (event.key !== 'Tab') return
+  const focusable = Array.from(dialogEl.querySelectorAll(FOCUSABLE))
+  if (!focusable.length) return
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+  if (event.shiftKey) {
+    if (document.activeElement === first) { event.preventDefault(); last.focus() }
+  } else {
+    if (document.activeElement === last) { event.preventDefault(); first.focus() }
+  }
+}
+
 const statusTransitions = {
   draft:     [{ value: 'draft', label: 'Draft' }, { value: 'sent', label: 'Sent' }, { value: 'cancelled', label: 'Cancelled' }],
   sent:      [{ value: 'sent', label: 'Sent' }, { value: 'paid', label: 'Paid' }, { value: 'cancelled', label: 'Cancelled' }],
@@ -326,15 +347,15 @@ const availableStatuses = computed(() =>
 )
 
 const openInvoiceEdit = (inv) => {
+  lastFocusedEl = document.activeElement
   selectedInvoice.value = inv
-  invoiceEditForm.value = {
-    status: inv.status,
-    payment_link: inv.payment_link || '',
-  }
+  invoiceEditForm.value = { status: inv.status, payment_link: inv.payment_link || '' }
+  nextTick(() => invoiceDialogRef.value?.querySelector(FOCUSABLE)?.focus())
 }
 
 const closeInvoiceEdit = () => {
   selectedInvoice.value = null
+  nextTick(() => lastFocusedEl?.focus())
 }
 
 const saveInvoiceEdit = async () => {

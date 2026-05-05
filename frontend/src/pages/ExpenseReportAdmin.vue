@@ -586,7 +586,7 @@ export default {
   },
   computed: {
     hasAccess() {
-      return this.authStore.hasRole('hq_staff') || this.authStore.hasRole('hq_finance') || this.authStore.hasRole('member')
+      return this.authStore.hasRole('hq_staff') || this.authStore.hasRole('hq_finance')
     },
     totalAmount() {
       return this.expenseReports
@@ -658,6 +658,10 @@ export default {
         this.updateFormErrors = { status: '', payment_method: '', rejection_reason: '' }
         
         // Show modal
+        if (!window.bootstrap?.Modal) {
+          this.error = 'UI library unavailable. Please refresh the page.'
+          return
+        }
         this.detailModal = new window.bootstrap.Modal(this.$refs.detailModal)
         this.detailModal.show()
       } catch (err) {
@@ -842,10 +846,6 @@ export default {
 </script>
 
 <style scoped>
-.expense-report-admin-page {
-}
-
-
 .card {
   margin-bottom: 1.5rem;
 }
