@@ -5,7 +5,9 @@
     </div>
     <h1 class="page-title text-center my-4">Member Portal</h1>
     <div>
-      <p v-if="hasActivateParam" class="text-success text-center">Your account has been activated!</p>
+      <div v-if="hasActivateParam" class="alert alert-success container-md text-center" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>Your account has been activated!
+      </div>
     </div>
     <form @submit.prevent="login" class="container-md">
       <!-- Email -->
@@ -52,6 +54,7 @@
         <RouterLink class="" to="/password-forgot">Forgot your password?</RouterLink>
       </p>
       <p class="mt-3">Don't have an account yet? Please <RouterLink class="" to="/verify">register</RouterLink> now.</p>
+      <p class="mt-3 text-muted" style="font-size: 0.875rem;">Trouble signing in? Contact <a href="mailto:tbp.it@tbp.org">tbp.it@tbp.org</a> for assistance.</p>
     </div>
   </div>
 </template>
