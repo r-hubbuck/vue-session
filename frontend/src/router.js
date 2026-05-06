@@ -9,6 +9,7 @@ const Verify            = () => import('./pages/Verify.vue')
 const EmailConfirmation = () => import('./pages/EmailConfirmation.vue')
 const CodeCheck         = () => import('./pages/CodeCheck.vue')
 const PasswordForgot    = () => import('./pages/PasswordForgot.vue')
+const ResendActivation  = () => import('./pages/ResendActivation.vue')
 const PasswordResetConfirm = () => import('./pages/PasswordResetConfirm.vue')
 const EmailLinkError    = () => import('./pages/EmailLinkError.vue')
 const UserAccount       = () => import('./pages/UserAccount.vue')
@@ -70,6 +71,11 @@ const routes = [
     path: '/password-forgot',
     name: 'password-forgot',
     component: PasswordForgot,
+  },
+  {
+    path: '/resend-activation',
+    name: 'resend-activation',
+    component: ResendActivation,
   },
   {
     path: '/email-link-error',

@@ -5,6 +5,8 @@
     </div>
     <h1 class="page-title text-center my-4">Register for an Account</h1>
     <form @submit.prevent="register" class="container-md">
+      <div v-if="error" class="alert alert-danger" role="alert">{{ error }}</div>
+
       <!-- Email -->
       <div class="form-group">
         <label class="form-label" for="email">Email:</label>
@@ -89,9 +91,7 @@
       <button class="btn btn-primary mt-5" type="submit">Register</button>
     </form>
 
-    <!-- Server messages -->
-    <div v-if="error" class="alert alert-danger mt-3" role="alert">{{ error }}</div>
-    <div v-if="success" class="text-success mt-4 fw-bold">{{ success }}</div>
+    <div v-if="success" class="text-success mt-4 fw-bold container-md">{{ success }}</div>
   </div>
 </template>
 
@@ -160,7 +160,13 @@ async function register() {
     authStore.clearVerification()
     setTimeout(() => { router.push('/email-confirmation') }, 500)
   } catch (err) {
-    error.value = err.response?.data?.error || 'Registration failed'
+    const errData = err.response?.data?.error
+    if (errData && typeof errData === 'object') {
+      const first = Object.values(errData)[0]
+      error.value = Array.isArray(first) ? first[0] : String(first)
+    } else {
+      error.value = errData || 'Registration failed'
+    }
   }
 }
 

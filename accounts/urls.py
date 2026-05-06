@@ -18,6 +18,7 @@ urlpatterns = [
     path('accounts/chapter-list', ChapterListAPIView.as_view(), name='chapter_list'),
     path('accounts/verify-member', VerifyMemberAPIView.as_view(), name='verify_member'),
     path('accounts/activate/<str:uidb64>/<str:token>/', views.activate, name='activate'),
+    path('accounts/resend-activation', views.resend_activation, name='resend_activation'),
     path('accounts/password-reset-request', views.password_reset_request, name='password_reset_request'),
     path('accounts/password-reset-confirm/<str:uidb64>/<str:token>/', views.password_reset_confirm, name='password_reset_confirm'),
     path('accounts/user-account', views.user_account_view, name='user_account'),

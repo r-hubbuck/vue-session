@@ -6,12 +6,12 @@ import pymssql
 logger = logging.getLogger(__name__)
 
 from django.shortcuts import redirect
+from django.urls import reverse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.encoding import force_bytes, force_str
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.template.loader import render_to_string
-from django.contrib.sites.shortcuts import get_current_site
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, get_user_model, update_session_auth_hash
 
@@ -349,14 +349,15 @@ def register(request):
                 user.alt_email
             )
 
-        current_site = get_current_site(request)
+        uid_b64 = urlsafe_base64_encode(force_bytes(user.pk))
+        token_str = account_activation_token.make_token(user)
+        activation_path = reverse('activate', kwargs={'uidb64': uid_b64, 'token': token_str})
+        activation_url = request.build_absolute_uri(activation_path)
+
         mail_subject = 'Activate Your Account'
         message = render_to_string('registration/account_activation_email.html', {
             'person': person,
-            # 'domain': current_site.domain,
-            'domain': DOMAIN,
-            'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-            'token': account_activation_token.make_token(user)
+            'activation_url': activation_url,
         })
         to_email = user.email
         email_msg = EmailMultiAlternatives(
@@ -595,7 +596,52 @@ def activate(request, uidb64, token):
         #     status=status.HTTP_400_BAD_REQUEST
         # )
 
-# API view to handle password reset request by sending an email to the user 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@throttle_classes([PasswordResetThrottle])
+def resend_activation(request):
+    """Resend account activation email to an inactive user."""
+    email = bleach.clean(request.data.get('email', '').strip(), tags=[], strip=True)
+    if not email:
+        return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    generic_response = Response(
+        {'message': 'If that email belongs to an unactivated account, a new activation link has been sent.'},
+        status=status.HTTP_200_OK
+    )
+
+    try:
+        user = User.objects.get(email=email, is_active=False)
+    except User.DoesNotExist:
+        return generic_response
+
+    try:
+        uid_b64 = urlsafe_base64_encode(force_bytes(user.pk))
+        token_str = account_activation_token.make_token(user)
+        activation_path = reverse('activate', kwargs={'uidb64': uid_b64, 'token': token_str})
+        activation_url = request.build_absolute_uri(activation_path)
+
+        person = getattr(user, 'person', None)
+        message = render_to_string('registration/account_activation_email.html', {
+            'person': person,
+            'activation_url': activation_url,
+        })
+        email_msg = EmailMultiAlternatives(
+            subject='Activate Your Account',
+            body='',
+            to=[email]
+        )
+        email_msg.attach_alternative(message, 'text/html')
+        email_msg.send()
+
+        logger.info('Resent activation email to %s', email)
+    except Exception as e:
+        logger.error('Failed to resend activation email to %s: %s', email, e)
+
+    return generic_response
+
+
+# API view to handle password reset request by sending an email to the user
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @throttle_classes([PasswordResetThrottle])

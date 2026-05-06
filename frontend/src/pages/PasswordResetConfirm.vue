@@ -16,6 +16,8 @@
     </div>
 
     <form v-else @submit.prevent="resetPassword" class="container-md">
+      <div v-if="error" class="alert alert-danger" role="alert">{{ error }}</div>
+
       <div class="mb-3 position-relative">
         <label for="newPassword1" class="form-label">New Password:</label>
         <input
@@ -79,10 +81,6 @@
           </div>
         </div>
         <div class="invalid-feedback">{{ passwordError }}</div>
-      </div>
-
-      <div v-if="error" class="alert alert-danger" role="alert">
-        {{ error }}
       </div>
 
       <button

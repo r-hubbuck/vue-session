@@ -5,6 +5,8 @@
     </div>
     <h1 class="page-title text-center my-4">Verify Tau Beta Pi Membership</h1>
     <form @submit.prevent="submitVerifyForm" class="container-md">
+      <div v-if="errorMessage" class="alert alert-danger" role="alert">{{ errorMessage }}</div>
+
       <div class="form-group row">
         <label class="form-label" for="email">Email:</label>
         <input
@@ -36,7 +38,6 @@
           </option>
         </select>
       </div>
-      <div v-if="errorMessage" class="alert alert-danger mt-3" role="alert">{{ errorMessage }}</div>
       <button class="btn btn-danger mt-5 me-4" type="button" @click="router.push('/login')">Back</button>
       <button class="btn btn-primary mt-5" type="submit">Verify</button>
     </form>
