@@ -362,8 +362,9 @@ def register(request):
         to_email = user.email
         email_msg = EmailMultiAlternatives(
             subject=mail_subject,
-            body='', 
-            to=[to_email]
+            body='',
+            to=[to_email],
+            headers={'X-Mailgun-Track-Clicks': 'no', 'X-Mailgun-Track-Opens': 'no'},
         )
         email_msg.attach_alternative(message, "text/html")
         email_msg.send()
@@ -629,7 +630,8 @@ def resend_activation(request):
         email_msg = EmailMultiAlternatives(
             subject='Activate Your Account',
             body='',
-            to=[email]
+            to=[email],
+            headers={'X-Mailgun-Track-Clicks': 'no', 'X-Mailgun-Track-Opens': 'no'},
         )
         email_msg.attach_alternative(message, 'text/html')
         email_msg.send()
@@ -667,13 +669,13 @@ def password_reset_request(request):
             
             email_msg = EmailMultiAlternatives(
                 subject=mail_subject,
-                body='',  
-                to=[email]
+                body='',
+                to=[email],
+                headers={'X-Mailgun-Track-Clicks': 'no', 'X-Mailgun-Track-Opens': 'no'},
             )
-        
             email_msg.attach_alternative(message, "text/html")
             email_msg.send()
-            
+
             return Response({
                 'message': 'Password reset email has been sent. Please check your inbox.'
             }, status=status.HTTP_200_OK)
