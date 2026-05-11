@@ -63,6 +63,35 @@
           </div>
         </div>
 
+        <!-- Primary Recruiter Information -->
+        <h5 class="fw-bold mb-3 mt-5">Primary Recruiter Information</h5>
+        <p class="text-muted small mb-3">Important information regarding event details, invoicing, resume bank access, and day-of information will be emailed to this individual to ensure that the recruiters at the event receive all necessary information.</p>
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label" for="recruiter-first">First Name *</label>
+            <input id="recruiter-first" v-model.trim="form.first_name" type="text" class="form-control" required maxlength="100">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="recruiter-last">Last Name *</label>
+            <input id="recruiter-last" v-model.trim="form.last_name" type="text" class="form-control" required maxlength="100">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="recruiter-email">Email *</label>
+            <input id="recruiter-email" v-model.trim="form.email" type="email" :class="['form-control', { 'is-invalid': emailError }]" required maxlength="254" @blur="validateEmail" @input="validateEmail">
+            <div class="invalid-feedback">{{ emailError }}</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="recruiter-phone">Phone</label>
+            <input id="recruiter-phone" v-model="form.phone" @input="formatPhone('phone')" @blur="validatePhoneField('phone')" type="tel" :class="['form-control', { 'is-invalid': phoneError }]" placeholder="(555) 123-4567" maxlength="14">
+            <div class="invalid-feedback">{{ phoneError }}</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="recruiter-cell">Cell Phone</label>
+            <input id="recruiter-cell" v-model="form.cell_phone" @input="formatPhone('cell_phone')" @blur="validatePhoneField('cell_phone')" type="tel" :class="['form-control', { 'is-invalid': cellPhoneError }]" placeholder="(555) 123-4567" maxlength="14">
+            <div class="invalid-feedback">{{ cellPhoneError }}</div>
+          </div>
+        </div>
+
         <!-- Billing Information -->
         <h5 class="fw-bold mb-3 mt-5">Billing Information</h5>
         <div class="row g-3 mb-4">
@@ -102,35 +131,6 @@
             <label class="form-label" for="billing-email">Invoice Email *</label>
             <input id="billing-email" v-model.trim="form.org_billing_email" type="email" :class="['form-control', { 'is-invalid': billingEmailError }]" required maxlength="254" @blur="validateBillingEmail" @input="validateBillingEmail">
             <div class="invalid-feedback">{{ billingEmailError }}</div>
-          </div>
-        </div>
-
-        <!-- Primary Recruiter Information -->
-        <h5 class="fw-bold mb-3 mt-5">Primary Recruiter Information</h5>
-        <p class="text-muted small mb-3">Important information regarding event details, invoicing, resume bank access, and day-of information will be emailed to this individual to ensure that the recruiters at the event receive all necessary information.</p>
-        <div class="row g-3 mb-4">
-          <div class="col-md-6">
-            <label class="form-label" for="recruiter-first">First Name *</label>
-            <input id="recruiter-first" v-model.trim="form.first_name" type="text" class="form-control" required maxlength="100">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label" for="recruiter-last">Last Name *</label>
-            <input id="recruiter-last" v-model.trim="form.last_name" type="text" class="form-control" required maxlength="100">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label" for="recruiter-email">Email *</label>
-            <input id="recruiter-email" v-model.trim="form.email" type="email" :class="['form-control', { 'is-invalid': emailError }]" required maxlength="254" @blur="validateEmail" @input="validateEmail">
-            <div class="invalid-feedback">{{ emailError }}</div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label" for="recruiter-phone">Phone</label>
-            <input id="recruiter-phone" v-model="form.phone" @input="formatPhone('phone')" @blur="validatePhoneField('phone')" type="tel" :class="['form-control', { 'is-invalid': phoneError }]" placeholder="(555) 123-4567" maxlength="14">
-            <div class="invalid-feedback">{{ phoneError }}</div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label" for="recruiter-cell">Cell Phone</label>
-            <input id="recruiter-cell" v-model="form.cell_phone" @input="formatPhone('cell_phone')" @blur="validatePhoneField('cell_phone')" type="tel" :class="['form-control', { 'is-invalid': cellPhoneError }]" placeholder="(555) 123-4567" maxlength="14">
-            <div class="invalid-feedback">{{ cellPhoneError }}</div>
           </div>
         </div>
 

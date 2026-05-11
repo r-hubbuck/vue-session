@@ -353,6 +353,8 @@ def register(request):
         token_str = account_activation_token.make_token(user)
         activation_path = reverse('activate', kwargs={'uidb64': uid_b64, 'token': token_str})
         activation_url = request.build_absolute_uri(activation_path)
+        if settings.ENVIRONMENT == 'local':
+            logger.info('DEV — activation URL: %s', activation_url)
 
         mail_subject = 'Activate Your Account'
         message = render_to_string('registration/account_activation_email.html', {
@@ -621,6 +623,8 @@ def resend_activation(request):
         token_str = account_activation_token.make_token(user)
         activation_path = reverse('activate', kwargs={'uidb64': uid_b64, 'token': token_str})
         activation_url = request.build_absolute_uri(activation_path)
+        if settings.ENVIRONMENT == 'local':
+            logger.info('DEV — activation URL: %s', activation_url)
 
         person = getattr(user, 'person', None)
         message = render_to_string('registration/account_activation_email.html', {

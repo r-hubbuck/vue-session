@@ -215,7 +215,6 @@ a:hover {
   margin: 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 0 2rem;
 }
 
@@ -224,6 +223,7 @@ a:hover {
   align-items: center;
   gap: 2rem;
   padding: 1rem 0;
+  flex: 1;
 }
 
 .brand {
@@ -295,6 +295,7 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 1.5rem;
+  margin-left: auto;
 }
 
 .user-info {
@@ -735,82 +736,63 @@ a:hover {
   }
 }
 
-/* Mobile */
-@media (max-width: 767px) {
+/* Mobile + Tablet */
+@media (max-width: 1024px) {
   .nav-container {
     padding: 0 1rem;
-    flex-wrap: wrap;
   }
-  
+
   .brand-section {
-    width: 100%;
     justify-content: space-between;
   }
-  
+
   .main-nav {
     display: none;
-    width: 100%;
-    flex-direction: column;
-    padding: 1rem 0;
-    gap: 0.25rem;
   }
-  
-  .main-nav.show {
-    display: flex;
-  }
-  
-  .main-nav a {
-    width: 100%;
-    justify-content: flex-start;
-  }
-  
+
   .mobile-nav-toggle {
     display: block;
   }
-  
+
   .user-menu {
-    gap: 0.75rem;
-  }
-  
-  .user-details {
     display: none;
   }
-  
+
   .content-container {
     padding: 1.5rem 1rem;
   }
-  
+
   .page-header {
     padding: 1.5rem 0;
   }
-  
+
   .page-header-content {
     padding: 0 1rem;
   }
-  
+
   .page-title {
     font-size: 1.5rem;
   }
-  
+
   .section-card {
     padding: 1.5rem;
     border-radius: 12px;
   }
-  
+
   .section-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
-  
+
   h1 {
     font-size: 1.75rem;
   }
-  
+
   h2 {
     font-size: 1.25rem;
   }
-  
+
   .table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;

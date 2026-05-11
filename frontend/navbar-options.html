@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mobile Navbar Options — TBP Member Portal</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+  :root {
+    --brand-blue: #214283;
+    --brand-blue-dark: #1e3470;
+    --brand-blue-light: #e8edf5;
+    --brand-gold: #cc9c4a;
+    --brand-gold-dark: #c29241;
+    --brand-gold-light: #fdf8f1;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #f0f4f8;
+    padding: 40px 20px;
+    color: #2d3748;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--brand-blue);
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: #718096;
+    font-size: 0.95rem;
+    margin-bottom: 48px;
+  }
+
+  /* ─── Grid of phone frames ─────────────────── */
+  .options-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 40px;
+    max-width: 1300px;
+    margin: 0 auto;
+    align-items: start;
+  }
+
+  .option-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .option-label {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--brand-blue);
+    text-align: center;
+  }
+
+  .option-desc {
+    font-size: 0.8rem;
+    color: #718096;
+    text-align: center;
+    line-height: 1.5;
+    max-width: 220px;
+  }
+
+  /* ─── Phone frame ──────────────────────────── */
+  .phone {
+    width: 280px;
+    height: 560px;
+    background: #f8f9fa;
+    border-radius: 36px;
+    border: 8px solid #1a202c;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(255,255,255,0.1);
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 80px; height: 22px;
+    background: #1a202c;
+    border-radius: 0 0 14px 14px;
+    z-index: 100;
+  }
+
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #fafbfc;
+    position: relative;
+  }
+
+  /* ═══════════════════════════════════════════
+     OPTION A — Left Slide Drawer
+  ══════════════════════════════════════════ */
+
+  .optA .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 14px 10px;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  .optA .brand-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .optA .brand-logo-circle {
+    width: 32px; height: 32px;
+    background: var(--brand-blue);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 0.7rem; font-weight: 700;
+  }
+
+  .optA .brand-text { line-height: 1.2; }
+  .optA .brand-text strong { font-size: 0.8rem; color: var(--brand-blue); display: block; }
+  .optA .brand-text span { font-size: 0.6rem; color: #718096; }
+
+  .optA .hamburger {
+    width: 32px; height: 32px;
+    background: var(--brand-blue-light);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--brand-blue); font-size: 1rem;
+  }
+
+  /* Drawer overlay */
+  .optA .drawer-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 50;
+  }
+
+  .optA .drawer {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 220px;
+    background: white;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+  }
+
+  .optA .drawer-header {
+    padding: 32px 16px 16px;
+    background: var(--brand-blue);
+    color: white;
+  }
+
+  .optA .drawer-user-avatar {
+    width: 40px; height: 40px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; margin-bottom: 8px;
+  }
+
+  .optA .drawer-user-name { font-size: 0.8rem; font-weight: 600; }
+  .optA .drawer-user-email { font-size: 0.65rem; opacity: 0.75; margin-top: 2px; }
+
+  .optA .drawer-nav { flex: 1; padding: 10px 0; overflow-y: auto; }
+
+  .optA .drawer-section-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #a0aec0;
+    padding: 12px 16px 4px;
+  }
+
+  .optA .drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: 0;
+  }
+
+  .optA .drawer-item.active {
+    background: var(--brand-blue-light);
+    color: var(--brand-blue);
+    font-weight: 600;
+    border-left: 3px solid var(--brand-blue);
+    padding-left: 13px;
+  }
+
+  .optA .drawer-item i { font-size: 0.9rem; width: 16px; flex-shrink: 0; }
+
+  .optA .drawer-item .badge {
+    margin-left: auto;
+    background: var(--brand-gold-light);
+    color: var(--brand-gold-dark);
+    font-size: 0.55rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 10px;
+    border: 1px solid #f0d9b0;
+  }
+
+  .optA .drawer-divider { border: none; border-top: 1px solid #f1f5f9; margin: 6px 0; }
+
+  .optA .drawer-bottom {
+    padding: 10px 0;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .optA .drawer-logout {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 16px; font-size: 0.78rem; font-weight: 500;
+    color: #ef4444; cursor: pointer;
+  }
+
+  .optA .page-content {
+    padding: 14px;
+    filter: brightness(0.95);
+  }
+
+  .optA .content-card {
+    background: white;
+    border-radius: 10px;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 10px;
+  }
+
+  .optA .content-card h3 { font-size: 0.8rem; color: var(--brand-blue); margin-bottom: 4px; }
+  .optA .content-card p { font-size: 0.65rem; color: #718096; }
+
+  /* ═══════════════════════════════════════════
+     OPTION B — Bottom Tab Bar
+  ══════════════════════════════════════════ */
+
+  .optB .top-bar {
+    display: flex;
+    align-items: center;
+    padding: 28px 14px 10px;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    gap: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  .optB .brand-row {
+    display: flex; align-items: center; gap: 8px; flex: 1;
+  }
+
+  .optB .brand-logo-circle {
+    width: 28px; height: 28px;
+    background: var(--brand-blue); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 0.65rem; font-weight: 700;
+  }
+
+  .optB .brand-text strong { font-size: 0.75rem; color: var(--brand-blue); display: block; }
+  .optB .brand-text span { font-size: 0.55rem; color: #718096; }
+
+  .optB .user-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: #f7fafc; border-radius: 20px;
+    padding: 4px 10px 4px 4px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .optB .user-chip-avatar {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--brand-blue), var(--brand-gold));
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 0.55rem; font-weight: 700;
+  }
+
+  .optB .user-chip-name { font-size: 0.65rem; font-weight: 500; color: #374151; }
+
+  .optB .page-content {
+    padding: 14px;
+    height: calc(100% - 112px - 56px);
+    overflow-y: auto;
+  }
+
+  .optB .content-card {
+    background: white; border-radius: 10px; padding: 12px;
+    border: 1px solid #e2e8f0; margin-bottom: 10px;
+  }
+
+  .optB .content-card h3 { font-size: 0.8rem; color: var(--brand-blue); margin-bottom: 4px; }
+  .optB .content-card p { font-size: 0.65rem; color: #718096; }
+
+  /* Bottom sheet overlay */
+  .optB .sheet-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    bottom: 56px;
+    background: rgba(0,0,0,0.25);
+    z-index: 40;
+  }
+
+  .optB .bottom-sheet {
+    position: absolute;
+    bottom: 56px; left: 0; right: 0;
+    background: white;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.12);
+    z-index: 50;
+    padding: 8px 0 10px;
+  }
+
+  .optB .sheet-handle {
+    width: 36px; height: 4px;
+    background: #e2e8f0; border-radius: 2px;
+    margin: 4px auto 12px;
+  }
+
+  .optB .sheet-title {
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #a0aec0;
+    padding: 0 16px 6px;
+  }
+
+  .optB .sheet-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 16px; font-size: 0.78rem; font-weight: 500; color: #374151;
+  }
+
+  .optB .sheet-item-icon {
+    width: 32px; height: 32px;
+    background: var(--brand-blue-light); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--brand-blue); font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .optB .sheet-item-icon.gold { background: var(--brand-gold-light); color: var(--brand-gold-dark); }
+
+  .optB .sheet-chevron { margin-left: auto; color: #a0aec0; font-size: 0.7rem; }
+
+  .optB .sheet-divider { border: none; border-top: 1px solid #f1f5f9; margin: 6px 0; }
+
+  /* Bottom tab bar */
+  .optB .tab-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0; height: 56px;
+    background: white;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+    z-index: 60;
+  }
+
+  .optB .tab-item {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 3px; cursor: pointer;
+    color: #a0aec0; font-size: 0.55rem; font-weight: 500;
+  }
+
+  .optB .tab-item i { font-size: 1.1rem; }
+
+  .optB .tab-item.active { color: var(--brand-blue); }
+
+  .optB .tab-item.active i {
+    background: var(--brand-blue-light);
+    border-radius: 12px;
+    padding: 4px 14px;
+    font-size: 1rem;
+  }
+
+  .optB .tab-item.more.active { color: #718096; }
+
+  /* ═══════════════════════════════════════════
+     OPTION C — Full-Screen Overlay
+  ══════════════════════════════════════════ */
+
+  .optC .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 14px 10px;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  .optC .brand-row { display: flex; align-items: center; gap: 8px; }
+
+  .optC .brand-logo-circle {
+    width: 32px; height: 32px; background: var(--brand-blue); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 0.7rem; font-weight: 700;
+  }
+
+  .optC .brand-text strong { font-size: 0.8rem; color: var(--brand-blue); display: block; }
+  .optC .brand-text span { font-size: 0.6rem; color: #718096; }
+
+  .optC .hamburger {
+    width: 32px; height: 32px; background: var(--brand-blue); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 1rem;
+  }
+
+  /* Full screen overlay */
+  .optC .fullscreen-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--brand-blue);
+    z-index: 50;
+    display: flex; flex-direction: column;
+  }
+
+  .optC .overlay-header {
+    padding: 28px 16px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .optC .overlay-brand { display: flex; align-items: center; gap: 8px; }
+
+  .optC .overlay-logo {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 0.75rem; font-weight: 700;
+  }
+
+  .optC .overlay-brand-text strong { color: white; font-size: 0.8rem; display: block; }
+  .optC .overlay-brand-text span { color: rgba(255,255,255,0.6); font-size: 0.6rem; }
+
+  .optC .overlay-close {
+    width: 32px; height: 32px; background: rgba(255,255,255,0.12); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 1rem;
+  }
+
+  .optC .overlay-user {
+    padding: 16px; margin: 12px 16px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .optC .overlay-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--brand-gold);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 0.85rem; font-weight: 700; flex-shrink: 0;
+  }
+
+  .optC .overlay-user-name { color: white; font-size: 0.8rem; font-weight: 600; }
+  .optC .overlay-user-email { color: rgba(255,255,255,0.6); font-size: 0.6rem; margin-top: 2px; }
+
+  .optC .overlay-nav { flex: 1; padding: 4px 16px; overflow-y: auto; }
+
+  .optC .overlay-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 14px; margin-bottom: 4px;
+    border-radius: 10px;
+    cursor: pointer; transition: background 0.15s;
+    color: rgba(255,255,255,0.85); font-size: 0.85rem; font-weight: 500;
+  }
+
+  .optC .overlay-item.active {
+    background: rgba(255,255,255,0.15);
+    color: white;
+  }
+
+  .optC .overlay-item-icon {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 0.9rem; flex-shrink: 0;
+  }
+
+  .optC .overlay-item.active .overlay-item-icon {
+    background: var(--brand-gold);
+  }
+
+  .optC .overlay-chevron { margin-left: auto; color: rgba(255,255,255,0.4); font-size: 0.7rem; }
+
+  .optC .overlay-divider {
+    border: none; border-top: 1px solid rgba(255,255,255,0.1);
+    margin: 8px 0;
+  }
+
+  .optC .overlay-bottom {
+    padding: 12px 16px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex; gap: 8px;
+  }
+
+  .optC .overlay-bottom-btn {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px 12px;
+    border-radius: 10px; font-size: 0.72rem; font-weight: 500; cursor: pointer;
+  }
+
+  .optC .overlay-bottom-btn.support {
+    background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85);
+  }
+
+  .optC .overlay-bottom-btn.logout {
+    background: rgba(239,68,68,0.2); color: #fca5a5;
+  }
+
+  /* ═══════════════════════════════════════════
+     OPTION D — Pill Top Bar + Right Drawer
+  ══════════════════════════════════════════ */
+
+  .optD .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 14px 10px;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  .optD .brand-row { display: flex; align-items: center; gap: 8px; }
+
+  .optD .brand-logo-circle {
+    width: 32px; height: 32px; background: var(--brand-blue); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 0.7rem; font-weight: 700;
+  }
+
+  .optD .brand-text strong { font-size: 0.8rem; color: var(--brand-blue); display: block; }
+  .optD .brand-text span { font-size: 0.6rem; color: #718096; }
+
+  .optD .top-bar-right { display: flex; align-items: center; gap: 8px; }
+
+  .optD .user-avatar-sm {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--brand-blue), var(--brand-gold));
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 0.65rem; font-weight: 700;
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+
+  .optD .hamburger {
+    width: 32px; height: 32px;
+    background: none; border: 1.5px solid #e2e8f0; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--brand-blue); font-size: 1rem;
+  }
+
+  .optD .page-content { padding: 14px; filter: brightness(0.97); }
+
+  .optD .content-card {
+    background: white; border-radius: 10px; padding: 12px;
+    border: 1px solid #e2e8f0; margin-bottom: 10px;
+  }
+
+  .optD .content-card h3 { font-size: 0.8rem; color: var(--brand-blue); margin-bottom: 4px; }
+  .optD .content-card p { font-size: 0.65rem; color: #718096; }
+
+  /* Right drawer */
+  .optD .drawer-overlay {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.25); z-index: 50;
+  }
+
+  .optD .drawer {
+    position: absolute; top: 0; right: 0; bottom: 0; width: 226px;
+    background: white; z-index: 60;
+    display: flex; flex-direction: column;
+    box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+  }
+
+  .optD .drawer-header {
+    padding: 28px 14px 14px;
+    background: white;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .optD .drawer-user-row { display: flex; align-items: center; gap: 8px; }
+
+  .optD .drawer-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--brand-blue), var(--brand-gold));
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 0.8rem; font-weight: 700;
+  }
+
+  .optD .drawer-user-name { font-size: 0.75rem; font-weight: 600; color: #1a202c; }
+  .optD .drawer-user-email { font-size: 0.6rem; color: #718096; }
+
+  .optD .drawer-close {
+    width: 26px; height: 26px; background: #f7fafc; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: #718096; font-size: 0.85rem;
+  }
+
+  .optD .drawer-nav { flex: 1; padding: 8px 0; overflow-y: auto; }
+
+  .optD .drawer-cat {
+    padding: 10px 14px 4px;
+    font-size: 0.58rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px; color: #a0aec0;
+  }
+
+  .optD .drawer-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px;
+    font-size: 0.76rem; font-weight: 500; color: #374151;
+    cursor: pointer; border-radius: 0;
+    transition: background 0.12s;
+  }
+
+  .optD .drawer-item .d-icon {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: #f8fafc; border: 1px solid #f1f5f9;
+    display: flex; align-items: center; justify-content: center;
+    color: #718096; font-size: 0.8rem; flex-shrink: 0;
+  }
+
+  .optD .drawer-item.active { background: var(--brand-blue-light); }
+  .optD .drawer-item.active .d-icon { background: var(--brand-blue); color: white; border-color: var(--brand-blue); }
+  .optD .drawer-item.active { color: var(--brand-blue); font-weight: 600; }
+
+  .optD .drawer-item .d-icon.gold-icon { background: var(--brand-gold-light); color: var(--brand-gold-dark); border-color: #f0d9b0; }
+
+  .optD .drawer-divider { border: none; border-top: 1px solid #f1f5f9; margin: 6px 14px; }
+
+  .optD .drawer-bottom {
+    padding: 10px 14px 14px;
+    border-top: 1px solid #e2e8f0;
+    display: flex; gap: 6px;
+  }
+
+  .optD .drawer-bottom-btn {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
+    padding: 7px 8px; border-radius: 8px; font-size: 0.68rem; font-weight: 500; cursor: pointer;
+  }
+
+  .optD .drawer-bottom-btn.support { background: #f7fafc; border: 1px solid #e2e8f0; color: #4a5568; }
+  .optD .drawer-bottom-btn.logout { background: #fef2f2; border: 1px solid #fecaca; color: #ef4444; }
+
+  /* ─── Shared page content styles ────── */
+  .page-bg-content {
+    padding: 14px; height: 100%;
+  }
+
+  .mini-card {
+    background: white; border-radius: 10px; padding: 11px;
+    border: 1px solid #e2e8f0; margin-bottom: 8px;
+  }
+
+  .mini-card-title { font-size: 0.75rem; font-weight: 600; color: var(--brand-blue); margin-bottom: 2px; }
+  .mini-card-sub { font-size: 0.6rem; color: #718096; }
+
+  .mini-alert {
+    background: var(--brand-blue-light); border-left: 3px solid var(--brand-blue);
+    border-radius: 6px; padding: 8px 10px; margin-bottom: 8px;
+    font-size: 0.65rem; color: #1e3a8a;
+  }
+
+  @media (max-width: 1200px) {
+    .options-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 700px) {
+    .options-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+
+<h1>Mobile Navbar — Design Options</h1>
+<p class="subtitle">Four distinct concepts for the TBP Member Portal mobile navigation. Open in browser to view.</p>
+
+<div class="options-grid">
+
+  <!-- ════════════════════════════════════
+       OPTION A — Left Slide Drawer
+  ═════════════════════════════════════ -->
+  <div class="option-wrap">
+    <div class="option-label">Option A</div>
+    <div class="option-desc">Left slide drawer with user profile header and categorized nav items</div>
+    <div class="phone">
+      <div class="phone-screen optA">
+        <!-- Top bar (visible behind overlay) -->
+        <div class="top-bar">
+          <div class="brand-row">
+            <div class="brand-logo-circle">TBP</div>
+            <div class="brand-text">
+              <strong>Tau Beta Pi</strong>
+              <span>Member Portal</span>
+            </div>
+          </div>
+          <div class="hamburger"><i class="bi bi-list"></i></div>
+        </div>
+
+        <!-- Page content (dimmed) -->
+        <div class="page-content">
+          <div class="mini-alert">Welcome back, <strong>Rachel</strong>!</div>
+          <div class="mini-card"><div class="mini-card-title">Convention</div><div class="mini-card-sub">Register for the annual convention</div></div>
+          <div class="mini-card"><div class="mini-card-title">Expense Reports</div><div class="mini-card-sub">Submit and track your travel expenses</div></div>
+        </div>
+
+        <!-- Drawer overlay -->
+        <div class="drawer-overlay"></div>
+
+        <!-- Left drawer (open state) -->
+        <div class="drawer">
+          <div class="drawer-header">
+            <div class="drawer-user-avatar"><i class="bi bi-person-fill"></i></div>
+            <div class="drawer-user-name">Rachel Hubbuck</div>
+            <div class="drawer-user-email">r.hubbuck@tbp.org</div>
+          </div>
+
+          <div class="drawer-nav">
+            <div class="drawer-section-label">Main</div>
+            <div class="drawer-item active">
+              <i class="bi bi-house-door"></i> Home
+            </div>
+            <div class="drawer-item">
+              <i class="bi bi-person-circle"></i> My Account
+            </div>
+
+            <hr class="drawer-divider">
+            <div class="drawer-section-label">Convention</div>
+            <div class="drawer-item">
+              <i class="bi bi-person-badge"></i> My Registration
+            </div>
+            <div class="drawer-item">
+              <i class="bi bi-person-check"></i> Check In <span class="badge">Staff</span>
+            </div>
+            <div class="drawer-item">
+              <i class="bi bi-airplane"></i> Travel Requests <span class="badge">Staff</span>
+            </div>
+
+            <hr class="drawer-divider">
+            <div class="drawer-section-label">Expense Reports</div>
+            <div class="drawer-item">
+              <i class="bi bi-receipt"></i> My Reports
+            </div>
+            <div class="drawer-item">
+              <i class="bi bi-clipboard-data"></i> Admin <span class="badge">Staff</span>
+            </div>
+
+            <hr class="drawer-divider">
+            <div class="drawer-section-label">Administration</div>
+            <div class="drawer-item">
+              <i class="bi bi-people"></i> User Management
+            </div>
+            <div class="drawer-item">
+              <i class="bi bi-clipboard"></i> Surveys
+            </div>
+          </div>
+
+          <div class="drawer-bottom">
+            <div class="drawer-item" style="padding:8px 16px;font-size:0.75rem;color:#718096;">
+              <i class="bi bi-headset"></i> Support
+            </div>
+            <div class="drawer-logout">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="option-desc" style="color:#374151;font-size:0.78rem;">
+      <strong>Pros:</strong> Familiar pattern, shows all nav at once, role badges visible<br>
+      <strong>Best for:</strong> Users with many destinations
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       OPTION B — Bottom Tab Bar
+  ═════════════════════════════════════ -->
+  <div class="option-wrap">
+    <div class="option-label">Option B</div>
+    <div class="option-desc">Persistent bottom tab bar for key destinations + bottom sheet for more items</div>
+    <div class="phone">
+      <div class="phone-screen optB">
+        <!-- Top bar -->
+        <div class="top-bar">
+          <div class="brand-row">
+            <div class="brand-logo-circle">TBP</div>
+            <div class="brand-text">
+              <strong>Tau Beta Pi</strong>
+              <span>Member Portal</span>
+            </div>
+          </div>
+          <div class="user-chip">
+            <div class="user-chip-avatar">RH</div>
+            <div class="user-chip-name">r.hubbuck@tbp.org</div>
+          </div>
+        </div>
+
+        <!-- Page content -->
+        <div class="page-content">
+          <div class="mini-alert">Welcome back, <strong>Rachel</strong>!</div>
+          <div class="mini-card"><div class="mini-card-title">Convention</div><div class="mini-card-sub">Register for the annual convention</div></div>
+          <div class="mini-card"><div class="mini-card-title">Expense Reports</div><div class="mini-card-sub">Submit and track your travel expenses</div></div>
+        </div>
+
+        <!-- Bottom sheet overlay -->
+        <div class="sheet-overlay"></div>
+
+        <!-- Bottom sheet (open state) -->
+        <div class="bottom-sheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-title">More</div>
+
+          <div class="sheet-item">
+            <div class="sheet-item-icon"><i class="bi bi-person-badge"></i></div>
+            Convention Registration
+            <i class="bi bi-chevron-right sheet-chevron"></i>
+          </div>
+          <div class="sheet-item">
+            <div class="sheet-item-icon"><i class="bi bi-person-check"></i></div>
+            Check In
+            <i class="bi bi-chevron-right sheet-chevron"></i>
+          </div>
+          <hr class="sheet-divider">
+          <div class="sheet-item">
+            <div class="sheet-item-icon gold"><i class="bi bi-clipboard-data"></i></div>
+            Expense Report Admin
+            <i class="bi bi-chevron-right sheet-chevron"></i>
+          </div>
+          <div class="sheet-item">
+            <div class="sheet-item-icon gold"><i class="bi bi-file-earmark-text"></i></div>
+            Invoice Admin
+            <i class="bi bi-chevron-right sheet-chevron"></i>
+          </div>
+          <hr class="sheet-divider">
+          <div class="sheet-item" style="color:#ef4444;">
+            <div class="sheet-item-icon" style="background:#fef2f2;color:#ef4444;"><i class="bi bi-box-arrow-right"></i></div>
+            Logout
+          </div>
+        </div>
+
+        <!-- Bottom tab bar -->
+        <div class="tab-bar">
+          <div class="tab-item active">
+            <i class="bi bi-house-door-fill"></i>
+            Home
+          </div>
+          <div class="tab-item">
+            <i class="bi bi-calendar-event"></i>
+            Convention
+          </div>
+          <div class="tab-item">
+            <i class="bi bi-receipt"></i>
+            Expenses
+          </div>
+          <div class="tab-item">
+            <i class="bi bi-person-circle"></i>
+            Account
+          </div>
+          <div class="tab-item more active">
+            <i class="bi bi-grid-3x3-gap-fill" style="color:var(--brand-blue);"></i>
+            More
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="option-desc" style="color:#374151;font-size:0.78rem;">
+      <strong>Pros:</strong> Key pages always one tap away, very modern app feel<br>
+      <strong>Best for:</strong> Frequent context-switching between main sections
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       OPTION C — Full-Screen Overlay
+  ═════════════════════════════════════ -->
+  <div class="option-wrap">
+    <div class="option-label">Option C</div>
+    <div class="option-desc">Bold full-screen navy overlay with large tap targets and user card</div>
+    <div class="phone">
+      <div class="phone-screen optC">
+        <!-- Top bar (behind overlay) -->
+        <div class="top-bar">
+          <div class="brand-row">
+            <div class="brand-logo-circle">TBP</div>
+            <div class="brand-text">
+              <strong>Tau Beta Pi</strong>
+              <span>Member Portal</span>
+            </div>
+          </div>
+          <div class="hamburger"><i class="bi bi-x-lg"></i></div>
+        </div>
+
+        <!-- Full screen overlay -->
+        <div class="fullscreen-overlay">
+          <div class="overlay-header">
+            <div class="overlay-brand">
+              <div class="overlay-logo">TBP</div>
+              <div class="overlay-brand-text">
+                <strong>Tau Beta Pi</strong>
+                <span>Member Portal</span>
+              </div>
+            </div>
+            <div class="overlay-close"><i class="bi bi-x-lg"></i></div>
+          </div>
+
+          <div class="overlay-user">
+            <div class="overlay-avatar">RH</div>
+            <div>
+              <div class="overlay-user-name">Rachel Hubbuck</div>
+              <div class="overlay-user-email">r.hubbuck@tbp.org</div>
+            </div>
+          </div>
+
+          <div class="overlay-nav">
+            <div class="overlay-item active">
+              <div class="overlay-item-icon"><i class="bi bi-house-door"></i></div>
+              Home
+              <i class="bi bi-chevron-right overlay-chevron"></i>
+            </div>
+            <div class="overlay-item">
+              <div class="overlay-item-icon"><i class="bi bi-person-badge"></i></div>
+              My Registration
+              <i class="bi bi-chevron-right overlay-chevron"></i>
+            </div>
+            <div class="overlay-item">
+              <div class="overlay-item-icon"><i class="bi bi-receipt"></i></div>
+              Expense Reports
+              <i class="bi bi-chevron-right overlay-chevron"></i>
+            </div>
+            <hr class="overlay-divider">
+            <div class="overlay-item" style="font-size:0.75rem;opacity:0.6;">
+              <div class="overlay-item-icon"><i class="bi bi-clipboard-data"></i></div>
+              Expense Report Admin
+            </div>
+            <div class="overlay-item" style="font-size:0.75rem;opacity:0.6;">
+              <div class="overlay-item-icon"><i class="bi bi-people"></i></div>
+              User Management
+            </div>
+            <div class="overlay-item" style="font-size:0.75rem;opacity:0.6;">
+              <div class="overlay-item-icon"><i class="bi bi-clipboard-check"></i></div>
+              Survey Admin
+            </div>
+            <hr class="overlay-divider">
+            <div class="overlay-item" style="font-size:0.75rem;opacity:0.7;">
+              <div class="overlay-item-icon"><i class="bi bi-person-gear"></i></div>
+              Account Settings
+            </div>
+          </div>
+
+          <div class="overlay-bottom">
+            <div class="overlay-bottom-btn support">
+              <i class="bi bi-headset"></i> Support
+            </div>
+            <div class="overlay-bottom-btn logout">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="option-desc" style="color:#374151;font-size:0.78rem;">
+      <strong>Pros:</strong> Bold, on-brand, large tap targets, immersive<br>
+      <strong>Best for:</strong> Establishing strong brand identity on mobile
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       OPTION D — Right Drawer w/ Icon Cards
+  ═════════════════════════════════════ -->
+  <div class="option-wrap">
+    <div class="option-label">Option D</div>
+    <div class="option-desc">Right slide drawer with icon-card items, avatar in top bar, and action buttons</div>
+    <div class="phone">
+      <div class="phone-screen optD">
+        <!-- Top bar -->
+        <div class="top-bar">
+          <div class="brand-row">
+            <div class="brand-logo-circle">TBP</div>
+            <div class="brand-text">
+              <strong>Tau Beta Pi</strong>
+              <span>Member Portal</span>
+            </div>
+          </div>
+          <div class="top-bar-right">
+            <div class="user-avatar-sm">RH</div>
+            <div class="hamburger"><i class="bi bi-list"></i></div>
+          </div>
+        </div>
+
+        <!-- Page content (behind overlay) -->
+        <div class="page-content">
+          <div class="mini-alert">Welcome back, <strong>Rachel</strong>!</div>
+          <div class="mini-card"><div class="mini-card-title">Convention</div><div class="mini-card-sub">Register for the annual convention</div></div>
+          <div class="mini-card"><div class="mini-card-title">Expense Reports</div><div class="mini-card-sub">Submit and track travel expenses</div></div>
+        </div>
+
+        <!-- Overlay -->
+        <div class="drawer-overlay"></div>
+
+        <!-- Right drawer -->
+        <div class="drawer">
+          <div class="drawer-header">
+            <div class="drawer-user-row">
+              <div class="drawer-avatar">RH</div>
+              <div>
+                <div class="drawer-user-name">Rachel Hubbuck</div>
+                <div class="drawer-user-email">r.hubbuck@tbp.org</div>
+              </div>
+            </div>
+            <div class="drawer-close"><i class="bi bi-x-lg"></i></div>
+          </div>
+
+          <div class="drawer-nav">
+            <div class="drawer-cat">Main</div>
+            <div class="drawer-item active">
+              <div class="d-icon"><i class="bi bi-house-door"></i></div>
+              Home
+            </div>
+            <div class="drawer-item">
+              <div class="d-icon"><i class="bi bi-person-circle"></i></div>
+              Account Settings
+            </div>
+
+            <hr class="drawer-divider">
+            <div class="drawer-cat">Convention</div>
+            <div class="drawer-item">
+              <div class="d-icon"><i class="bi bi-person-badge"></i></div>
+              My Registration
+            </div>
+            <div class="drawer-item">
+              <div class="d-icon"><i class="bi bi-person-check"></i></div>
+              Check In
+            </div>
+            <div class="drawer-item">
+              <div class="d-icon"><i class="bi bi-airplane"></i></div>
+              Travel Requests
+            </div>
+
+            <hr class="drawer-divider">
+            <div class="drawer-cat">Expense Reports</div>
+            <div class="drawer-item">
+              <div class="d-icon"><i class="bi bi-receipt"></i></div>
+              My Reports
+            </div>
+            <div class="drawer-item">
+              <div class="d-icon gold-icon"><i class="bi bi-clipboard-data"></i></div>
+              Report Admin
+            </div>
+
+            <hr class="drawer-divider">
+            <div class="drawer-cat">Administration</div>
+            <div class="drawer-item">
+              <div class="d-icon gold-icon"><i class="bi bi-people"></i></div>
+              User Management
+            </div>
+            <div class="drawer-item">
+              <div class="d-icon"><i class="bi bi-clipboard"></i></div>
+              Surveys
+            </div>
+          </div>
+
+          <div class="drawer-bottom">
+            <div class="drawer-bottom-btn support">
+              <i class="bi bi-headset"></i> Support
+            </div>
+            <div class="drawer-bottom-btn logout">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="option-desc" style="color:#374151;font-size:0.78rem;">
+      <strong>Pros:</strong> Avatar in top bar provides quick user context, icon cards add visual richness<br>
+      <strong>Best for:</strong> Premium, polished feel with clear hierarchy
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

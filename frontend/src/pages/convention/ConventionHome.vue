@@ -10,6 +10,89 @@
       </p>
       <p v-else class="page-subtitle">Loading convention information...</p>
       
+      <!-- Registration Summary Card -->
+      <div v-if="registration" class="section-card summary-card mt-4 mb-0">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="section-title mb-0">
+            <div class="section-icon">
+              <i class="bi bi-clipboard-check"></i>
+            </div>
+            Registration Summary
+          </h2>
+          <div class="text-end">
+            <div class="fw-bold" style="color: var(--brand-blue); font-size: 1.1rem;">{{ completionPercentage }}%</div>
+            <small class="text-muted">Complete</small>
+          </div>
+        </div>
+        <div class="progress mb-4" style="height: 6px; border-radius: 3px;">
+          <div class="progress-bar" role="progressbar"
+               :style="{ width: completionPercentage + '%', background: 'linear-gradient(90deg, var(--brand-blue), var(--brand-gold))' }"
+               :aria-valuenow="completionPercentage" aria-valuemin="0" aria-valuemax="100">
+          </div>
+        </div>
+        <div class="summary-grid">
+          <div class="summary-item" @click="openAndScrollToSection('personal-info')">
+            <div class="summary-label"><i class="bi bi-person-badge me-1"></i>Badge Name</div>
+            <div class="summary-value">{{ memberInfo.badge_name || 'Not set' }}</div>
+          </div>
+          <div class="summary-item" @click="openAndScrollToSection('personal-info')">
+            <div class="summary-label"><i class="bi bi-file-earmark-pdf me-1"></i>Resume</div>
+            <div class="summary-value">
+              <span v-if="resumeUrl" class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Uploaded</span>
+              <span v-else class="text-muted"><i class="bi bi-dash-circle me-1"></i>Not uploaded</span>
+            </div>
+          </div>
+          <div class="summary-item" @click="openAndScrollToSection('personal-info')">
+            <div class="summary-label"><i class="bi bi-eye me-1"></i>Recruiter Visibility</div>
+            <div class="summary-value">{{ recruiterVisibilityLabel }}</div>
+          </div>
+          <div class="summary-item" @click="openAndScrollToSection('personal-info')">
+            <div class="summary-label"><i class="bi bi-telephone me-1"></i>Mobile Phone</div>
+            <div class="summary-value">
+              <span v-if="mobilePhone.formatted_number">{{ mobilePhone.formatted_number }}</span>
+              <span v-else class="text-warning">Not on file</span>
+            </div>
+          </div>
+          <div class="summary-item" @click="openAndScrollToSection('personal-info')">
+            <div class="summary-label"><i class="bi bi-house me-1"></i>Mailing Address</div>
+            <div class="summary-value" v-if="primaryAddress">
+              {{ primaryAddress.add_line1 }}, {{ primaryAddress.add_city }}, {{ primaryAddress.add_state }}
+            </div>
+            <div class="summary-value text-warning" v-else>Not on file</div>
+          </div>
+          <div class="summary-item" @click="openAndScrollToSection('personal-info')">
+            <div class="summary-label"><i class="bi bi-heart-pulse me-1"></i>Emergency Contact</div>
+            <div class="summary-value" v-if="emergencyContactSummary">
+              {{ emergencyContactSummary.name }}<span class="text-muted" v-if="emergencyContactSummary.rel"> ({{ emergencyContactSummary.rel }})</span>
+            </div>
+            <div class="summary-value text-warning" v-else>Not set</div>
+          </div>
+          <div class="summary-item" @click="openAndScrollToSection('travel-info')">
+            <div class="summary-label"><i class="bi bi-airplane me-1"></i>Travel</div>
+            <div class="summary-value">
+              {{ travelSummary.method }}
+              <span v-if="travelSummary.detail" class="d-block text-muted" style="font-size: 0.8rem;">{{ travelSummary.detail }}</span>
+            </div>
+          </div>
+          <div class="summary-item" @click="openAndScrollToSection('guest-info')">
+            <div class="summary-label"><i class="bi bi-person-plus me-1"></i>Guests</div>
+            <div class="summary-value">
+              <span v-if="guestDecision === 'no'">No guest</span>
+              <span v-else-if="guestDecision === 'yes' && guests.length > 0">{{ guests.length }} guest{{ guests.length > 1 ? 's' : '' }}</span>
+              <span v-else-if="guestDecision === 'yes'" class="text-muted">Bringing (none added)</span>
+              <span v-else class="text-warning">Not decided</span>
+            </div>
+          </div>
+          <div class="summary-item" @click="openAndScrollToSection('accommodation')">
+            <div class="summary-label"><i class="bi bi-building me-1"></i>Accommodation</div>
+            <div class="summary-value">
+              {{ accommodationSummary }}
+              <span v-if="accommodation.needs_hotel && accommodation.check_in_date" class="d-block text-muted" style="font-size: 0.8rem;">Check-in: {{ accommodation.check_in_date }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Progress Section -->
       <div v-if="registration" class="progress-section">
         <div class="progress-header">
@@ -28,7 +111,7 @@
             :href="'#' + section.id"
             class="status-card"
             :class="{ 'complete': section.isComplete, 'incomplete': !section.isComplete }"
-            @click.prevent="scrollToSection(section.id)"
+            @click.prevent="openAndScrollToSection(section.id)"
           >
             <div class="status-icon">
               <i v-if="section.isComplete" class="bi bi-check-circle-fill"></i>
@@ -79,20 +162,25 @@
 
     <!-- Main Registration Content -->
     <div v-else>
+
       <!-- Personal Information Section -->
       <div id="personal-info" class="section-card scroll-target">
-        <div class="section-header">
+        <div class="section-header section-header-toggle" @click="toggleSection('personal-info')">
           <h2 class="section-title">
             <div class="section-icon">
               <i class="bi bi-person-badge"></i>
             </div>
             Personal Information
           </h2>
-          <span class="status-badge" :class="isPersonalInfoComplete ? 'status-complete' : 'status-pending'">
-            {{ isPersonalInfoComplete ? 'Complete' : 'Pending' }}
-          </span>
+          <div class="d-flex align-items-center gap-2">
+            <span class="status-badge" :class="isPersonalInfoComplete ? 'status-complete' : 'status-pending'">
+              {{ isPersonalInfoComplete ? 'Complete' : 'Pending' }}
+            </span>
+            <i class="bi section-chevron" :class="sectionOpen['personal-info'] ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          </div>
         </div>
 
+        <div v-if="sectionOpen['personal-info']">
         <form @submit.prevent="saveMemberInfo">
           <div class="info-alert">
             <i class="bi bi-info-circle-fill"></i>
@@ -378,22 +466,27 @@
             <span v-else><i class="bi bi-check2 me-2"></i>Save Emergency Contact</span>
           </button>
         </form>
+        </div>
       </div>
 
-      <!-- Committee Preferences Section -->
+      <!-- Travel Information Section -->
       <div id="travel-info" class="section-card scroll-target">
-        <div class="section-header">
+        <div class="section-header section-header-toggle" @click="toggleSection('travel-info')">
           <h2 class="section-title">
             <div class="section-icon">
               <i class="bi bi-airplane"></i>
             </div>
             Travel Information
           </h2>
-          <span class="status-badge" :class="isTravelComplete ? 'status-complete' : 'status-pending'">
-            {{ isTravelComplete ? 'Complete' : 'Pending' }}
-          </span>
+          <div class="d-flex align-items-center gap-2">
+            <span class="status-badge" :class="isTravelComplete ? 'status-complete' : 'status-pending'">
+              {{ isTravelComplete ? 'Complete' : 'Pending' }}
+            </span>
+            <i class="bi section-chevron" :class="sectionOpen['travel-info'] ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          </div>
         </div>
 
+        <div v-if="sectionOpen['travel-info']">
         <!-- Display Booked Flight Information (if available) -->
         <div v-if="travel.has_booked_flight" class="booked-flight-info mb-4" style="background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; padding: 1.5rem;">
           <h5 class="mb-3" style="color: #1e40af; font-weight: 600;">
@@ -584,24 +677,32 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary mt-4" :disabled="saving || (travel.travel_method === 'need_booking' && !isValidTravelDates)">
+          <button v-if="travel.travel_method === 'need_booking'" type="submit" class="btn btn-primary mt-4" :disabled="saving || !isValidTravelDates">
             <span v-if="saving"><span class="spinner-border spinner-border-sm me-2"></span>Saving...</span>
             <span v-else><i class="bi bi-check2 me-2"></i>Save Travel Information</span>
           </button>
         </form>
+        </div>
       </div>
 
-      <!-- Accommodation Section -->
+      <!-- Guest Information Section -->
       <div id="guest-info" class="section-card scroll-target">
-        <div class="section-header">
+        <div class="section-header section-header-toggle" @click="toggleSection('guest-info')">
           <h2 class="section-title">
             <div class="section-icon">
               <i class="bi bi-person-plus"></i>
             </div>
             Guest Information
           </h2>
+          <div class="d-flex align-items-center gap-2">
+            <span class="status-badge" :class="isGuestInfoComplete ? 'status-complete' : 'status-pending'">
+              {{ isGuestInfoComplete ? 'Complete' : 'Pending' }}
+            </span>
+            <i class="bi section-chevron" :class="sectionOpen['guest-info'] ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          </div>
         </div>
 
+        <div v-if="sectionOpen['guest-info']">
         <div class="mb-4" style="padding: 1rem; background: #fafbfc; border-radius: 8px; border: 1px solid #e2e8f0;">
           <p class="mb-3" style="font-weight: 500; color: #1a202c; margin-bottom: 0.5rem;">Will you be bringing a guest to the convention?</p>
           <div class="d-flex flex-column gap-2">
@@ -817,22 +918,27 @@
             You have indicated you will not be bringing a guest. You can change this selection above.
           </div>
         </div>
+        </div>
       </div>
 
-      <!-- Travel Section -->
+      <!-- Accommodation Section -->
       <div id="accommodation" class="section-card scroll-target">
-        <div class="section-header">
+        <div class="section-header section-header-toggle" @click="toggleSection('accommodation')">
           <h2 class="section-title">
             <div class="section-icon gold">
               <i class="bi bi-building"></i>
             </div>
             Accommodation
           </h2>
-          <span class="status-badge" :class="isAccommodationComplete ? 'status-complete' : 'status-pending'">
-            {{ isAccommodationComplete ? 'Complete' : 'Pending' }}
-          </span>
+          <div class="d-flex align-items-center gap-2">
+            <span class="status-badge" :class="isAccommodationComplete ? 'status-complete' : 'status-pending'">
+              {{ isAccommodationComplete ? 'Complete' : 'Pending' }}
+            </span>
+            <i class="bi section-chevron" :class="sectionOpen['accommodation'] ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          </div>
         </div>
 
+        <div v-if="sectionOpen['accommodation']">
         <form @submit.prevent="saveAccommodation">
           <div class="row g-4">
             <div class="col-md-6">
@@ -962,21 +1068,27 @@
             <span v-else><i class="bi bi-check2 me-2"></i>Save Accommodation Information</span>
           </button>
         </form>
+        </div>
       </div>
-    </div>
-      <div v-if="registration" id="committee-prefs" class="section-card scroll-target">
-        <div class="section-header">
+
+      <!-- Committee Preferences Section -->
+      <div id="committee-prefs" class="section-card scroll-target">
+        <div class="section-header section-header-toggle" @click="toggleSection('committee-prefs')">
           <h2 class="section-title">
             <div class="section-icon gold">
               <i class="bi bi-people"></i>
             </div>
             Committee Preferences
           </h2>
-          <span class="status-badge" :class="isCommitteePrefsComplete ? 'status-complete' : 'status-pending'">
-            {{ isCommitteePrefsComplete ? 'Complete' : 'Pending' }}
-          </span>
+          <div class="d-flex align-items-center gap-2">
+            <span class="status-badge" :class="isCommitteePrefsComplete ? 'status-complete' : 'status-pending'">
+              {{ isCommitteePrefsComplete ? 'Complete' : 'Pending' }}
+            </span>
+            <i class="bi section-chevron" :class="sectionOpen['committee-prefs'] ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          </div>
         </div>
 
+        <div v-if="sectionOpen['committee-prefs']">
         <p style="color: #64748b; margin-bottom: 1.5rem;">Please indicate your committee preference. If you agree to serve on a committee, you <strong>must</strong> select a level of interest in at least one committee. A summary of committee business is available <a href="#">here</a>. </p>
         
         <form @submit.prevent="saveCommitteePreferences">
@@ -1034,16 +1146,17 @@
             <span v-else><i class="bi bi-check2 me-2"></i>Save Preferences</span>
           </button>
         </form>
+        </div>
       </div>
 
-      <!-- Guest Section -->
+    </div>
   </div>
     </div>
 
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import api from '../../api'
 import { useToast } from 'vue-toastification'
 import { isValidEmail } from '../../utils/validation'
@@ -1179,6 +1292,9 @@ const committeePreferences = ref({
 // Mirrors the last *saved* state — completion badge is based on this, not the live form
 const savedCommitteePreferences = ref({ ...committeePreferences.value })
 
+// Mirrors last saved travel state — completion badge is based on this, not the live form
+const savedTravel = ref({ travel_method: null })
+
 // Guests
 // null = undecided (section incomplete), 'no' = not bringing, 'yes' = bringing
 const guestDecision = ref(null)
@@ -1294,7 +1410,10 @@ const accommodation = ref({
 
 // Computed - Section Completion Status
 const isPersonalInfoComplete = computed(() => {
-  return mobilePhone.value.phone_number && memberAddresses.value.some(a => a.is_primary)
+  return mobilePhone.value.phone_number &&
+         memberAddresses.value.some(a => a.is_primary) &&
+         !!emergencyContact.value.name &&
+         !!emergencyContact.value.relationship
 })
 
 const isCommitteePrefsComplete = computed(() => {
@@ -1303,18 +1422,16 @@ const isCommitteePrefsComplete = computed(() => {
 })
 
 const isTravelComplete = computed(() => {
-  if (!travel.value.travel_method) return false
-  
-  // For driving or self_booking, just having the travel method selected is complete
-  if (travel.value.travel_method === 'driving' || travel.value.travel_method === 'self_booking') {
+  if (!savedTravel.value.travel_method) return false
+
+  if (savedTravel.value.travel_method === 'driving' || savedTravel.value.travel_method === 'self_booking') {
     return true
   }
-  
-  // For need_booking, require all flight details
-  return travel.value.departure_airport && 
-         travel.value.return_airport && 
-         travel.value.departure_date && 
-         travel.value.return_date
+
+  return !!(savedTravel.value.departure_airport &&
+            savedTravel.value.return_airport &&
+            savedTravel.value.departure_date &&
+            savedTravel.value.return_date)
 })
 
 const isAccommodationComplete = computed(() => {
@@ -1484,6 +1601,7 @@ const loadRegistrationData = async (data) => {
   // Load travel
   if (data.travel) {
     travel.value = { ...data.travel }
+    savedTravel.value = { ...data.travel }
     
     // If airports are already set, find and set their states
     if (travel.value.departure_airport || travel.value.return_airport) {
@@ -1952,6 +2070,58 @@ watch(returnState, (newState) => {
 
 const sendingConfirmation = ref(false)
 
+// Section collapse state — all open by default
+const sectionOpen = ref({
+  'personal-info': true,
+  'travel-info': true,
+  'guest-info': true,
+  'accommodation': true,
+  'committee-prefs': true,
+})
+
+const toggleSection = (id) => {
+  sectionOpen.value[id] = !sectionOpen.value[id]
+}
+
+const openAndScrollToSection = (id) => {
+  sectionOpen.value[id] = true
+  nextTick(() => scrollToSection(id))
+}
+
+// Summary panel computed helpers
+const primaryAddress = computed(() => memberAddresses.value.find(a => a.is_primary) || null)
+
+const recruiterVisibilityLabel = computed(() => {
+  const opt = recruiterVisibilityOptions.find(o => o.value === visibleToRecruiters.value)
+  return opt ? opt.label : visibleToRecruiters.value
+})
+
+const travelSummary = computed(() => {
+  const method = travel.value.travel_method
+  if (method === 'driving') return { method: 'Driving', detail: null }
+  if (method === 'self_booking') return { method: 'Self-Booking', detail: null }
+  if (method === 'need_booking') {
+    const dep = travel.value.departure_airport
+    const ret = travel.value.return_airport
+    if (dep && ret) return { method: 'Need Booking', detail: `${dep} → ${ret}` }
+    return { method: 'Need Booking', detail: dep || ret ? 'Partial info' : 'Airports not set' }
+  }
+  return { method: 'Not set', detail: null }
+})
+
+const accommodationSummary = computed(() => {
+  const labels = { full: 'Full Package', partial: 'Partial Package', commuter: 'Commuter', custom: 'Custom' }
+  return labels[accommodation.value.package_choice] || accommodation.value.package_choice
+})
+
+const emergencyContactSummary = computed(() => {
+  if (!emergencyContact.value.name) return null
+  const rel = emergencyContact.value.relationship === 'Other'
+    ? emergencyContact.value.relationship_other
+    : emergencyContact.value.relationship
+  return { name: emergencyContact.value.name, rel }
+})
+
 watch(completionPercentage, async (newVal) => {
   if (newVal === 100 && registration.value && !registration.value.confirmation_email_sent && !sendingConfirmation.value) {
     sendingConfirmation.value = true
@@ -1967,10 +2137,9 @@ watch(completionPercentage, async (newVal) => {
 })
 
 // Handle travel method changes
-const handleTravelMethodChange = () => {
-  // If switching from need_booking to self_booking or driving, clear flight details
+const handleTravelMethodChange = async () => {
   if (travel.value.travel_method !== 'need_booking') {
-    // Clear all flight-related data - use null for cleaner data
+    // Clear all flight-related data
     travel.value.departure_airport = ''
     travel.value.departure_date = null
     travel.value.departure_time_preference = null
@@ -1979,12 +2148,15 @@ const handleTravelMethodChange = () => {
     travel.value.return_time_preference = null
     travel.value.seat_preference = 'none'
     travel.value.needs_ground_transportation = true
-    
+
     // Clear state selections
     departureState.value = ''
     returnState.value = ''
     departureAirports.value = []
     returnAirports.value = []
+
+    // Auto-save — no additional info needed for driving/self-booking
+    await saveTravel()
   }
 }
 
@@ -2006,6 +2178,7 @@ const saveTravel = async () => {
       `/api/convention/registration/${registration.value.id}/travel/`,
       cleanedData
     )
+    savedTravel.value = { ...cleanedData }
     toast.success('Travel information saved!')
   } catch (error) {
     const data = error.response?.data
@@ -2232,5 +2405,73 @@ onMounted(async () => {
   width: 1rem;
   height: 1rem;
   border-width: 0.15em;
+}
+
+/* ─── Registration Summary Card ──────────────────────────────── */
+.summary-card {
+  border-top: 4px solid var(--brand-blue);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.summary-item {
+  padding: 0.75rem;
+  background: #fafbfc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.summary-item:hover {
+  border-color: var(--brand-blue);
+  background: white;
+}
+
+.summary-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.summary-value {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1a202c;
+}
+
+/* ─── Collapsible section headers ────────────────────────────── */
+.section-header-toggle {
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-header-toggle:hover {
+  background: #f8fafc;
+}
+
+.section-chevron {
+  font-size: 1.1rem;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
