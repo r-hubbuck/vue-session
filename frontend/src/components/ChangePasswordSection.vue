@@ -1,8 +1,18 @@
 <template>
   <div class="section-card">
-    <h5 class="fw-bold mb-4"><i class="bi bi-lock me-2"></i>Change Password</h5>
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <h5 class="fw-bold mb-0"><i class="bi bi-lock me-2"></i>Change Password</h5>
+      <button v-if="!showForm" type="button" class="btn btn-outline-secondary btn-sm" @click="showForm = true">
+        <i class="bi bi-pencil me-1"></i>Change Password
+      </button>
+      <button v-else type="button" class="btn btn-link btn-sm text-muted p-0" @click="cancel">
+        Cancel
+      </button>
+    </div>
 
-    <form @submit.prevent="submit" style="max-width: 480px;">
+    <p v-if="!showForm" class="text-muted small mb-0">Click "Change Password" to update your password.</p>
+
+    <form v-if="showForm" @submit.prevent="submit" style="max-width: 480px;">
       <!-- Current Password -->
       <div class="mb-3">
         <label class="form-label" for="current-password">Current Password</label>
@@ -90,6 +100,7 @@ import { useToast } from 'vue-toastification'
 
 const toast = useToast()
 
+const showForm = ref(false)
 const currentPassword = ref('')
 const newPassword1 = ref('')
 const newPassword2 = ref('')
@@ -99,6 +110,17 @@ const currentPasswordError = ref('')
 const newPasswordError = ref('')
 const confirmError = ref('')
 const serverError = ref('')
+
+const cancel = () => {
+  showForm.value = false
+  currentPassword.value = ''
+  newPassword1.value = ''
+  newPassword2.value = ''
+  currentPasswordError.value = ''
+  newPasswordError.value = ''
+  confirmError.value = ''
+  serverError.value = ''
+}
 
 const reqLen     = computed(() => newPassword1.value.length >= 8)
 const reqUpper   = computed(() => /[A-Z]/.test(newPassword1.value))
@@ -139,6 +161,7 @@ const submit = async () => {
       new_password1: newPassword1.value,
       new_password2: newPassword2.value,
     })
+    showForm.value = false
     currentPassword.value = ''
     newPassword1.value = ''
     newPassword2.value = ''

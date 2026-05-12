@@ -142,8 +142,8 @@ const navCategoryDefs = [
     icon: 'bi-gear',
     items: [
       { to: '/user-management', label: 'User Management', icon: 'bi-people',          roles: ['hq_admin'] },
-      { to: '/surveys',         label: 'View Surveys',    icon: 'bi-clipboard',       roles: null },
-      { to: '/surveys/admin',   label: 'Survey Admin',    icon: 'bi-clipboard-check', roles: ['hq_staff'] },
+      // { to: '/surveys',         label: 'View Surveys',    icon: 'bi-clipboard',       roles: ['hq_staff'] },
+      // { to: '/surveys/admin',   label: 'Survey Admin',    icon: 'bi-clipboard-check', roles: ['hq_staff'] },
     ],
   },
 ]
@@ -219,6 +219,7 @@ const visibleCategories = computed(() =>
                 :key="item.to"
                 :to="item.to"
                 class="nav-dropdown-item"
+                @click="openDropdown = null"
               >
                 <i class="bi" :class="item.icon"></i>
                 {{ item.label }}
