@@ -100,23 +100,6 @@ class Person(models.Model):
         return f"{self.first_name} {self.last_name}"
 
 
-class Staff(models.Model):
-    DEPARTMENT_CHOICES = [
-        ('finance', 'Finance'),
-        ('administration', 'Administration'),
-        ('chapter_services', 'Chapter Services'),
-        ('it', 'IT'),
-        ('marketing_communications', 'Marketing & Communications'),
-    ]
-    person = models.OneToOneField('Person', on_delete=models.CASCADE, related_name='staff')
-    department = models.CharField(max_length=30, choices=DEPARTMENT_CHOICES, blank=True)
-
-    class Meta:
-        db_table = 'staff'
-
-    def __str__(self):
-        return f"Staff: {self.person}"
-
 
 class GuestSpeaker(models.Model):
     person = models.OneToOneField('Person', on_delete=models.CASCADE, related_name='guest_speaker')

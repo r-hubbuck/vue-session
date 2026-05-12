@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0006_curriculum'),
+        ('accounts', '0012_rename_curriculum_to_resumecurriculum'),
         ('recruiters', '0004_add_is_virtual_to_booth_package'),
     ]
 
@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='recruiterregistration',
             name='recruiting_majors',
-            field=models.ManyToManyField(blank=True, related_name='recruiter_registrations', to='accounts.curriculum'),
+            field=models.ManyToManyField(blank=True, related_name='recruiter_registrations', to='accounts.resumecurriculum'),
         ),
         migrations.AddField(
             model_name='recruiterregistration',

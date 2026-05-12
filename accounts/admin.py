@@ -2,7 +2,7 @@ from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserCreationForm
-from .models import User, Member, Address, PhoneNumber, StateProvince, Person, Staff, GuestSpeaker, Gender, Ethnicity
+from .models import User, Member, Address, PhoneNumber, StateProvince, Person, GuestSpeaker, Gender, Ethnicity
 
 
 class UserWithPersonCreationForm(UserCreationForm):
@@ -21,12 +21,6 @@ class PersonAdmin(admin.ModelAdmin):
     list_display = ('first_name', 'last_name', 'preferred_first_name', 'gender', 'birth_date')
     search_fields = ('first_name', 'last_name', 'preferred_first_name')
 
-
-@admin.register(Staff)
-class StaffAdmin(admin.ModelAdmin):
-    list_display = ('person', 'department')
-    list_filter = ('department',)
-    raw_id_fields = ('person',)
 
 
 @admin.register(GuestSpeaker)
