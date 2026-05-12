@@ -125,7 +125,7 @@ def serve_receipt(request, report_id):
     """Serve a receipt PDF; accessible to the report owner, hq_staff, and hq_finance."""
     report = get_object_or_404(ExpenseReport, id=report_id)
     is_owner = hasattr(report.person, 'user') and report.person.user == request.user
-    is_staff = request.user.has_role('hq_staff') or request.user.has_role('hq_finance')
+    is_staff = any(request.user.has_role(r) for r in ('hq_staff', 'hq_finance', 'hq_admin'))
     if not (is_owner or is_staff):
         return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
     if not report.receipt:
@@ -264,7 +264,7 @@ def upload_receipts(request, report_id):
 
 # Staff/Admin endpoints
 
-STAFF_EXPENSE_ROLES = ['hq_staff', 'hq_finance', 'executive_council']
+STAFF_EXPENSE_ROLES = ['hq_staff', 'hq_finance', 'hq_admin', 'executive_council']
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

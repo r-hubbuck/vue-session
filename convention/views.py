@@ -557,7 +557,7 @@ def get_states(request):
 
 # Admin views
 
-STAFF_ADMIN_ROLES = ['hq_staff', 'hq_finance', 'executive_council']
+STAFF_ADMIN_ROLES = ['hq_staff', 'hq_finance', 'hq_admin', 'hq_convention_travel', 'executive_council']
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

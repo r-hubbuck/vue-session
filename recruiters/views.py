@@ -87,7 +87,7 @@ def is_approved_recruiter(user):
 
 
 def is_staff_or_admin(user):
-    return user.has_role('hq_staff') or user.has_role('hq_admin')
+    return any(user.has_role(r) for r in ('hq_staff', 'hq_admin', 'hq_recruiting'))
 
 
 def is_staff_or_finance(user):
