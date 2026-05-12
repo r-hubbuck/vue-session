@@ -455,7 +455,7 @@
                     <div class="invalid-feedback">{{ updateFormErrors.rejection_reason }}</div>
                   </div>
 
-                  <div class="d-flex justify-content-end gap-2">
+                  <div class="d-grid gap-2 d-sm-flex justify-content-sm-end">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                       Cancel
                     </button>

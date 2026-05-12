@@ -305,7 +305,7 @@
             <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
           </div>
 
-          <div class="d-flex justify-content-end gap-2 mt-4">
+          <div class="d-grid gap-2 d-sm-flex justify-content-sm-end mt-4">
             <button type="button" class="btn btn-secondary" @click="cancelCreate">
               <i class="bi bi-x-lg me-2"></i>Cancel
             </button>

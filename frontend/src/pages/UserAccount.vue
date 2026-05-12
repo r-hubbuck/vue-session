@@ -200,7 +200,7 @@
             </table>
           </div>
 
-          <div class="d-flex justify-content-between mt-4">
+          <div class="d-grid gap-2 d-sm-flex justify-content-sm-between mt-4">
             <button type="button" class="btn btn-secondary" @click="resetPhoneChanges" :disabled="phoneSaving">
               <i class="bi bi-arrow-counterclockwise me-2"></i>Reset Changes
             </button>
@@ -381,7 +381,7 @@
             </table>
           </div>
 
-          <div class="d-flex justify-content-between mt-4">
+          <div class="d-grid gap-2 d-sm-flex justify-content-sm-between mt-4">
             <button type="button" class="btn btn-secondary" @click="resetAddressChanges" :disabled="addressSaving">
               <i class="bi bi-arrow-counterclockwise me-2"></i>Reset Changes
             </button>

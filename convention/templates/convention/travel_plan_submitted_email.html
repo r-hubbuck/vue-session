@@ -1,0 +1,164 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Travel Plan Submitted — {{ convention.name }}{% endblock %}
+
+{% block preheader %}{{ person.first_name }} {{ person.last_name }} has submitted a travel plan for {{ convention.name }} and may require booking assistance.{% endblock %}
+
+{% block accent_color %}#17a2b8{% endblock %}
+
+{% block body_header %}
+<p style="margin:0 0 28px 0; font-size:20px; font-weight:bold; color:#1b2342; letter-spacing:-0.3px;">New Travel Plan Submitted</p>
+{% endblock %}
+
+{% block greeting %}
+<p style="margin:0 0 20px 0; font-size:15px; color:#222222; line-height:1.5;">Hello,</p>
+{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 20px 0; font-size:15px; color:#333344; line-height:1.7;">
+  A travel plan has been submitted for the <strong style="color:#1b2342;">{{ convention.name }}</strong>
+  in <strong>{{ convention.location }}</strong>. Please review the details below.
+</p>
+
+{% if travel.travel_method == 'need_booking' %}
+{# Action required alert #}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+       style="background-color:#fff8e1; border:1px solid #ffe082; border-left:4px solid #f59e0b; border-radius:0 6px 6px 0; margin:0 0 24px 0;">
+  <tr>
+    <td style="padding:16px 20px;">
+      <p style="margin:0; font-size:14px; font-weight:bold; color:#8a6c00;">
+        &#9888;&nbsp; Action Required: This member is requesting flight booking assistance from Headquarters.
+      </p>
+    </td>
+  </tr>
+</table>
+{% endif %}
+
+{# ---- Member Information ---- #}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 6px 0;">
+  <tr>
+    <td style="border-left:4px solid #17a2b8; padding:0 0 0 16px;">
+      <p style="margin:0 0 12px 0; font-size:13px; font-weight:bold; color:#17a2b8; text-transform:uppercase; letter-spacing:0.1em;">Member Information</p>
+    </td>
+  </tr>
+</table>
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+       style="background-color:#f8f9fc; border:1px solid #dde0e6; border-radius:6px; margin:8px 0 24px 0;">
+  <tr>
+    <td style="padding:20px 24px;">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+        <tr>
+          <td width="40%" style="padding:4px 0; font-size:13px; color:#6c757d;">Name</td>
+          <td width="60%" style="padding:4px 0; font-size:13px; color:#222222; font-weight:bold;">{{ person.first_name }} {{ person.last_name }}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 0; font-size:13px; color:#6c757d;">Email</td>
+          <td style="padding:4px 0; font-size:13px; color:#222222;">
+            <a href="mailto:{{ person.user.email }}" style="color:#284080; text-decoration:none;">{{ person.user.email }}</a>
+          </td>
+        </tr>
+        {% if person.member %}
+        <tr>
+          <td style="padding:4px 0; font-size:13px; color:#6c757d;">Chapter</td>
+          <td style="padding:4px 0; font-size:13px; color:#222222;">{{ person.member.chapter_code }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td style="padding:4px 0; font-size:13px; color:#6c757d;">Submitted</td>
+          <td style="padding:4px 0; font-size:13px; color:#222222;">{{ submitted_at }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+{# ---- Travel Details ---- #}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 6px 0;">
+  <tr>
+    <td style="border-left:4px solid #17a2b8; padding:0 0 0 16px;">
+      <p style="margin:0 0 12px 0; font-size:13px; font-weight:bold; color:#17a2b8; text-transform:uppercase; letter-spacing:0.1em;">Travel Details</p>
+    </td>
+  </tr>
+</table>
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+       style="background-color:#f8f9fc; border:1px solid #dde0e6; border-radius:6px; margin:8px 0 24px 0;">
+  <tr>
+    <td style="padding:20px 24px;">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+        <tr>
+          <td width="40%" style="padding:4px 0; font-size:13px; color:#6c757d;">Travel Method</td>
+          <td width="60%" style="padding:4px 0; font-size:13px; color:#222222; font-weight:bold;">{{ travel_method_display }}</td>
+        </tr>
+        {% if travel.travel_method == 'need_booking' or travel.travel_method == 'self_booking' %}
+        <tr>
+          <td style="padding:12px 0 4px 0; font-size:12px; font-weight:bold; color:#6c757d; text-transform:uppercase; letter-spacing:0.05em;" colspan="2">Outbound</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 0; font-size:13px; color:#6c757d;">Departure Airport</td>
+          <td style="padding:4px 0; font-size:13px; color:#222222;">{{ travel.departure_airport }}</td>
+        </tr>
+        {% if travel.departure_date %}
+        <tr>
+          <td style="padding:4px 0; font-size:13px; color:#6c757d;">Departure Date</td>
+          <td style="padding:4px 0; font-size:13px; color:#222222;">{{ travel.departure_date|date:"l, F j, Y" }}</td>
+        </tr>
+        {% endif %}
+        {% if travel.departure_time_preference is not None %}
+        <tr>
+          <td style="padding:4px 0; font-size:13px; color:#6c757d;">Preferred Departure Time</td>
+          <td style="padding:4px 0; font-size:13px; color:#222222;">{{ departure_time_display }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td style="padding:12px 0 4px 0; font-size:12px; font-weight:bold; color:#6c757d; text-transform:uppercase; letter-spacing:0.05em;" colspan="2">Return</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 0; font-size:13px; color:#6c757d;">Return Airport</td>
+          <td style="padding:4px 0; font-size:13px; color:#222222;">{{ travel.return_airport }}</td>
+        </tr>
+        {% if travel.return_date %}
+        <tr>
+          <td style="padding:4px 0; font-size:13px; color:#6c757d;">Return Date</td>
+          <td style="padding:4px 0; font-size:13px; color:#222222;">{{ travel.return_date|date:"l, F j, Y" }}</td>
+        </tr>
+        {% endif %}
+        {% if travel.return_time_preference is not None %}
+        <tr>
+          <td style="padding:4px 0; font-size:13px; color:#6c757d;">Preferred Return Time</td>
+          <td style="padding:4px 0; font-size:13px; color:#222222;">{{ return_time_display }}</td>
+        </tr>
+        {% endif %}
+        {% if travel.seat_preference and travel.seat_preference != 'none' %}
+        <tr>
+          <td style="padding:4px 0; font-size:13px; color:#6c757d;">Seat Preference</td>
+          <td style="padding:4px 0; font-size:13px; color:#222222;">{{ travel.get_seat_preference_display }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td style="padding:4px 0; font-size:13px; color:#6c757d;">Ground Transportation</td>
+          <td style="padding:4px 0; font-size:13px; color:#222222;">{{ travel.needs_ground_transportation|yesno:"Required,Not needed" }}</td>
+        </tr>
+        {% endif %}
+      </table>
+    </td>
+  </tr>
+</table>
+
+{# ---- CTA ---- #}
+{% endblock %}
+
+{% block cta %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0 8px 0;">
+  <tr>
+    <td align="center">
+      <a href="https://{{ domain }}/convention-travel"
+         style="display:inline-block; background-color:#1b2342; color:#ffffff; font-size:14px; font-weight:bold;
+                padding:14px 32px; border-radius:6px; text-decoration:none; letter-spacing:0.02em;">
+        View Travel Admin
+      </a>
+    </td>
+  </tr>
+</table>
+{% endblock %}
+
+{% block sender %}Tau Beta Pi Convention Team{% endblock %}

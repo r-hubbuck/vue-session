@@ -278,39 +278,42 @@
                           </div>
                         </div>
                         <div class="mb-3">
-                          <label class="form-label">Departure Time</label>
-                          <input 
+                          <label class="form-label">Departure Time *</label>
+                          <input
                             v-model="flightBookingForm.outbound_departure_time"
-                            type="datetime-local" 
+                            type="datetime-local"
                             class="form-control"
                             :class="{'is-invalid': validationErrors.outbound_departure_time}"
+                            required
                           >
                           <div class="invalid-feedback">
                             {{ validationErrors.outbound_departure_time }}
                           </div>
                         </div>
                         <div class="mb-3">
-                          <label class="form-label">Arrival Time</label>
-                          <input 
+                          <label class="form-label">Arrival Time *</label>
+                          <input
                             v-model="flightBookingForm.outbound_arrival_time"
-                            type="datetime-local" 
+                            type="datetime-local"
                             class="form-control"
                             :class="{'is-invalid': validationErrors.outbound_arrival_time}"
                             @blur="validateField('outbound_arrival_time')"
+                            required
                           >
                           <div class="invalid-feedback">
                             {{ validationErrors.outbound_arrival_time }}
                           </div>
                         </div>
                         <div class="mb-3">
-                          <label class="form-label">Confirmation Number</label>
-                          <input 
+                          <label class="form-label">Confirmation Number *</label>
+                          <input
                             v-model="flightBookingForm.outbound_confirmation"
-                            type="text" 
+                            type="text"
                             class="form-control"
                             :class="{'is-invalid': validationErrors.outbound_confirmation}"
                             placeholder="Confirmation #"
                             maxlength="50"
+                            required
                           >
                           <div class="invalid-feedback">
                             {{ validationErrors.outbound_confirmation }}
@@ -357,39 +360,42 @@
                           </div>
                         </div>
                         <div class="mb-3">
-                          <label class="form-label">Departure Time</label>
-                          <input 
+                          <label class="form-label">Departure Time *</label>
+                          <input
                             v-model="flightBookingForm.return_departure_time"
-                            type="datetime-local" 
+                            type="datetime-local"
                             class="form-control"
                             :class="{'is-invalid': validationErrors.return_departure_time}"
+                            required
                           >
                           <div class="invalid-feedback">
                             {{ validationErrors.return_departure_time }}
                           </div>
                         </div>
                         <div class="mb-3">
-                          <label class="form-label">Arrival Time</label>
-                          <input 
+                          <label class="form-label">Arrival Time *</label>
+                          <input
                             v-model="flightBookingForm.return_arrival_time"
-                            type="datetime-local" 
+                            type="datetime-local"
                             class="form-control"
                             :class="{'is-invalid': validationErrors.return_arrival_time}"
                             @blur="validateField('return_arrival_time')"
+                            required
                           >
                           <div class="invalid-feedback">
                             {{ validationErrors.return_arrival_time }}
                           </div>
                         </div>
                         <div class="mb-3">
-                          <label class="form-label">Confirmation Number</label>
-                          <input 
+                          <label class="form-label">Confirmation Number *</label>
+                          <input
                             v-model="flightBookingForm.return_confirmation"
-                            type="text" 
+                            type="text"
                             class="form-control"
                             :class="{'is-invalid': validationErrors.return_confirmation}"
                             placeholder="Confirmation #"
                             maxlength="50"
+                            required
                           >
                           <div class="invalid-feedback">
                             {{ validationErrors.return_confirmation }}
@@ -451,7 +457,7 @@
           <div v-if="!isFlightBookingValid" class="modal-footer bg-warning-subtle">
             <div class="alert alert-warning mb-0 w-100">
               <i class="bi bi-exclamation-triangle"></i>
-              Please ensure both outbound and return flights are complete before saving.
+              All flight fields are required — please fill in airline, flight number, departure time, arrival time, and confirmation number for both flights.
             </div>
           </div>
         </div>
@@ -518,28 +524,21 @@ export default {
     
     isFlightBookingValid() {
       const form = this.flightBookingForm;
-      
-      // If either flight number is filled, both required
-      const hasOutbound = form.outbound_flight_number?.trim();
-      const hasReturn = form.return_flight_number?.trim();
-      
-      if (hasOutbound || hasReturn) {
-        // Both flights required
-        if (!hasOutbound || !hasReturn) return false;
-        
-        // Both airlines required
-        if (!form.outbound_airline?.trim() || !form.return_airline?.trim()) return false;
-        
-        // Validate times if provided
-        if (form.outbound_departure_time && form.outbound_arrival_time) {
-          if (form.outbound_arrival_time <= form.outbound_departure_time) return false;
-        }
-        
-        if (form.return_departure_time && form.return_arrival_time) {
-          if (form.return_arrival_time <= form.return_departure_time) return false;
-        }
-      }
-      
+
+      if (!form.outbound_airline?.trim()) return false;
+      if (!form.outbound_flight_number?.trim()) return false;
+      if (!form.outbound_departure_time) return false;
+      if (!form.outbound_arrival_time) return false;
+      if (!form.outbound_confirmation?.trim()) return false;
+      if (!form.return_airline?.trim()) return false;
+      if (!form.return_flight_number?.trim()) return false;
+      if (!form.return_departure_time) return false;
+      if (!form.return_arrival_time) return false;
+      if (!form.return_confirmation?.trim()) return false;
+
+      if (form.outbound_arrival_time <= form.outbound_departure_time) return false;
+      if (form.return_arrival_time <= form.return_departure_time) return false;
+
       return true;
     }
   },
@@ -672,33 +671,11 @@ export default {
     },
     
     validateField(fieldName) {
-      // Clear previous error for this field
       this.validationErrors = { ...this.validationErrors };
       delete this.validationErrors[fieldName];
-      
+
       const form = this.flightBookingForm;
-      
-      // Validate based on field
-      if (fieldName === 'outbound_airline' || fieldName === 'return_airline') {
-        const hasOutbound = form.outbound_flight_number?.trim();
-        const hasReturn = form.return_flight_number?.trim();
-        
-        if ((hasOutbound || hasReturn) && !form[fieldName]?.trim()) {
-          this.validationErrors[fieldName] = 'Airline is required when booking flights';
-        }
-      }
-      
-      if (fieldName === 'outbound_flight_number' || fieldName === 'return_flight_number') {
-        const hasOutbound = form.outbound_flight_number?.trim();
-        const hasReturn = form.return_flight_number?.trim();
-        
-        if (hasOutbound && !hasReturn) {
-          this.validationErrors.return_flight_number = 'Both outbound and return flights required';
-        } else if (hasReturn && !hasOutbound) {
-          this.validationErrors.outbound_flight_number = 'Both outbound and return flights required';
-        }
-      }
-      
+
       if (fieldName === 'outbound_arrival_time') {
         if (form.outbound_departure_time && form.outbound_arrival_time) {
           if (form.outbound_arrival_time <= form.outbound_departure_time) {
@@ -706,7 +683,7 @@ export default {
           }
         }
       }
-      
+
       if (fieldName === 'return_arrival_time') {
         if (form.return_departure_time && form.return_arrival_time) {
           if (form.return_arrival_time <= form.return_departure_time) {

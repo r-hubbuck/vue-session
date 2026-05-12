@@ -808,65 +808,39 @@ class AdminConventionTravelUpdateSerializer(serializers.ModelSerializer):
         ]
     
     def validate(self, data):
-        """
-        Validate flight booking data - ensures data integrity.
-        Similar to ConventionTravelSerializer validation logic.
-        """
         errors = {}
-        
-        # Get current values if updating existing record
-        outbound_flight = data.get('outbound_flight_number', '')
-        return_flight = data.get('return_flight_number', '')
-        outbound_airline = data.get('outbound_airline', '')
-        return_airline = data.get('return_airline', '')
-        
-        if self.instance:
-            outbound_flight = outbound_flight or self.instance.outbound_flight_number
-            return_flight = return_flight or self.instance.return_flight_number
-            outbound_airline = outbound_airline or self.instance.outbound_airline
-            return_airline = return_airline or self.instance.return_airline
-        
-        # If booking flights, require both outbound and return
-        if outbound_flight and not return_flight:
-            errors['return_flight_number'] = 'Return flight required when outbound flight is provided.'
-        elif return_flight and not outbound_flight:
-            errors['outbound_flight_number'] = 'Outbound flight required when return flight is provided.'
-        
-        # If providing outbound flight, require airline
-        if outbound_flight and not outbound_airline:
-            errors['outbound_airline'] = 'Airline required when flight number is provided.'
-        
-        # If providing return flight, require airline
-        if return_flight and not return_airline:
-            errors['return_airline'] = 'Airline required when flight number is provided.'
-        
-        # Validate outbound times - arrival must be after departure
+
+        required_fields = [
+            ('outbound_airline', 'Outbound airline is required.'),
+            ('outbound_flight_number', 'Outbound flight number is required.'),
+            ('outbound_departure_time', 'Outbound departure time is required.'),
+            ('outbound_arrival_time', 'Outbound arrival time is required.'),
+            ('outbound_confirmation', 'Outbound confirmation number is required.'),
+            ('return_airline', 'Return airline is required.'),
+            ('return_flight_number', 'Return flight number is required.'),
+            ('return_departure_time', 'Return departure time is required.'),
+            ('return_arrival_time', 'Return arrival time is required.'),
+            ('return_confirmation', 'Return confirmation number is required.'),
+        ]
+
+        for field, message in required_fields:
+            value = data.get(field)
+            if value is None or (isinstance(value, str) and not value.strip()):
+                errors[field] = message
+
         outbound_dep = data.get('outbound_departure_time')
         outbound_arr = data.get('outbound_arrival_time')
-        
-        if self.instance:
-            outbound_dep = outbound_dep or self.instance.outbound_departure_time
-            outbound_arr = outbound_arr or self.instance.outbound_arrival_time
-        
-        if outbound_dep and outbound_arr:
-            if outbound_arr <= outbound_dep:
-                errors['outbound_arrival_time'] = 'Arrival time must be after departure time.'
-        
-        # Validate return times - arrival must be after departure
+        if outbound_dep and outbound_arr and outbound_arr <= outbound_dep:
+            errors['outbound_arrival_time'] = 'Arrival time must be after departure time.'
+
         return_dep = data.get('return_departure_time')
         return_arr = data.get('return_arrival_time')
-        
-        if self.instance:
-            return_dep = return_dep or self.instance.return_departure_time
-            return_arr = return_arr or self.instance.return_arrival_time
-        
-        if return_dep and return_arr:
-            if return_arr <= return_dep:
-                errors['return_arrival_time'] = 'Arrival time must be after departure time.'
-        
+        if return_dep and return_arr and return_arr <= return_dep:
+            errors['return_arrival_time'] = 'Arrival time must be after departure time.'
+
         if errors:
             raise serializers.ValidationError(errors)
-        
+
         return data
     
     def validate_flight_notes(self, value):

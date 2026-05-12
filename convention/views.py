@@ -52,7 +52,7 @@ from .serializers import (
     CheckInListSerializer,
     RegistrationStatusUpdateSerializer,
 )
-from accounts.models import Person, Address, PhoneNumber
+from accounts.models import Person, Address, PhoneNumber, User
 import logging
 
 # Set up logging for audit trail
@@ -418,6 +418,22 @@ def guest_detail(request, registration_id, guest_id):
         )
 
 
+def _format_time_preference(minutes):
+    if minutes is None:
+        return 'No preference'
+    h, m = divmod(int(minutes), 60)
+    period = 'AM' if h < 12 else 'PM'
+    display_h = h % 12 or 12
+    return f"{display_h}:{m:02d} {period}"
+
+
+TRAVEL_METHOD_LABELS = {
+    'need_booking': 'Need Convention to Book',
+    'self_booking': 'Booking My Own',
+    'driving': 'Driving',
+}
+
+
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 def update_travel(request, registration_id):
@@ -429,24 +445,74 @@ def update_travel(request, registration_id):
         id=registration_id,
         person=request.user.person
     )
-    
+
     travel, created = ConventionTravel.objects.get_or_create(
         registration=registration
     )
-    
+
     serializer = ConventionTravelSerializer(
         travel,
         data=request.data,
         partial=True
     )
-    
+
     if serializer.is_valid():
-        serializer.save()
+        updated_travel = serializer.save()
+
+        if not travel.travel_notification_sent:
+            _notify_travel_coordinators(updated_travel, registration)
+
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
     logger.debug("Travel validation errors: %s | data: %s", serializer.errors, request.data)
-    
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def _notify_travel_coordinators(travel, registration):
+    """Send travel plan submission notification to all hq_convention_travel users."""
+    try:
+        from django.utils import timezone
+        recipients = list(
+            User.objects.filter(groups__name='hq_convention_travel', is_active=True)
+            .values_list('email', flat=True)
+        )
+        if not recipients:
+            return
+
+        person = registration.person
+        convention = registration.convention
+
+        message = render_to_string('convention/travel_plan_submitted_email.html', {
+            'person': person,
+            'convention': convention,
+            'travel': travel,
+            'registration': registration,
+            'travel_method_display': TRAVEL_METHOD_LABELS.get(travel.travel_method, travel.travel_method),
+            'departure_time_display': _format_time_preference(travel.departure_time_preference),
+            'return_time_display': _format_time_preference(travel.return_time_preference),
+            'submitted_at': (lambda n: f"{n.strftime('%B')} {n.day}, {n.year} at {n.hour % 12 or 12}:{n.strftime('%M')} {'AM' if n.hour < 12 else 'PM'}")(timezone.now()),
+            'domain': DOMAIN,
+        })
+
+        email_msg = EmailMultiAlternatives(
+            subject=f'{convention.name} — Travel Plan Submitted: {person.first_name} {person.last_name}',
+            body='',
+            to=recipients,
+        )
+        email_msg.attach_alternative(message, 'text/html')
+        email_msg.send()
+
+        travel.travel_notification_sent = True
+        travel.save(update_fields=['travel_notification_sent'])
+
+        logger.info(
+            'Travel plan notification sent for registration_id=%s to %d recipients',
+            registration.id, len(recipients),
+            extra={'person_id': person.id, 'travel_id': travel.id},
+        )
+    except Exception:
+        logger.exception('Failed to send travel plan notification for registration_id=%s', registration.id)
 
 
 @api_view(['PUT'])
