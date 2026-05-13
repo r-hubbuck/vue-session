@@ -250,16 +250,14 @@ const visibleCategories = computed(() =>
             ref="userMenuRef"
             role="menu"
             @keydown="handleMenuKeydown"
-            style="position: absolute; right: 0; top: calc(100% + 8px); min-width: 180px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1000; overflow: hidden;"
+            class="user-dropdown"
           >
             <router-link
               :to="accountRoute"
               @click="closeAllMenus"
               role="menuitem"
               tabindex="-1"
-              style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; color: #374151; text-decoration: none; font-size: 0.875rem;"
-              @mouseenter="e => e.currentTarget.style.background='#f8fafc'"
-              @mouseleave="e => e.currentTarget.style.background=''"
+              class="user-dropdown-item"
             >
               <i class="bi bi-person-gear"></i>
               Account Settings
@@ -268,21 +266,17 @@ const visibleCategories = computed(() =>
               @click="supportModalOpen = true; closeAllMenus()"
               role="menuitem"
               tabindex="-1"
-              style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; color: #374151; font-size: 0.875rem; width: 100%; background: none; border: none; cursor: pointer; text-align: left;"
-              @mouseenter="e => e.currentTarget.style.background='#f8fafc'"
-              @mouseleave="e => e.currentTarget.style.background=''"
+              class="user-dropdown-item"
             >
               <i class="bi bi-headset"></i>
               Contact Support
             </button>
-            <div style="border-top: 1px solid #e2e8f0;"></div>
+            <div class="user-dropdown-divider"></div>
             <button
               @click="logout"
               role="menuitem"
               tabindex="-1"
-              style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; color: #ef4444; font-size: 0.875rem; width: 100%; background: none; border: none; cursor: pointer; text-align: left;"
-              @mouseenter="e => e.currentTarget.style.background='#fef2f2'"
-              @mouseleave="e => e.currentTarget.style.background=''"
+              class="user-dropdown-item user-dropdown-item--danger"
             >
               <i class="bi bi-box-arrow-right"></i>
               Logout
@@ -383,6 +377,53 @@ const visibleCategories = computed(() =>
 </template>
 
 <style scoped>
+/* ─── Desktop user dropdown ─────────────────────────── */
+.user-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 180px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.user-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  width: 100%;
+  color: #374151;
+  font-size: 0.875rem;
+  font-family: inherit;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.user-dropdown-item:hover {
+  background: #f8fafc;
+}
+
+.user-dropdown-item--danger {
+  color: #ef4444;
+}
+
+.user-dropdown-item--danger:hover {
+  background: #fef2f2;
+}
+
+.user-dropdown-divider {
+  border-top: 1px solid #e2e8f0;
+}
+
 /* ─── Desktop dropdown group ─────────────────────────── */
 .nav-dropdown-group {
   position: relative;

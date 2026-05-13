@@ -36,6 +36,7 @@ class ConventionSerializer(serializers.ModelSerializer):
             'location',
             'start_date',
             'end_date',
+            'days_prior_to_start',
             'registration_open_date',
             'registration_close_date',
             'is_active',

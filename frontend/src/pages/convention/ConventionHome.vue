@@ -750,7 +750,8 @@
               <!-- Departure Date -->
               <div class="col-md-6">
                 <label class="form-label">Departure Date *</label>
-                <input v-model="travel.departure_date" type="date" class="form-control" required>
+                <input v-model="travel.departure_date" type="date" class="form-control"
+                       :min="travelMinDate" :max="travelMaxDate" required>
               </div>
 
               <!-- Departure Time -->
@@ -792,6 +793,8 @@
                 <input
                   v-model="travel.return_date"
                   type="date"
+                  :min="travel.departure_date || travelMinDate"
+                  :max="travelMaxDate"
                   :class="['form-control', { 'is-invalid': travel.departure_date && travel.return_date && !isValidTravelDates }]"
                   required
                 >
@@ -1623,6 +1626,23 @@ const isGuestInfoComplete = computed(() => {
   if (guestDecision.value === 'no') return true
   if (guestDecision.value === 'yes') return guests.value.length > 0
   return false
+})
+
+// Travel date window: from (start_date - days_prior_to_start) through (end_date + 1 day)
+const travelMinDate = computed(() => {
+  if (!convention.value?.start_date || convention.value?.days_prior_to_start == null) return ''
+  const [y, m, d] = convention.value.start_date.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  date.setDate(date.getDate() - convention.value.days_prior_to_start)
+  return date.toISOString().split('T')[0]
+})
+
+const travelMaxDate = computed(() => {
+  if (!convention.value?.end_date) return ''
+  const [y, m, d] = convention.value.end_date.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  date.setDate(date.getDate() + 1)
+  return date.toISOString().split('T')[0]
 })
 
 // Date validation

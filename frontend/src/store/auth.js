@@ -141,14 +141,14 @@ export const useAuthStore = defineStore('auth', {
     async login(email, password, router = null) {
       try {
         const response = await api.post('/api/accounts/login', { email, password })
-        this.serverMessage = response.data.message
-        
         if (response.data.success) {
+          this.clearMessage()
           this.saveState()
           if (router) {
             await router.push({ name: 'code-check' })
           }
         } else {
+          this.serverMessage = response.data.message
           this.user = null
           this.isAuthenticated = false
           this.saveState()
@@ -167,9 +167,8 @@ export const useAuthStore = defineStore('auth', {
         const response = await api.post('/api/accounts/code-check', { code })
 
         if (response.data.success) {
-          this.isAuthenticated = true
-
-          // Fetch user data after successful verification to get role
+          // fetchUser sets isAuthenticated + user atomically — avoids premature
+          // navbar injection into the CodeCheck page before navigation completes
           await this.fetchUser()
 
           if (this.user?.roles?.includes('recruiter')) {
