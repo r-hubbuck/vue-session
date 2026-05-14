@@ -43,7 +43,21 @@ urlpatterns = [
     # Resume curriculum
     path('registration/<int:registration_id>/resume-curriculum/', views.update_resume_curriculum, name='update-resume-curriculum'),
     
-    # Admin endpoints
+    # Admin registration endpoints
+    path('admin/registrations/', views.admin_registration_list, name='admin-registration-list'),
+    path('admin/registrations/<int:registration_id>/', views.admin_registration_detail, name='admin-registration-detail'),
+    path('admin/registrations/<int:registration_id>/send-terms-email/', views.admin_send_terms_email, name='admin-send-terms-email'),
+    path('admin/registrations/<int:registration_id>/travel/', views.admin_registration_travel, name='admin-registration-travel'),
+    path('admin/registrations/<int:registration_id>/accommodation/', views.admin_registration_accommodation, name='admin-registration-accommodation'),
+    path('admin/registrations/<int:registration_id>/committee-preferences/', views.admin_registration_committee_prefs, name='admin-registration-committee-prefs'),
+    path('admin/registrations/<int:registration_id>/guests/', views.admin_registration_guests, name='admin-registration-guests'),
+    path('admin/registrations/<int:registration_id>/guests/<int:guest_id>/', views.admin_registration_guest_detail, name='admin-registration-guest-detail'),
+    path('admin/person-search/', views.admin_person_search, name='admin-person-search'),
+
+    # Public terms agreement (no auth required)
+    path('terms/<str:token>/', views.convention_terms_token, name='convention-terms-token'),
+
+    # Admin travel endpoints
     path('admin/travel/', views.admin_travel_list, name='admin-travel-list'),
     path('admin/travel/<int:travel_id>/', views.admin_travel_detail, name='admin-travel-detail'),
 

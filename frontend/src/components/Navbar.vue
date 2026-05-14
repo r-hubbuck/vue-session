@@ -116,10 +116,11 @@ const navCategoryDefs = [
     label: 'Convention',
     icon: 'bi-calendar-event',
     items: [
-      { to: '/convention',          label: 'My Registration', icon: 'bi-person-badge',  roles: null },
-      { to: '/convention-check-in', label: 'Check In',        icon: 'bi-person-check',  roles: ['hq_staff'] },
-      { to: '/convention-travel',   label: 'Travel Requests', icon: 'bi-airplane',      roles: ['hq_admin', 'hq_convention_travel'] },
-      { to: '/recruiter-admin',     label: 'Recruiters',      icon: 'bi-briefcase',     roles: ['hq_recruiting', 'hq_admin'] },
+      { to: '/convention',          label: 'My Registration',   icon: 'bi-person-badge',       roles: null },
+      { to: '/convention-admin',    label: 'Registration Admin', icon: 'bi-person-lines-fill', roles: ['hq_staff'] },
+      { to: '/convention-check-in', label: 'Check In',           icon: 'bi-person-check',      roles: ['hq_staff'] },
+      { to: '/convention-travel',   label: 'Travel Requests',    icon: 'bi-airplane',           roles: ['hq_admin', 'hq_convention_travel'] },
+      { to: '/recruiter-admin',     label: 'Recruiters',         icon: 'bi-briefcase',          roles: ['hq_recruiting', 'hq_admin'] },
     ],
   },
   {

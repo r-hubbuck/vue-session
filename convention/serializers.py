@@ -1018,16 +1018,256 @@ class RegistrationStatusUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         """Update status and set checked_in_at if checking in"""
         from django.utils import timezone
-        
+
         status_code = validated_data.get('status_code', instance.status_code)
-        
+
         # If checking in, set the checked_in_at timestamp and at_convention flag
         if status_code == 'checked_in' and instance.status_code != 'checked_in':
             validated_data['checked_in_at'] = timezone.now()
             validated_data['at_convention'] = True
-        
+
         # If cancelling, set at_convention to False
         if status_code == 'cancelled':
             validated_data['at_convention'] = False
-        
+
         return super().update(instance, validated_data)
+
+
+class AdminRegistrationPersonSerializer(serializers.ModelSerializer):
+    email = serializers.SerializerMethodField()
+    member_id = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Person
+        fields = ['id', 'first_name', 'last_name', 'preferred_first_name', 'email', 'member_id']
+
+    def get_email(self, obj):
+        if hasattr(obj, 'user') and obj.user:
+            return obj.user.email
+        return None
+
+    def get_member_id(self, obj):
+        if hasattr(obj, 'member'):
+            return obj.member.member_id
+        return None
+
+
+class AdminRegistrationListSerializer(serializers.ModelSerializer):
+    person = AdminRegistrationPersonSerializer(read_only=True)
+    has_travel = serializers.SerializerMethodField()
+    has_accommodation = serializers.SerializerMethodField()
+    travel_booked = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ConventionRegistration
+        fields = [
+            'id',
+            'status_code',
+            'registration_date',
+            'is_guest',
+            'paid',
+            'credentials_received',
+            'contact_email',
+            'terms_agreed',
+            'terms_agreed_at',
+            'person',
+            'has_travel',
+            'has_accommodation',
+            'travel_booked',
+        ]
+
+    def get_has_travel(self, obj):
+        return hasattr(obj, 'travel') and obj.travel is not None
+
+    def get_has_accommodation(self, obj):
+        return hasattr(obj, 'accommodation') and obj.accommodation is not None
+
+    def get_travel_booked(self, obj):
+        try:
+            return bool(obj.travel.outbound_flight_number and obj.travel.return_flight_number)
+        except Exception:
+            return False
+
+
+class AdminRegistrationDetailSerializer(serializers.ModelSerializer):
+    person = AdminRegistrationPersonSerializer(read_only=True)
+    committee_preferences = ConventionCommitteePreferenceSerializer(read_only=True)
+    guest_details = ConventionGuestSerializer(many=True, read_only=True)
+    travel = ConventionTravelSerializer(read_only=True)
+    accommodation = ConventionAccommodationSerializer(read_only=True)
+
+    class Meta:
+        model = ConventionRegistration
+        fields = [
+            'id',
+            'status_code',
+            'registration_date',
+            'is_guest',
+            'paid',
+            'credentials_received',
+            'visible_to_recruiters',
+            'guest_attending',
+            'contact_email',
+            'terms_agreed',
+            'terms_agreed_at',
+            'emergency_contact_name',
+            'emergency_contact_relationship',
+            'emergency_contact_phone',
+            'confirmation_email_sent',
+            'person',
+            'committee_preferences',
+            'guest_details',
+            'travel',
+            'accommodation',
+        ]
+
+
+class AdminRegistrationUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConventionRegistration
+        fields = [
+            'status_code',
+            'paid',
+            'credentials_received',
+            'visible_to_recruiters',
+            'guest_attending',
+            'contact_email',
+            'emergency_contact_name',
+            'emergency_contact_relationship',
+            'emergency_contact_phone',
+        ]
+        read_only_fields = ['terms_agreed', 'terms_agreed_at']
+
+    def validate_contact_email(self, value):
+        if value:
+            value = bleach.clean(value, tags=[], strip=True).strip()
+            import re
+            if not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', value):
+                raise serializers.ValidationError('Enter a valid email address.')
+        return value
+
+    def validate_status_code(self, value):
+        value = bleach.clean(value, tags=[], strip=True).strip()
+        valid = [c[0] for c in ConventionRegistration.STATUS_CHOICES]
+        if value not in valid:
+            raise serializers.ValidationError(f'Must be one of: {", ".join(valid)}.')
+        return value
+
+    def validate_visible_to_recruiters(self, value):
+        value = bleach.clean(value, tags=[], strip=True).strip()
+        allowed = [c[0] for c in ConventionRegistration.VISIBILITY_CHOICES]
+        if value not in allowed:
+            raise serializers.ValidationError(f'Must be one of: {", ".join(allowed)}.')
+        return value
+
+    def validate_emergency_contact_name(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_emergency_contact_relationship(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_emergency_contact_phone(self, value):
+        if value:
+            import re
+            digits = re.sub(r'\D', '', value.strip())
+            if digits:
+                if len(digits) < 10 or len(digits) > 15:
+                    raise serializers.ValidationError('Phone number must be between 10 and 15 digits.')
+                if len(set(digits)) == 1:
+                    raise serializers.ValidationError('Please enter a valid phone number.')
+                if len(digits) == 10 and (digits[0] in ('0', '1') or digits[3] in ('0', '1')):
+                    raise serializers.ValidationError('Please enter a valid phone number.')
+                return digits
+        return value
+
+
+class PersonSearchSerializer(serializers.ModelSerializer):
+    email = serializers.SerializerMethodField()
+    member_id = serializers.SerializerMethodField()
+    has_active_registration = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Person
+        fields = ['id', 'first_name', 'last_name', 'preferred_first_name', 'email', 'member_id', 'has_active_registration']
+
+    def get_email(self, obj):
+        if hasattr(obj, 'user') and obj.user:
+            return obj.user.email
+        return None
+
+    def get_member_id(self, obj):
+        if hasattr(obj, 'member'):
+            return obj.member.member_id
+        return None
+
+    def get_has_active_registration(self, obj):
+        convention = self.context.get('convention')
+        if not convention:
+            return False
+        return obj.convention_registrations.filter(convention=convention).exists()
+
+
+class AdminTravelSerializer(ConventionTravelSerializer):
+    """
+    Staff version of ConventionTravelSerializer — all fields writable including
+    booked flight details that are read-only for members.
+    Skips the need_booking validation so staff can save partial data freely.
+    """
+    class Meta(ConventionTravelSerializer.Meta):
+        read_only_fields = []
+
+    def validate(self, data):
+        return data
+
+    def validate_outbound_airline(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_outbound_flight_number(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_outbound_confirmation(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_return_airline(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_return_flight_number(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_return_confirmation(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+
+class AdminAccommodationSerializer(ConventionAccommodationSerializer):
+    """
+    Staff version of ConventionAccommodationSerializer — room_number and
+    room_confirmation are writable so staff can assign rooms.
+    """
+    class Meta(ConventionAccommodationSerializer.Meta):
+        read_only_fields = []
+
+    def validate_room_number(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value
+
+    def validate_room_confirmation(self, value):
+        if value:
+            return bleach.clean(value, tags=[], strip=True).strip()
+        return value

@@ -167,6 +167,9 @@ class ConventionRegistration(models.Model):
     emergency_contact_name = models.CharField(max_length=200, blank=True)
     emergency_contact_relationship = models.CharField(max_length=100, blank=True)
     emergency_contact_phone = models.CharField(max_length=20, blank=True)
+    contact_email = models.CharField(max_length=254, blank=True)
+    terms_agreed = models.BooleanField(default=False)
+    terms_agreed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -429,3 +432,25 @@ class ConventionAccommodation(models.Model):
 
     def __str__(self):
         return f"Accommodation for {self.registration}"
+
+
+class ConventionTermsToken(models.Model):
+    """
+    One-time token sent to non-member attendees so they can agree to convention
+    terms without a user account. Token is stored hashed (SHA-256).
+    """
+    registration = models.OneToOneField(
+        ConventionRegistration,
+        on_delete=models.CASCADE,
+        related_name='terms_token',
+    )
+    token_hash = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'convention_terms_token'
+
+    def __str__(self):
+        return f"TermsToken for {self.registration}"

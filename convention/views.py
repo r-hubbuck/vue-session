@@ -33,6 +33,7 @@ from .models import (
     ConventionMeal,
     ConventionTravel,
     ConventionAccommodation,
+    ConventionTermsToken,
     Airport,
 )
 from .serializers import (
@@ -51,6 +52,12 @@ from .serializers import (
     AdminConventionTravelUpdateSerializer,
     CheckInListSerializer,
     RegistrationStatusUpdateSerializer,
+    AdminRegistrationListSerializer,
+    AdminRegistrationDetailSerializer,
+    AdminRegistrationUpdateSerializer,
+    PersonSearchSerializer,
+    AdminTravelSerializer,
+    AdminAccommodationSerializer,
 )
 from accounts.models import Person, Address, PhoneNumber, User
 import logging
@@ -169,6 +176,10 @@ def my_registration(request):
                             status=status.HTTP_400_BAD_REQUEST
                         )
                     registration = serializer.save(person=person)
+                    from django.utils import timezone as tz
+                    registration.terms_agreed = True
+                    registration.terms_agreed_at = tz.now()
+                    registration.save(update_fields=['terms_agreed', 'terms_agreed_at'])
             except IntegrityError:
                 return Response(
                     {'message': 'You are already registered for this convention'},
@@ -1206,3 +1217,416 @@ def update_guest_attending(request, registration_id):
     registration.save(update_fields=['guest_attending'])
 
     return Response({'guest_attending': registration.guest_attending})
+
+
+def _send_terms_agreement_email(registration):
+    """Generate a token and send the terms agreement email to registration.contact_email."""
+    import secrets
+    import hashlib
+    from django.utils import timezone
+
+    raw_token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    expires_at = timezone.now() + timezone.timedelta(days=30)
+
+    ConventionTermsToken.objects.filter(registration=registration).delete()
+    ConventionTermsToken.objects.create(
+        registration=registration,
+        token_hash=token_hash,
+        expires_at=expires_at,
+    )
+
+    link = f"{settings.FRONTEND_URL}/convention/terms/{raw_token}"
+    person = registration.person
+    first_name = person.preferred_first_name or person.first_name
+
+    subject = f"Convention Terms Agreement — {registration.convention.name}"
+    html_content = render_to_string(
+        'convention/terms_agreement_email.html',
+        {
+            'first_name': first_name,
+            'convention': registration.convention,
+            'link': link,
+        }
+    )
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=f"Please visit the following link to agree to the convention terms: {link}",
+        from_email=settings.EMAIL_HOST_USER,
+        to=[registration.contact_email],
+    )
+    email.attach_alternative(html_content, 'text/html')
+    email.send()
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def admin_registration_list(request):
+    """
+    GET:  List all non-guest registrations for the active convention.
+          Query params: ?search=, ?status=
+    POST: Create a registration for an existing person (person_id) or a new bare
+          person (is_new_person=true + first_name + last_name).
+    """
+    if not request.user.has_role('hq_staff'):
+        raise PermissionDenied('You do not have permission to manage registrations.')
+
+    try:
+        convention = Convention.objects.filter(is_active=True).latest('year')
+    except Convention.DoesNotExist:
+        return Response({'error': 'No active convention found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    valid_statuses = [c[0] for c in ConventionRegistration.STATUS_CHOICES]
+
+    if request.method == 'GET':
+        qs = ConventionRegistration.objects.filter(
+            convention=convention,
+            is_guest=False,
+        ).select_related('person', 'person__user', 'person__member', 'travel', 'accommodation')
+
+        search = bleach.clean(request.query_params.get('search', ''), tags=[], strip=True).strip()
+        if search:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(person__first_name__icontains=search) |
+                Q(person__last_name__icontains=search) |
+                Q(person__member__member_id__icontains=search)
+            )
+
+        status_filter = bleach.clean(request.query_params.get('status', ''), tags=[], strip=True).strip()
+        if status_filter:
+            if status_filter not in valid_statuses:
+                return Response({'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}.'}, status=status.HTTP_400_BAD_REQUEST)
+            qs = qs.filter(status_code=status_filter)
+
+        serializer = AdminRegistrationListSerializer(qs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # POST — create a registration
+    is_new_person = request.data.get('is_new_person', False)
+
+    with transaction.atomic():
+        if is_new_person:
+            first_name = bleach.clean(str(request.data.get('first_name', '')), tags=[], strip=True).strip()
+            last_name = bleach.clean(str(request.data.get('last_name', '')), tags=[], strip=True).strip()
+            preferred_first_name = bleach.clean(str(request.data.get('preferred_first_name', '')), tags=[], strip=True).strip()
+
+            if not first_name or not last_name:
+                return Response({'error': 'First name and last name are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            person = Person.objects.create(
+                first_name=first_name,
+                last_name=last_name,
+                preferred_first_name=preferred_first_name,
+            )
+        else:
+            person_id = request.data.get('person_id')
+            if not person_id:
+                return Response({'error': 'person_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            person = get_object_or_404(Person, id=person_id)
+
+        if ConventionRegistration.objects.filter(convention=convention, person=person).exists():
+            return Response(
+                {'error': 'This person is already registered for the active convention.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        status_code = bleach.clean(str(request.data.get('status_code', 'registered')), tags=[], strip=True).strip()
+        if status_code not in valid_statuses:
+            return Response({'error': f'Invalid status_code. Must be one of: {", ".join(valid_statuses)}.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        contact_email = bleach.clean(str(request.data.get('contact_email', '')), tags=[], strip=True).strip()
+
+        registration = ConventionRegistration.objects.create(
+            convention=convention,
+            person=person,
+            status_code=status_code,
+            contact_email=contact_email,
+        )
+        ConventionCommitteePreference.objects.create(registration=registration)
+        ConventionTravel.objects.create(registration=registration)
+        ConventionAccommodation.objects.create(registration=registration)
+
+    if is_new_person and contact_email:
+        try:
+            _send_terms_agreement_email(registration)
+        except Exception:
+            pass  # email failure should not block registration creation
+
+    registration.refresh_from_db()
+    reg = ConventionRegistration.objects.select_related(
+        'person', 'person__user', 'person__member', 'travel', 'accommodation'
+    ).get(id=registration.id)
+    serializer = AdminRegistrationListSerializer(reg)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def admin_registration_detail(request, registration_id):
+    """
+    GET:    Full registration detail with all nested sub-models.
+    PUT:    Update registration-level fields (status, paid, credentials, etc.).
+    DELETE: Delete the registration; also removes orphaned bare Person records
+            (persons with no User and no Member).
+    """
+    if not request.user.has_role('hq_staff'):
+        raise PermissionDenied('You do not have permission to manage registrations.')
+
+    registration = get_object_or_404(
+        ConventionRegistration.objects.select_related(
+            'person', 'person__user', 'person__member',
+            'committee_preferences', 'travel', 'accommodation',
+        ).prefetch_related('guest_details', 'guest_details__guest_meals'),
+        id=registration_id,
+    )
+
+    if request.method == 'GET':
+        serializer = AdminRegistrationDetailSerializer(registration)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    if request.method == 'PUT':
+        serializer = AdminRegistrationUpdateSerializer(registration, data=request.data, partial=True)
+        if serializer.is_valid():
+            with transaction.atomic():
+                serializer.save()
+            # Return updated detail
+            registration.refresh_from_db()
+            updated = ConventionRegistration.objects.select_related(
+                'person', 'person__user', 'person__member',
+                'committee_preferences', 'travel', 'accommodation',
+            ).prefetch_related('guest_details', 'guest_details__guest_meals').get(id=registration_id)
+            return Response(AdminRegistrationDetailSerializer(updated).data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # DELETE
+    with transaction.atomic():
+        person = registration.person
+        registration.delete()
+        # Clean up bare persons (no user, no member) created by HQ
+        is_bare = (
+            not hasattr(person, 'user') or person.user is None
+        ) and (
+            not hasattr(person, 'member')
+        )
+        if is_bare:
+            person.delete()
+
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def admin_person_search(request):
+    """
+    Search persons by name or member_id.
+    Returns up to 20 results annotated with whether they have an active convention registration.
+    Query params: ?q=search_term
+    """
+    if not request.user.has_role('hq_staff'):
+        raise PermissionDenied('You do not have permission to search persons.')
+
+    try:
+        convention = Convention.objects.filter(is_active=True).latest('year')
+    except Convention.DoesNotExist:
+        return Response({'error': 'No active convention found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    q = bleach.clean(request.query_params.get('q', ''), tags=[], strip=True).strip()
+    if not q or len(q) < 2:
+        return Response([], status=status.HTTP_200_OK)
+
+    from django.db.models import Q
+    persons = Person.objects.filter(
+        Q(first_name__icontains=q) |
+        Q(last_name__icontains=q) |
+        Q(member__member_id__icontains=q)
+    ).select_related('user', 'member')[:20]
+
+    serializer = PersonSearchSerializer(persons, many=True, context={'convention': convention})
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def admin_send_terms_email(request, registration_id):
+    """
+    Send a terms-agreement email to the contact_email on a registration.
+    Generates a one-time token valid for 30 days.
+    Requires hq_staff role.
+    """
+    if not request.user.has_role('hq_staff'):
+        raise PermissionDenied('You do not have permission to send terms emails.')
+
+    registration = get_object_or_404(ConventionRegistration, id=registration_id)
+
+    if not registration.contact_email:
+        return Response({'error': 'This registration has no contact email.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if registration.terms_agreed:
+        return Response({'error': 'Terms have already been agreed to.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        _send_terms_agreement_email(registration)
+    except Exception as e:
+        return Response({'error': 'Failed to send email. Please try again.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    return Response({'message': 'Terms agreement email sent.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([])
+@throttle_classes([AdminRateThrottle])
+def convention_terms_token(request, token):
+    """
+    Public endpoint for non-member terms agreement.
+    GET:  Validate the token and return person + convention info.
+    POST: Mark the token used and record terms agreement on the registration.
+    """
+    import hashlib
+    from django.utils import timezone
+    from rest_framework.permissions import AllowAny
+
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+    try:
+        terms_token = ConventionTermsToken.objects.select_related(
+            'registration', 'registration__person', 'registration__convention'
+        ).get(token_hash=token_hash)
+    except ConventionTermsToken.DoesNotExist:
+        return Response({'valid': False, 'reason': 'Invalid link.'}, status=status.HTTP_200_OK)
+
+    now = timezone.now()
+
+    if terms_token.used_at is not None:
+        return Response({'valid': False, 'reason': 'This link has already been used.'}, status=status.HTTP_200_OK)
+
+    if terms_token.expires_at < now:
+        return Response({'valid': False, 'reason': 'This link has expired. Please contact HQ for a new one.'}, status=status.HTTP_200_OK)
+
+    registration = terms_token.registration
+    person = registration.person
+    first_name = person.preferred_first_name or person.first_name
+
+    if request.method == 'GET':
+        return Response({
+            'valid': True,
+            'first_name': first_name,
+            'last_name': person.last_name,
+            'convention_name': registration.convention.name,
+            'convention_location': registration.convention.location,
+        }, status=status.HTTP_200_OK)
+
+    # POST — record agreement
+    with transaction.atomic():
+        terms_token.used_at = now
+        terms_token.save(update_fields=['used_at'])
+        registration.terms_agreed = True
+        registration.terms_agreed_at = now
+        registration.save(update_fields=['terms_agreed', 'terms_agreed_at'])
+
+    return Response({'success': True}, status=status.HTTP_200_OK)
+
+
+# ── Admin sub-record endpoints ─────────────────────────────────────────────
+
+def _get_admin_registration(registration_id, user):
+    """Shared helper: verify hq_staff role and return the registration."""
+    if not user.has_role('hq_staff'):
+        raise PermissionDenied('You do not have permission to manage registrations.')
+    return get_object_or_404(ConventionRegistration, id=registration_id)
+
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def admin_registration_travel(request, registration_id):
+    registration = _get_admin_registration(registration_id, request.user)
+
+    if request.method == 'GET':
+        travel, _ = ConventionTravel.objects.get_or_create(registration=registration)
+        return Response(AdminTravelSerializer(travel).data)
+
+    with transaction.atomic():
+        travel, _ = ConventionTravel.objects.get_or_create(registration=registration)
+        serializer = AdminTravelSerializer(travel, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def admin_registration_accommodation(request, registration_id):
+    registration = _get_admin_registration(registration_id, request.user)
+
+    if request.method == 'GET':
+        accommodation, _ = ConventionAccommodation.objects.get_or_create(registration=registration)
+        return Response(AdminAccommodationSerializer(accommodation).data)
+
+    with transaction.atomic():
+        accommodation, _ = ConventionAccommodation.objects.get_or_create(registration=registration)
+        serializer = AdminAccommodationSerializer(accommodation, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def admin_registration_committee_prefs(request, registration_id):
+    registration = _get_admin_registration(registration_id, request.user)
+
+    if request.method == 'GET':
+        prefs, _ = ConventionCommitteePreference.objects.get_or_create(registration=registration)
+        return Response(ConventionCommitteePreferenceSerializer(prefs).data)
+
+    with transaction.atomic():
+        prefs, _ = ConventionCommitteePreference.objects.get_or_create(registration=registration)
+        serializer = ConventionCommitteePreferenceSerializer(prefs, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def admin_registration_guests(request, registration_id):
+    registration = _get_admin_registration(registration_id, request.user)
+
+    if request.method == 'GET':
+        guests = ConventionGuest.objects.filter(registration=registration)
+        return Response(ConventionGuestSerializer(guests, many=True).data)
+
+    serializer = ConventionGuestSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(registration=registration)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def admin_registration_guest_detail(request, registration_id, guest_id):
+    registration = _get_admin_registration(registration_id, request.user)
+    guest = get_object_or_404(ConventionGuest, id=guest_id, registration=registration)
+
+    if request.method == 'DELETE':
+        guest.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    serializer = ConventionGuestSerializer(guest, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

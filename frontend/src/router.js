@@ -16,6 +16,9 @@ const UserAccount       = () => import('./pages/UserAccount.vue')
 const ConventionHome    = () => import('./pages/convention/ConventionHome.vue')
 const ConventionTravel  = () => import('./pages/convention/ConventionTravel.vue')
 const ConventionCheckIn = () => import('./pages/convention/ConventionCheckIn.vue')
+const ConventionAdmin       = () => import('./pages/convention/ConventionAdmin.vue')
+const ConventionAdminDetail = () => import('./pages/convention/ConventionAdminDetail.vue')
+const ConventionTermsAgree  = () => import('./pages/convention/ConventionTermsAgree.vue')
 const ExpenseReport     = () => import('./pages/ExpenseReport.vue')
 const ExpenseReportAdmin = () => import('./pages/ExpenseReportAdmin.vue')
 const RecruiterRegister  = () => import('./pages/recruiter/RecruiterRegister.vue')
@@ -136,14 +139,37 @@ const routes = [
     }
   },
   {
-  path: '/convention-travel',
-  name: 'convention-travel',
-  component: ConventionTravel,
-  meta: { 
-    requiresAuth: true,
-    requiresRoles: ['hq_admin', 'hq_convention_travel']
-  }
-},
+    path: '/convention-travel',
+    name: 'convention-travel',
+    component: ConventionTravel,
+    meta: {
+      requiresAuth: true,
+      requiresRoles: ['hq_admin', 'hq_convention_travel']
+    }
+  },
+  {
+    path: '/convention-admin',
+    name: 'convention-admin',
+    component: ConventionAdmin,
+    meta: {
+      requiresAuth: true,
+      requiresRoles: ['hq_staff']
+    }
+  },
+  {
+    path: '/convention-admin/:id',
+    name: 'convention-admin-detail',
+    component: ConventionAdminDetail,
+    meta: {
+      requiresAuth: true,
+      requiresRoles: ['hq_staff']
+    }
+  },
+  {
+    path: '/convention/terms/:token',
+    name: 'convention-terms-agree',
+    component: ConventionTermsAgree,
+  },
   // Recruiter routes
   {
     path: '/recruiter/account',
