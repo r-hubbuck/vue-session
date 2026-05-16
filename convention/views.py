@@ -34,6 +34,7 @@ from .models import (
     ConventionTravel,
     ConventionAccommodation,
     ConventionTermsToken,
+    ConventionFullyPaidChapter,
     Airport,
 )
 from .serializers import (
@@ -58,6 +59,8 @@ from .serializers import (
     PersonSearchSerializer,
     AdminTravelSerializer,
     AdminAccommodationSerializer,
+    FullyPaidChapterSerializer,
+    FullyPaidChapterUpdateSerializer,
 )
 from accounts.models import Person, Address, PhoneNumber, User
 import logging
@@ -1629,4 +1632,71 @@ def admin_registration_guest_detail(request, registration_id, guest_id):
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ---------------------------------------------------------------------------
+# Fully Paid Chapters
+# ---------------------------------------------------------------------------
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def admin_fully_paid_chapters(request):
+    """
+    GET  — list all fully-paid chapter records for the active convention.
+    POST — add a chapter to the fully-paid program for the active convention.
+           Body: { "chapter_code": "XX0" }
+    """
+    if not request.user.has_role('hq_staff') and not request.user.has_role('hq_admin'):
+        raise PermissionDenied("HQ staff access required.")
+
+    try:
+        convention = Convention.objects.filter(is_active=True).latest('year')
+    except Convention.DoesNotExist:
+        return Response({'error': 'No active convention found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        records = ConventionFullyPaidChapter.objects.filter(convention=convention).order_by('chapter_code')
+        return Response(FullyPaidChapterSerializer(records, many=True).data)
+
+    chapter_code = bleach.clean(str(request.data.get('chapter_code', '')), tags=[], strip=True).strip().upper()
+    if not chapter_code:
+        return Response({'error': 'chapter_code is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    with transaction.atomic():
+        record, created = ConventionFullyPaidChapter.objects.get_or_create(
+            convention=convention,
+            chapter_code=chapter_code,
+            defaults={'spots_available': 0, 'spots_used': 0},
+        )
+    if not created:
+        return Response({'error': 'Chapter already exists for this convention.'}, status=status.HTTP_409_CONFLICT)
+
+    return Response(FullyPaidChapterSerializer(record).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AdminRateThrottle])
+def admin_fully_paid_chapter_detail(request, record_id):
+    """
+    PATCH  — update spots_available for a chapter record.
+             Body: { "spots_available": <int> }
+    DELETE — remove a chapter from the fully-paid program.
+    """
+    if not request.user.has_role('hq_staff') and not request.user.has_role('hq_admin'):
+        raise PermissionDenied("HQ staff access required.")
+
+    record = get_object_or_404(ConventionFullyPaidChapter, id=record_id)
+
+    if request.method == 'DELETE':
+        record.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    serializer = FullyPaidChapterUpdateSerializer(record, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        record.refresh_from_db()
+        return Response(FullyPaidChapterSerializer(record).data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

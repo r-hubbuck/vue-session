@@ -434,6 +434,34 @@ class ConventionAccommodation(models.Model):
         return f"Accommodation for {self.registration}"
 
 
+class ConventionFullyPaidChapter(models.Model):
+    """
+    Tracks per-chapter fully-paid registration quotas for a specific convention.
+    HQ staff manage these allowances; spots_used is incremented when a confirmed
+    member from an eligible chapter claims a fully-paid spot.
+    """
+    convention = models.ForeignKey(
+        Convention,
+        on_delete=models.CASCADE,
+        related_name='fully_paid_chapters'
+    )
+    chapter_code = models.CharField(max_length=10, db_index=True)
+    spots_available = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    spots_used = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+
+    class Meta:
+        db_table = 'convention_fully_paid_chapters'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['convention', 'chapter_code'],
+                name='unique_chapter_per_convention'
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.chapter_code} - {self.convention} ({self.spots_used}/{self.spots_available})"
+
+
 class ConventionTermsToken(models.Model):
     """
     One-time token sent to non-member attendees so they can agree to convention

@@ -19,6 +19,7 @@ from .models import (
     ConventionMeal,
     ConventionTravel,
     ConventionAccommodation,
+    ConventionFullyPaidChapter,
     Airport,
 )
 from accounts.models import Person, Address, PhoneNumber
@@ -1271,3 +1272,44 @@ class AdminAccommodationSerializer(ConventionAccommodationSerializer):
         if value:
             return bleach.clean(value, tags=[], strip=True).strip()
         return value
+
+
+class FullyPaidChapterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConventionFullyPaidChapter
+        fields = ['id', 'convention', 'chapter_code', 'spots_available', 'spots_used']
+        read_only_fields = ['id', 'spots_used']
+
+    def validate_chapter_code(self, value):
+        value = bleach.clean(str(value), tags=[], strip=True).strip().upper()
+        if not value:
+            raise serializers.ValidationError("chapter_code is required.")
+        if len(value) > 10:
+            raise serializers.ValidationError("chapter_code cannot exceed 10 characters.")
+        return value
+
+
+class FullyPaidChapterUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConventionFullyPaidChapter
+        fields = ['spots_available', 'spots_used']
+
+    def validate_spots_available(self, value):
+        if value < 0:
+            raise serializers.ValidationError("spots_available cannot be negative.")
+        return value
+
+    def validate_spots_used(self, value):
+        if value < 0:
+            raise serializers.ValidationError("spots_used cannot be negative.")
+        return value
+
+    def validate(self, data):
+        instance = self.instance
+        spots_available = data.get('spots_available', instance.spots_available if instance else 0)
+        spots_used = data.get('spots_used', instance.spots_used if instance else 0)
+        if spots_used > spots_available:
+            raise serializers.ValidationError(
+                {'spots_used': 'spots_used cannot exceed spots_available.'}
+            )
+        return data

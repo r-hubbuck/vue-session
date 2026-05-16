@@ -61,6 +61,10 @@ urlpatterns = [
     path('admin/travel/', views.admin_travel_list, name='admin-travel-list'),
     path('admin/travel/<int:travel_id>/', views.admin_travel_detail, name='admin-travel-detail'),
 
+    # Fully paid chapters (HQ staff admin)
+    path('admin/fully-paid-chapters/', views.admin_fully_paid_chapters, name='admin-fully-paid-chapters'),
+    path('admin/fully-paid-chapters/<int:record_id>/', views.admin_fully_paid_chapter_detail, name='admin-fully-paid-chapter-detail'),
+
     # Check-in endpoints (staff only)
     path('check-in/list/', views.check_in_list, name='check-in-list'),
     path('check-in/registration/<int:registration_id>/status/', views.update_registration_status, name='update-registration-status'),

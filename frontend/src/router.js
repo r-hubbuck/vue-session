@@ -16,9 +16,10 @@ const UserAccount       = () => import('./pages/UserAccount.vue')
 const ConventionHome    = () => import('./pages/convention/ConventionHome.vue')
 const ConventionTravel  = () => import('./pages/convention/ConventionTravel.vue')
 const ConventionCheckIn = () => import('./pages/convention/ConventionCheckIn.vue')
-const ConventionAdmin       = () => import('./pages/convention/ConventionAdmin.vue')
-const ConventionAdminDetail = () => import('./pages/convention/ConventionAdminDetail.vue')
-const ConventionTermsAgree  = () => import('./pages/convention/ConventionTermsAgree.vue')
+const ConventionAdmin             = () => import('./pages/convention/ConventionAdmin.vue')
+const ConventionAdminDetail       = () => import('./pages/convention/ConventionAdminDetail.vue')
+const ConventionTermsAgree        = () => import('./pages/convention/ConventionTermsAgree.vue')
+const ConventionFullyPaidChapters = () => import('./pages/convention/ConventionFullyPaidChapters.vue')
 const ExpenseReport     = () => import('./pages/ExpenseReport.vue')
 const ExpenseReportAdmin = () => import('./pages/ExpenseReportAdmin.vue')
 const RecruiterRegister  = () => import('./pages/recruiter/RecruiterRegister.vue')
@@ -163,6 +164,15 @@ const routes = [
     meta: {
       requiresAuth: true,
       requiresRoles: ['hq_staff']
+    }
+  },
+  {
+    path: '/convention-fully-paid-chapters',
+    name: 'convention-fully-paid-chapters',
+    component: ConventionFullyPaidChapters,
+    meta: {
+      requiresAuth: true,
+      requiresRoles: ['hq_staff', 'hq_admin']
     }
   },
   {
