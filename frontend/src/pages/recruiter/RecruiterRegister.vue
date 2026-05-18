@@ -79,6 +79,7 @@
             <label class="form-label" for="recruiter-email">Email *</label>
             <input id="recruiter-email" v-model.trim="form.email" type="email" :class="['form-control', { 'is-invalid': emailError }]" required maxlength="254" @blur="validateEmail" @input="validateEmail">
             <div class="invalid-feedback">{{ emailError }}</div>
+            <small class="form-text fw-semibold text-primary"><i class="bi bi-key me-1"></i>This email will be your username when logging in to the portal.</small>
           </div>
           <div class="col-md-6">
             <label class="form-label" for="recruiter-phone">Phone</label>
@@ -131,6 +132,7 @@
             <label class="form-label" for="billing-email">Invoice Email *</label>
             <input id="billing-email" v-model.trim="form.org_billing_email" type="email" :class="['form-control', { 'is-invalid': billingEmailError }]" required maxlength="254" @blur="validateBillingEmail" @input="validateBillingEmail">
             <div class="invalid-feedback">{{ billingEmailError }}</div>
+            <small class="form-text text-muted"><i class="bi bi-info-circle me-1"></i>If unknown, the primary recruiter's email may be used.</small>
           </div>
         </div>
 

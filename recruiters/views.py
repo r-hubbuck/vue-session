@@ -200,9 +200,11 @@ def recruiter_register(request):
         uid_b64 = urlsafe_base64_encode(force_bytes(user.pk))
         token_str = account_activation_token.make_token(user)
         activation_path = reverse('activate', kwargs={'uidb64': uid_b64, 'token': token_str})
-        activation_url = request.build_absolute_uri(activation_path)
         if settings.ENVIRONMENT == 'local':
+            activation_url = request.build_absolute_uri(activation_path)
             logger.info('DEV — recruiter activation URL: %s', activation_url)
+        else:
+            activation_url = f"https://{settings.DOMAIN}{activation_path}"
 
         mail_subject = 'Activate Your Recruiter Account'
         message = render_to_string('registration/account_activation_email.html', {

@@ -31,7 +31,7 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['dev-portal.tbp.org', 'portal.localhost', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['portal.tbp.org', 'staging.portal.tbp.org', 'dev-portal.tbp.org', 'portal.localhost', 'localhost', '127.0.0.1']
 
 
 INSTALLED_APPS = [
@@ -206,12 +206,19 @@ if ENVIRONMENT == 'local':
     CSRF_TRUSTED_ORIGINS = [
         "http://localhost:5173",
     ]
-else:
+elif ENVIRONMENT == 'staging':
     CORS_ALLOWED_ORIGINS = [
-        "https://dev-portal.tbp.org",
+        "https://staging.portal.tbp.org",
     ]
     CSRF_TRUSTED_ORIGINS = [
-        "https://dev-portal.tbp.org",
+        "https://staging.portal.tbp.org",
+    ]
+else:
+    CORS_ALLOWED_ORIGINS = [
+        "https://portal.tbp.org",
+    ]
+    CSRF_TRUSTED_ORIGINS = [
+        "https://portal.tbp.org",
     ]
 
 # SECURE_SSL_REDIRECT = True # Redirect any HTTP request to HTTPS
@@ -280,3 +287,6 @@ os.environ['SSL_CERT_FILE'] = certifi.where()
 # Production uses /portal/vue-session/media (set above)
 if ENVIRONMENT == 'local':
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+elif ENVIRONMENT == 'staging':
+    STATIC_ROOT = '/portal/vue-session-staging/staticfiles'
+    MEDIA_ROOT = '/portal/vue-session-staging/media'
